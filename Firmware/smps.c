@@ -18,6 +18,8 @@
 #include "base.h"
 #include "procMenu.h"
 
+#if defined (BUSPIRATEV4)
+
 unsigned int PWM_dutycycle, V_out, reading;
 	
 void smpsStart(unsigned int V) {	
@@ -69,3 +71,5 @@ void __attribute__((interrupt, no_auto_psv)) _ADC1Interrupt() {
 		OC5R = PWM_dutycycle;					// otherwise continue normally
 	}
 }
+
+#endif
