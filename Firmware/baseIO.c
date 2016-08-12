@@ -281,8 +281,8 @@ void InitializeUART1(void) { // if termspeed==9 it is custom
     U1STAbits.UTXEN = 1;
     IFS0bits.U1RXIF = 0;
 }
-unsigned char UART1TXRdy(void) {
-      return  U1STAbits.UTXBF; 
+unsigned char UART1TXEmpty(void) {
+      return U1STAbits.TRMT; 
 }
 
 unsigned char UART1RXRdy(void) {
@@ -444,7 +444,7 @@ void WAITTXEmpty(void) {
     WaitInReady();
 }
 
-unsigned char UART1TXRdy(void) {
+unsigned char UART1TXEmpty(void) {
     return 1;
 }
 
@@ -508,8 +508,8 @@ void InitializeUART1(void) { // if termspeed==9 it is custom
     U1STAbits.UTXEN = 1;
     IFS0bits.U1RXIF = 0;
 }
-unsigned char UART1TXRdy(void) {
-      return  U1STAbits.UTXBF; 
+unsigned char UART1TXEmpty(void) {
+      return  U1STAbits.TRMT; 
 }
 
 unsigned char UART1RXRdy(void) {

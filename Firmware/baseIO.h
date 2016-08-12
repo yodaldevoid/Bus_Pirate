@@ -98,7 +98,7 @@ void UART1TXInt(void);
 
 //is byte available in RX buffer?
 unsigned char UART1RXRdy(void); 
-unsigned char UART1TXRdy(void);
+unsigned char UART1TXEmpty(void);
 //get a byte from UART
 unsigned char UART1RX(void);
 void WAITTXEmpty(void);
@@ -113,7 +113,6 @@ unsigned char CheckCommsError(void);
 void UART1Speed(unsigned char brg);
 //Initialize the terminal UART for the speed currently set in bpConfig.termSpeed
 void InitializeUART1(void);
-unsigned char UART1TXRdy(void);
 //
 //
 // Ring buffer for UART

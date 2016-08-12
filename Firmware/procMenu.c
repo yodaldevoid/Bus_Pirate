@@ -658,7 +658,7 @@ bpv4reset:
                     //bpWstring("\r\nHiZ>"); //was printed twice
 #else
                     BPMSG1093;
-                    while (0 == UART1TXRdy()); //wait untill TX finishes
+                    while (0 == UART1TXEmpty()); //wait untill TX finishes
                     asm("RESET");
                     //}
 #endif
@@ -668,7 +668,7 @@ bpv4reset:
                         BPMSG1094;
                         bpDelayMS(100);
                         bpInit(); // turn off nasty things, cleanup first needed?
-                        while (0 == UART1TXRdy()); //wait untill TX finishes
+                        while (0 == UART1TXEmpty()); //wait untill TX finishes
                         asm volatile ("mov #BLJUMPADDRESS, w1 \n" //bootloader location
                                     "goto w1 \n");
                     }
@@ -1861,7 +1861,7 @@ void setBaudRate(void) {
     //bpWmessage(MSG_OPT_TERMBAUD_ADJUST); //show 'adjust and press space dialog'
     BPMSG1134;
     BPMSG1251;
-    while (0 == UART1TXRdy()); //wait for TX to finish or reinit flushes part of prompt string from buffer
+    while (0 == UART1TXEmpty()); //wait for TX to finish or reinit flushes part of prompt string from buffer
 
     if (bpConfig.termSpeed == 9) {
         UART1Speed(brg);
