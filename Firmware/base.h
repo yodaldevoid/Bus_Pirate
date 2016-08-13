@@ -51,7 +51,7 @@
 // FIRMWARE VERSION STRING
 // Build Firmware Version String
 // used in 'i' and startup
-#define BP_FIRMWARE_STRING "Community Firmware v7.0 "
+#define BP_FIRMWARE_STRING "Community Firmware v7.0 - goo.gl/gCzQnW "
 
 
 ////////////////////////////////////////
