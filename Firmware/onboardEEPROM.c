@@ -17,6 +17,8 @@
 #include "base.h"
 #include "onboardEEPROM.h"
 
+#if defined (BUSPIRATEV4)
+
 unsigned char eetest(void){
 	unsigned char c,l;
 	eei2cSetup();
@@ -139,3 +141,5 @@ unsigned int eeWriteByte(char wByte, unsigned long wAddr)
 
 	return RetVal;
 }
+
+#endif

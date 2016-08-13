@@ -559,7 +559,7 @@ int evaluate(void)
 */
 
 void interpreter(void)
-{	int len;
+{	int len=0;
 	unsigned int lineno;
 	int i;
 //	int pc; 			//became global
