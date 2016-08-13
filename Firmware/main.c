@@ -42,12 +42,35 @@ extern volatile BYTE usb_device_state; // JTR added
 
 #if defined (BUSPIRATEV2) || defined (BUSPIRATEV1A)
 //set custom configuration for PIC 24F (now always set in bootloader page, not needed here)
-//_CONFIG2(FNOSC_FRCPLL & OSCIOFNC_ON &POSCMOD_NONE & I2C1SEL_PRI)		// Internal FRC OSC = 8MHz
-//_CONFIG1(JTAGEN_OFF & GCP_OFF & GWRP_OFF & COE_OFF & FWDTEN_OFF & ICS_PGx1) //turn off junk we don't need
+// Internal FRC OSC = 8MHz
+//#pragma config FNOSC     = FRCPLL
+//#pragma config OSCIOFNC  = ON 
+//#pragma config POSCMOD   = NONE
+//#pragma config I2C1SEL   = PRI
+// turn off junk we don't need
+//#pragma config JTAGEN    = OFF
+//#pragma config GCP       = OFF
+//#pragma config GWRP      = OFF
+//#pragma config COE       = OFF
+//#pragma config FWDTEN    = OFF
+//#pragma config ICS       = PGx1
 #endif
 #if defined (BUSPIRATEV4)
-_CONFIG1(JTAGEN_OFF & GCP_OFF & GWRP_OFF & COE_OFF & FWDTEN_OFF & ICS_PGx2)
-_CONFIG2(IESO_OFF & FCKSM_CSDCMD & OSCIOFNC_ON & POSCMOD_HS & FNOSC_PRIPLL & PLLDIV_DIV3 & IOL1WAY_ON & PLL_96MHZ_ON & DISUVREG_OFF)
+#pragma config JTAGEN    = OFF
+#pragma config GCP       = OFF
+#pragma config GWRP      = OFF
+#pragma config COE       = OFF
+#pragma config FWDTEN    = OFF
+#pragma config ICS       = PGx2
+#pragma config IESO      = OFF
+#pragma config FCKSM     = CSDCMD
+#pragma config OSCIOFNC  = ON
+#pragma config POSCMOD   = HS
+#pragma config FNOSC     = PRIPLL
+#pragma config PLLDIV    = DIV3
+#pragma config IOL1WAY   = ON
+#pragma config PLL_96MHZ = ON
+#pragma config DISUVREG  = OFF
 #endif
 
 unsigned char irqFlag = 0;
