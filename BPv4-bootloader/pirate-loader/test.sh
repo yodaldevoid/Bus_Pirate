@@ -7,13 +7,13 @@ echo -n "Building for $OS..."
 case $OS in
 
  Darwin )
-	./pirate-loader_mac --dev=/dev/ttyACM0 --hello
+	./pirate-loader --dev=/dev/tty.usbmodem00000001 --hello
 	;;
  Linux )
-	./pirate-loader_lnx --dev=/dev/ttyACM0 --hello
+	./pirate-loader --dev=/dev/ttyACM0 --hello
 	;;
  FreeBSD )
-	./pirate-loader_fbsd --dev=/dev/ttyACM0 --hello
+	./pirate-loader --dev=/dev/ttyACM0 --hello
  	;;
  *)
 	echo "ERROR"

@@ -2,10 +2,13 @@
 
  Pirate-Loader for Bootloader v4
 
- Version  : 1.0.2
+ Version  : 1.0.3
 
  Changelog:
- +2010-06-28 - Made HEX parser case-insensative
+
+  + 2016-08-22 - Migrated to CMake, minor fixes.
+
+  + 2010-06-28 - Made HEX parser case-insensitive
 
   + 2010-02-04 - Changed polling interval to 10ms on Windows select wrapper, suggested by Michal (robots)
 
@@ -21,14 +24,26 @@
 
  Building:
 
+  CMake is required for building this program.  CMake can be downloaded for
+  free from www.cmake.org, or installed on your system via apt-get, yum,
+  homebrew, ports, etc.
+
   UNIX family systems:
-
-	gcc pirate-loader.c -o pirate-loader
-
+ 
+  cd BPv4-bootloader/pirate-loader
+  mkdir build
+  cd build
+  cmake ..
+  make
+ 
   WINDOWS:
-
-	cl pirate-loader.c /DWIN32=1
-
+ 
+  cd BPv4-bootloader/pirate-loader
+  mkdir build
+  cd build
+  cmake ..
+  start pirate-loader.sln
+  (then build from Visual Studio)
 
  Usage:
 
@@ -42,7 +57,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#define PIRATE_LOADER_VERSION "1.0.2"
+#define PIRATE_LOADER_VERSION "1.0.3"
 
 #define STR_EXPAND(tok) #tok
 #define OS_NAME(tok) STR_EXPAND(tok)
@@ -55,8 +70,6 @@
 #define O_NOCTTY 0
 #define O_NDELAY 0
 #define B115200 921600
-
-#define OS WINDOWS
 
 int write(int fd, const void* buf, int len)
 {
@@ -677,8 +690,8 @@ int parseCommandLine(int argc, const char** argv)
         //print usage
         puts("pirate-loader usage:\n");
         puts(" ./pirate-loader --dev=/path/to/device --hello");
-        puts(" ./pirate-loader --dev=/path/to/device --hex=/path/to/hexfile.hex [ --verbose");
-        puts(" ./pirate-loader --simulate --hex=/path/to/hexfile.hex [ --verbose");
+        puts(" ./pirate-loader --dev=/path/to/device --hex=/path/to/hexfile.hex [ --verbose ]");
+        puts(" ./pirate-loader --simulate --hex=/path/to/hexfile.hex [ --verbose ] ");
         puts("");
 
         return 0;
@@ -790,7 +803,8 @@ int main (int argc, const char** argv)
     {
         puts("ERROR");
         fprintf(stderr, "No reply from the bootloader, or invalid reply received: %d\n", res);
-        fprintf(stderr, "Please make sure that PGND and PGC are connected, replug the devide and try again\n");
+        fprintf(stderr, "Please make sure that PGND and PGC are connected, reconnect\n");
+        fprintf(stderr, "the device and try again\n");
         goto Error;
     }
     puts("OK\n"); //extra LF for spacing
@@ -1111,9 +1125,9 @@ int main (int argc, const char** argv)
 
         break;
 
+    case	215:
         printf("PIC24FJ64GA008\n");
         flashsize = 	0xAC00;
-    case	215:
         break;
 
     case	216:
@@ -1123,7 +1137,7 @@ int main (int argc, const char** argv)
         break;
 
     case	220:
-            printf("PIC24FJ96GA006\n");
+        printf("PIC24FJ96GA006\n");
         flashsize = 	0x10000;
 
         break;
@@ -1154,7 +1168,7 @@ int main (int argc, const char** argv)
         break;
 
     case	225:
-            printf("PIC24FJ128GA010\n");
+        printf("PIC24FJ128GA010\n");
         flashsize = 	0x15800;
 
         break;
