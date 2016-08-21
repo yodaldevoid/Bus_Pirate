@@ -66,7 +66,7 @@ struct _SPI {
     unsigned char csl : 1; // to /CS or  not to CS
 } spiSettings;
 
-static unsigned char SPIspeed[] = {0b00000, 0b11000, 0b11100, 0b11101}; //30,125,250,1000khz; datasheet pg 142
+static const unsigned char SPIspeed[] = {0b00000, 0b11000, 0b11100, 0b11101}; //30,125,250,1000khz; datasheet pg 142
 
 /*
 // move into a .h or other .c??? 
@@ -605,7 +605,7 @@ rawSPI mode:
  * 00000010 - Bulk Memory Read from Flash
 	
  */
-static unsigned char binSPIspeed[]={0b00000,0b11000,0b11100,0b11101,0b00011,0b01011,0b10011,0b11011}; //00=30,01=125,10=250,11=1000khz, 100=2mhz,101=2.667mhz,  110=4mhz, 111=8mhz; datasheet pg 142
+static const unsigned char binSPIspeed[]={0b00000,0b11000,0b11100,0b11101,0b00011,0b01011,0b10011,0b11011}; //00=30,01=125,10=250,11=1000khz, 100=2mhz,101=2.667mhz,  110=4mhz, 111=8mhz; datasheet pg 142
 
 void binSPIversionString(void) {
     bpWstring("SPI1");

@@ -53,7 +53,7 @@ struct _UART{
 
 void UARTsetup_exc(void);
 
-static unsigned int UART2speed[]={13332,3332,1666,832,416,207,103,68,34,127};//BRG:300,1200,2400,4800,9600,19200,38400,57600,115200, 31250,
+static const unsigned int UART2speed[]={13332,3332,1666,832,416,207,103,68,34,127};//BRG:300,1200,2400,4800,9600,19200,38400,57600,115200, 31250,
 
 unsigned int UARTread(void)
 {	unsigned int c;
@@ -678,7 +678,7 @@ peripheral settings
 # 100wxxyz � config, w=output type, xx=databits and parity, y=stop bits, z=rx polarity (default :00000)
 # 101wxxyz � read config
 */
-static unsigned int binUARTspeed[]={13332,3332,1666,832,416,207,127,103,68,34,};//BRG:300,1200,2400,4800,9600,19200,31250,38400,57600,115200
+static const unsigned int binUARTspeed[]={13332,3332,1666,832,416,207,127,103,68,34,};//BRG:300,1200,2400,4800,9600,19200,31250,38400,57600,115200
 
 void binUARTversionString(void){bpWstring("ART1");}
 

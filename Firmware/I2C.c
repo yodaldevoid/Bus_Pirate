@@ -59,7 +59,7 @@ unsigned char hwi2cread(void);
 void binI2CversionString(void);
 
 #ifdef BP_USE_I2C_HW
-static unsigned char I2Cspeed[] = {157, 37, 13}; //100,400,1000khz; datasheet pg 145
+static const unsigned char I2Cspeed[] = {157, 37, 13}; //100,400,1000khz; datasheet pg 145
 #endif
 
 //software functions
