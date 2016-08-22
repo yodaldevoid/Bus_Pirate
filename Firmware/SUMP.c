@@ -1,24 +1,159 @@
 //
 // SUMP LA
 //
-//#ifdef SUMP_LA
+
 #include "base.h"
 #include "UART.h"
 #include "busPirateCore.h"
 #include "SUMP.h"
 
-//commandset
-//http://www.sump.org/projects/analyzer/protocol/
+/*
+ * SUMP command set - taken from http://www.sump.org/projects/analyzer/protocol/
+ * With additions taken from http://dangerousprototypes.com/docs/The_Logic_Sniffer's_extended_SUMP_protocol
+ * 
+ * @TODO: Check if it is applicable to implement Protocol v1 instead of v0.
+ * @TODO: Add commands 0x0F, 0x9E, 0x9F from the extended SUMP protocol?
+ */
+
+/**
+ * Resets the device.
+ * 
+ * Should be sent 5 times when the receiver status is unknown. (It could be
+ * waiting for up to four bytes of pending long command data.)
+ */
 #define SUMP_RESET 	0x00
+
+/**
+ * Arms the trigger.
+ */
 #define SUMP_RUN	0x01
+
+/**
+ * Asks for device identification.
+ * 
+ * The device will respond with four bytes. The first three ("SLA") identify
+ * the device. The last one identifies the protocol version which is currently
+ * either "0" or "1"
+ */
 #define SUMP_ID		0x02
+
+/**
+ * Get metadata.
+ * 
+ * In response, the device sends a series of 1-byte keys, followed by data
+ * pertaining to that key. The series ends with the key 0x00. The system can be
+ * extended with new keys as more data needs to be reported.
+ * 
+ * Keys and values list is at http://dangerousprototypes.com/docs/The_Logic_Sniffer's_extended_SUMP_protocol#Proposed_meta_data_format
+ */
 #define SUMP_DESC	0x04
+
+/**
+ * Put transmitter out of pause mode.
+ * 
+ * It will continue to transmit captured data if any is pending. This command
+ * is being used for xon/xoff flow control.
+ */
 #define SUMP_XON	0x11
+
+/**
+ * Put transmitter in pause mode.
+ * 
+ * It will stop transmitting captured data. This command is being used for
+ * xon/xoff flow control.
+ */
 #define SUMP_XOFF 	0x13
+
+/**
+ * Set Divider.
+ * 
+ * When x is written, the sampling frequency is set to f = clock / (x + 1)
+ * 
+ *          LSB                  MSB
+ * 10000000 XXXXXXXXXXXXXXXXXXXXXXXX????????
+ *          ||||||||||||||||||||||||
+ *          ++++++++++++++++++++++++----------- Divider
+ */
 #define SUMP_DIV 	0x80
+
+/**
+ * Set Read & Delay Count.
+ * 
+ * Read Count is the number of samples (divided by four) to read back from
+ * memory and sent to the host computer. Delay Count is the number of samples
+ * (divided by four) to capture after the trigger fired. A Read Count bigger
+ * than the Delay Count means that data from before the trigger match will be
+ * read back. This data will only be valid if the device was running long
+ * enough before the trigger matched.
+ * 
+ *          LSB          MSB LSB          MSB
+ * 10000001 XXXXXXXXXXXXXXXX YYYYYYYYYYYYYYYY
+ *          |||||||||||||||| ||||||||||||||||
+ *          |||||||||||||||| ++++++++++++++++--- Delay Count
+ *          ++++++++++++++++-------------------- Read Count
+ */
 #define SUMP_CNT	0x81
+
+/**
+ * Set Flags.
+ * 
+ * Sets the following flags:
+ * 
+ * - demux: Enables the demux input module. (Filter must be off.)
+ * - filter: Enables the filter input module. (Demux must be off.)
+ * - channel groups: Disable channel group. Disabled groups are excluded from
+ *                   data transmissions. This can be used to speed up transfers.
+ *                   There are four groups, each represented by one bit.
+ *                   Starting with the least significant bit of the channel
+ *                   group field channels are assigned as follows: 0-7, 8-15,
+ *                   16-23, 24-31
+ * - external: Selects the clock to be used for sampling. If set to 0, the
+ *             internal clock divided by the configured divider is used, and if
+ *             set to 1, the external clock will be used. (filter and demux are
+ *             only available with internal clock)
+ * - inverted: When set to 1, the external clock will be inverted before being
+ *             used. The inversion causes a delay that may cause problems at
+ *             very high clock rates. This option only has an effect with
+ *             external set to 1.
+ * 
+ * 10000010 ABCCCCDE ????????????????????????
+ *          ||||||||
+ *          |||||||+---------------------------- Demux (1: Enable)
+ *          ||||||+----------------------------- Filter (1: Enable)
+ *          ||++++------------------------------ Channel Groups (1: Disable)
+ *          |+---------------------------------- External (1: Enable)
+ *          +----------------------------------- Inverted (1: Enable)
+ */
 #define SUMP_FLAGS	0x82
+
+/**
+ * Set Trigger Values.
+ * 
+ * Defines which trigger values must match. In parallel mode each bit
+ * represents one channel, in serial mode each bit represents one of the last
+ * 32 samples of the selected channel. The opcodes refer to stage 0-3 in the
+ * order given below. (Protocol version 0 only supports stage 0.)
+ * 
+ *          LSB                          MSB
+ * 1100xx00 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ *          ||||||||||||||||||||||||||||||||
+ *          ++++++++++++++++++++++++++++++++--- Trigger Mask
+ */
 #define SUMP_TRIG	0xc0
+
+/**
+ * Set trigger mask.
+ * 
+ * Defines which values individual bits must have. In parallel mode each bit
+ * represents one channel, in serial mode each bit represents one of the last
+ * 32 samples of the selected channel. The opcodes refer to stage 0-3 in the
+ * order given above. (Protocol version 0 only supports stage 0.)
+ * 
+ *          LSB                          MSB
+ * 1100xx01 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ *          ||||||||||||||||||||||||||||||||
+ *          ++++++++++++++++++++++++++++++++--- Trigger Mask
+ */
 #define SUMP_TRIG_VALS 0xc1
 
 extern struct _bpConfig bpConfig; //holds persistant bus pirate settings (see busPirateCore.h)
