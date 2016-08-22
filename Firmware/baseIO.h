@@ -14,8 +14,11 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef baseIO_h
-#define baseIO_h
+#ifndef BP_BASEIO_H
+#define BP_BASEIO_H
+
+#include <stddef.h>
+#include <stdint.h>
 
 //manage user terminal input
 unsigned int bpUserNumberPrompt(unsigned int maxBytes, unsigned int maxValue, unsigned int defValue);
@@ -38,6 +41,14 @@ void bpEchoState(unsigned int c);
 //functions for terminal output of various types and lengths
 //
 //
+
+/**
+ * Writes the given buffer to the serial port.
+ * 
+ * @param[in] buffer the data to write.
+ * @param[in] length how many bytes to write.
+ */
+void bpWriteBuffer(const uint8_t *buffer, size_t length);
 
 //Write a string to the user terminal
 void bpWstring(char *s);
@@ -134,5 +145,5 @@ unsigned char USBUSARTIsTxTrfReady(void);
 // Read the lower 16 bits from programming flash memory
 unsigned int bpReadFlash(unsigned int page, unsigned int addr);
 
-#endif
+#endif /* BP_BASEIO_H */
 

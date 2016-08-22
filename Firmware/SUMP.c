@@ -6,13 +6,14 @@
 #include "UART.h"
 #include "busPirateCore.h"
 #include "SUMP.h"
+#include "baseIO.h"
 
 /*
  * SUMP command set - taken from http://www.sump.org/projects/analyzer/protocol/
  * With additions taken from http://dangerousprototypes.com/docs/The_Logic_Sniffer's_extended_SUMP_protocol
  * 
- * @TODO: Check if it is applicable to implement Protocol v1 instead of v0.
  * @TODO: Add commands 0x0F, 0x9E, 0x9F from the extended SUMP protocol?
+ * @TODO: Add "Set trigger configuration" command (0xC2, 0xC6, 0xCA, 0xCE).
  */
 
 /**
@@ -44,7 +45,32 @@
  * pertaining to that key. The series ends with the key 0x00. The system can be
  * extended with new keys as more data needs to be reported.
  * 
- * Keys and values list is at http://dangerousprototypes.com/docs/The_Logic_Sniffer's_extended_SUMP_protocol#Proposed_meta_data_format
+ * Type 0 Keys (null-terminated string, UTF-8 encoded):
+ * 
+ * 0x00 Not used, key means end of metadata
+ * 0x01 Device name (e.g. "Openbench Logic Sniffer v1.0", "Bus Pirate v3b")
+ * 0x02 Version of the FPGA firmware
+ * 0x03 Ancillary version (PIC firmware)
+ * 
+ * Type 1 Keys (32-bit unsigned integer):
+ * 
+ * 0x20 Number of usable probes
+ * 0x21 Amount of sample memory available (bytes)
+ * 0x22 Amount of dynamic memory available (bytes)
+ * 0x23 Maximum sample rate (Hz)
+ * 0x24 Protocol version (see below) [*]
+ * 
+ * Type 2 Keys (8-bit unsigned integer):
+ * 
+ * 0x40 Number of usable probes (short)
+ * 0x41 Protocol version (short) 
+ * 
+ * [*]
+ * 
+ * The protocol version key holds a 4-stage version, one per byte, where the
+ * MSB holds the major version number. As of the first release to support this
+ * metadata command, the protocol version should be 2. This would be encoded
+ * as 0x00000002. 
  */
 #define SUMP_DESC	0x04
 
@@ -156,6 +182,107 @@
  */
 #define SUMP_TRIG_VALS 0xc1
 
+/**
+ * Not used, key means end of metadata.
+ */
+#define SUMP_METADATA_END 0x00
+
+/**
+ * Device name (e.g. "Openbench Logic Sniffer v1.0", "Bus Pirate v3b").
+ */
+#define SUMP_METADATA_DEVICE_NAME 0x01
+
+/**
+ * Version of the FPGA firmware.
+ */
+#define SUMP_METADATA_FPGA_VERSION 0x02
+
+/**
+ * Ancillary version (PIC firmware).
+ */
+#define SUMP_METADATA_ANCILLARY_VERSION 0x03
+
+/**
+ * Number of usable probes.
+ */
+#define SUMP_METADATA_USABLE_PROBES_NUMBER 0x20
+
+/**
+ * Amount of sample memory available (bytes).
+ */
+#define SUMP_METADATA_SAMPLE_MEMORY_AVAILABLE 0x21
+
+/**
+ * Amount of dynamic memory available (bytes).
+ */
+#define SUMP_METADATA_DYNAMIC_MEMORY_AVAILABLE 0x22
+
+/**
+ * Maximum sample rate (Hz).
+ */
+#define SUMP_METADATA_MAXIMUM_SAMPLE_RATE 0x23
+
+/**
+ * Protocol version.
+ */
+#define SUMP_METADATA_PROTOCOL_VERSION 0x24
+
+/**
+ * Number of usable probes (short).
+ */
+#define SUMP_METADATA_USABLE_PROBES_SHORT_NUMBER 0x40
+
+/**
+ * Protocol version (short) .
+ */
+#define SUMP_METADATA_PROTOCOL_SHORT_VERSION 0x41
+
+#define BP_SUMP_SAMPLE_MEMORY_SIZE 4096
+#define BP_SUMP_SAMPLE_RATE 1000000
+#define BP_SUMP_PROBES_COUNT 5
+#define BP_SUMP_PROTOCOL_VERSION 2
+
+static const uint8_t SUMP_METADATA[] = {
+    /* Device name. */
+    
+    SUMP_METADATA_DEVICE_NAME,
+#ifdef BUSPIRATEV4
+    'B', 'P', 'v', '4', '\0',
+#elif BUSPIRATEV3
+    'B', 'P', 'v', '3', '\0',
+#else
+#error "Invalid or unknown Bus Pirate version!"
+#endif /* BUSPIRATEV4 || BUSPIRATEV3 */
+    
+    /* Sample memory (4096 bytes). */
+    
+    SUMP_METADATA_SAMPLE_MEMORY_AVAILABLE,
+    (uint8_t) ((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE >> 24),
+    (uint8_t) (((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE >> 16) & 0xFF),
+    (uint8_t) (((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE >> 8) & 0xFF),
+    (uint8_t) ((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE & 0xFF),
+    
+    /* Sample rate (1MHz). */
+    
+    SUMP_METADATA_MAXIMUM_SAMPLE_RATE,
+    (uint8_t) ((uint32_t) BP_SUMP_SAMPLE_RATE >> 24),
+    (uint8_t) (((uint32_t) BP_SUMP_SAMPLE_RATE >> 16) & 0xFF),
+    (uint8_t) (((uint32_t) BP_SUMP_SAMPLE_RATE >> 8) & 0xFF),
+    (uint8_t) ((uint32_t) BP_SUMP_SAMPLE_RATE & 0xFF),
+
+    /* Number of probes (5). */
+    
+    SUMP_METADATA_USABLE_PROBES_SHORT_NUMBER,
+    BP_SUMP_PROBES_COUNT,
+    
+    /* Protocol version (v2). */
+    
+    SUMP_METADATA_PROTOCOL_SHORT_VERSION,
+    BP_SUMP_PROTOCOL_VERSION,
+    
+    SUMP_METADATA_END
+};
+
 extern struct _bpConfig bpConfig; //holds persistant bus pirate settings (see busPirateCore.h)
 
 static enum _LAstate {
@@ -222,13 +349,15 @@ unsigned char SUMPlogicCommand(unsigned char inByte){
 		case C_IDLE:
 
 			switch(inByte){//switch on the current byte
+                
 				case SUMP_RESET://reset
 					SUMPreset();
 					return 1;
-					break;
+                    
 				case SUMP_ID://SLA0 or 1 backwards: 1ALS
 					bpWstring("1ALS");
 					break;
+                    
 				case SUMP_RUN://arm the triger
 					BP_LEDMODE=1;//ARMED, turn on LED
 
@@ -248,37 +377,19 @@ unsigned char SUMPlogicCommand(unsigned char inByte){
 
 					LAstate=LA_ARMED;
 					break;
+                    
 				case SUMP_DESC:
-					// device name string
-					UART1TX(0x01);
-					bpWstring("BPv3");
-					UART1TX(0x00);
-					//sample memory (4096)
-					UART1TX(0x21);
-					UART1TX(0x00);
-					UART1TX(0x00);
-					UART1TX(0x10);
-					UART1TX(0x00);
-					//sample rate (1MHz)
-					UART1TX(0x23);
-					UART1TX(0x00);
-					UART1TX(0x0F);
-					UART1TX(0x42);
-					UART1TX(0x40);
-					//number of probes (5)
-					UART1TX(0x40);
-					UART1TX(0x05);
-					//protocol version (2)
-					UART1TX(0x41);
-					UART1TX(0x02);
-					UART1TX(0x00);
+                    			bpWriteBuffer(SUMP_METADATA, sizeof(SUMP_METADATA));
 					break;
+                    
 				case SUMP_XON://resume send data
 				//	xflow=1;
-					//break;
+					break;
+                    
 				case SUMP_XOFF://pause send data
 				//	xflow=0;
 					break;
+                    
 				default://long command
 					sumpRX.command[0]=inByte;//store first command byte
 					sumpRX.parameters=4; //all long commands are 5 bytes, get 4 parameters

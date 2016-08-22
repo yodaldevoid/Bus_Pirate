@@ -35,6 +35,14 @@ void bpEchoState(unsigned int c) {
 //
 //
 
+void bpWriteBuffer(const uint8_t *buffer, size_t length) {
+    size_t offset;
+    
+    for (offset = 0; offset < length; offset++) {
+        UART1TX(buffer[offset]);
+    }
+}
+
 //Write a string to the user terminal
 
 void bpWstring(char *s) {
