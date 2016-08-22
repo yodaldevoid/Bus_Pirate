@@ -13,8 +13,9 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef BASE 
-#define BASE
+#ifndef BP_BASE_H
+#define BP_BASE_H
+
 #include <p24Fxxxx.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -288,11 +289,18 @@ void bpADCCprobe(void);
 //  specified by the bpConfig.displayMode setting
 void bpWbyte(unsigned int c);
 
-//delays used by many libraries
-//void bpDelayMS(const unsigned char delay);
-//void bpDelayUS(const unsigned char delay);
-void bpDelayMS(int delay);
-void bpDelayUS(int delay);
-#endif
+/**
+ * Pauses execution for the given amount of milliseconds.
+ *
+ * @param[in] milliseconds the amount of milliseconds to wait.
+ */
+void bpDelayMS(unsigned int milliseconds);
 
+/**
+ * Pauses execution for the given amount of microseconds.
+ *
+ * @param[in] microseconds the amount of microseconds to wait.
+ */
+void bpDelayUS(unsigned int microseconds);
 
+#endif /* BP_BASE_H */

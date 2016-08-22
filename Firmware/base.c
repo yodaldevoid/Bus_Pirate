@@ -158,40 +158,38 @@ void bpWbyte(unsigned int c)
 	}
 }
 
-//delay in MS
-//void bpDelayMS(const unsigned char delay)
-void bpDelayMS(int delay)
-{	int i, c;
+void bpDelayMS(unsigned int milliseconds) {
+	unsigned int counter;
 	
-	for(c=0;c<delay;c++){
-		for(i=0;i<4;i++) bpDelayUS(250);
+	for (counter = 0; counter < milliseconds; counter++) {
+		bpDelayUS(250);
+		bpDelayUS(250);
+		bpDelayUS(250);
+		bpDelayUS(250);
 	}
-
 }
 
-//delay in US
-//void bpDelayUS(const unsigned char delay)
-void bpDelayUS(int delay)
-{
-	int i;
+void bpDelayUS(unsigned int microseconds) {
+	unsigned int counter;
 	
-	for(i=0;i<delay;i++){//@32MHz = 16MIPS, 16I/uS
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
-		asm( "nop" );
+	/* When running at 32MHz, it can execute 16 instructions per µS */
+	for (counter = 0; counter < microseconds; counter++) {
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
+		Nop();
 	}
 }
 
