@@ -16,8 +16,6 @@
       </logicalFolder>
       <itemPath>../1wire.h</itemPath>
       <itemPath>../AUXpin.h</itemPath>
-      <itemPath>../Compiler.h</itemPath>
-      <itemPath>../GenericTypeDefs.h</itemPath>
       <itemPath>../HD44780.h</itemPath>
       <itemPath>../I2C.h</itemPath>
       <itemPath>../OpenOCD.h</itemPath>
@@ -34,7 +32,6 @@
       <itemPath>../bitbang.h</itemPath>
       <itemPath>../busPirateCore.h</itemPath>
       <itemPath>../dp_usb/cdc.h</itemPath>
-      <itemPath>../configwords.h</itemPath>
       <itemPath>../descriptors.h</itemPath>
       <itemPath>../dio.h</itemPath>
       <itemPath>../globals.h</itemPath>
