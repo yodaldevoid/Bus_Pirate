@@ -21,7 +21,7 @@
 #include "base.h"
 #include "UART.h"
 #include "busPirateCore.h"
-#include "SUMP.h"
+#include "sump.h"
 #include "baseIO.h"
 
 /*
