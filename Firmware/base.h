@@ -177,6 +177,7 @@
         #define BP_USE_RAW3WIRE
         #define BP_USE_LCD // include HD44780 LCD library       
         #define BP_USE_BASIC
+        #define BP_USE_SUMP
         
         #if defined(BUSPIRATEV4)
                 #define BP_USE_DIO //binary mode

@@ -231,10 +231,12 @@ void serviceuser(void) {
                     break;
 left:
                 case 0x02: // ^B (left arrow) or SUMP
+#ifdef BP_USE_SUMP
                     if (binmodecnt >= 5) {
                         enter_sump_mode();
                         binmodecnt = 0; // do we get here or not?
                     } else // ^B (left arrow)
+#endif /* BP_USE_SUMP */
                     {
                         if (tmpcmdend != cmdstart) // at the begining?
                         {

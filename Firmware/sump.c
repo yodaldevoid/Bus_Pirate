@@ -19,6 +19,9 @@
 #include <stdint.h>
 
 #include "base.h"
+
+#ifdef BP_USE_SUMP
+
 #include "UART.h"
 #include "busPirateCore.h"
 #include "sump.h"
@@ -735,3 +738,5 @@ bool sump_acquire_samples(void) {
     /* Acquisition was not performed. */
     return false;
 }
+
+#endif /* BP_USE_SUMP */
