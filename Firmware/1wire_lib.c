@@ -57,17 +57,17 @@ unsigned char OWReset(void){
 
 							//Maxim says a minimum of 480. 
 	for(i=0;i<34;i++) {		//BP Timing seems off; adjusting it looks like each FOR takes 4us. 
-		bpDelayUS(10);		//So 10+4=14 ## I want ~490 so (((TIMEWANTED)/(DELAY_TIME)+(ADJUST))=(LOOPS_NEEDED)) OR (490/(10+4))=(35)
+		bp_delay_us(10);		//So 10+4=14 ## I want ~490 so (((TIMEWANTED)/(DELAY_TIME)+(ADJUST))=(LOOPS_NEEDED)) OR (490/(10+4))=(35)
 	}						//-- above is old. 35x10=506. So im setting it at 34 which is about 490 (turns out to be 491 :)
 	
 	SDA_TRIS=1;				//release. My logic analyzer says we stayed low for exatly 488us. Thats pretty damn near perfect.
 		
-	bpDelayUS(65);			// ADJUSTED. Timing looks great now with the odd numbers.
+	bp_delay_us(65);			// ADJUSTED. Timing looks great now with the odd numbers.
 	if(SDA)					// if lines still high, then no device
 		Presence=2;			// if no device then return 2.
 		
 	for(i=0;i<35;i++) {		//delay for 506us (found above) which is way after the 480 reccomended. thats ok.
-		bpDelayUS(10);
+		bp_delay_us(10);
 	}
 	
 	if(SDA==0)				// if lines still low; then theres a short
@@ -101,22 +101,22 @@ unsigned char OWBit(unsigned char OWbit){
     OW_bpResPins();					// I found not including this leaves the lines odd... :/
 
     SDA_TRIS=0;
-    bpDelayUS(4);
+    bp_delay_us(4);
 	if(OWbit) {
 		SDA_TRIS=1;
 	}
-    bpDelayUS(8);
+    bp_delay_us(8);
 
 	if(OWbit) {						// This is where the magic happens. If a OWbit value of 1 is sent to this function
 		OWbit = SDA;				// well thats the same timing needed to get a value (not just send it) so why not
-    	bpDelayUS(32);				// perform both? So sending one will not only send 1 bit; it will also read one bit
+    	bp_delay_us(32);				// perform both? So sending one will not only send 1 bit; it will also read one bit
 	} else {						// it all depends on what the iDevice is in the mood to do. If its in send mode then
-		bpDelayUS(25);				// it will sends its data, if its in recive mode. Then we will send ours.
+		bp_delay_us(25);				// it will sends its data, if its in recive mode. Then we will send ours.
 		SDA_TRIS=1;					//    magical, i know. :)
-		bpDelayUS(7);
+		bp_delay_us(7);
 	}
 
-	bpDelayUS(5); 					//Just an adjust. 70us perfect.
+	bp_delay_us(5); 					//Just an adjust. 70us perfect.
 
     return OWbit;
 }
@@ -144,7 +144,7 @@ unsigned char OWByte(unsigned char OWbyte){
 		OWbyte>>=1;
 		if(t) { OWbyte |= 0x80; }
 	} 
-	bpDelayUS(8);
+	bp_delay_us(8);
 	return OWbyte;
 }
 

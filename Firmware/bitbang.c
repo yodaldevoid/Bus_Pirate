@@ -256,13 +256,13 @@ void bbH(unsigned int pins, unsigned char delay){
 	}else{
 		IODIR |= pins;//open collector output high
 	}
-	bpDelayUS(delay);//delay
+	bp_delay_us(delay);//delay
 }
 
 void bbL(unsigned int pins, unsigned char delay){
 	IOLAT &=(~pins); //pins to 0
 	IODIR &=(~pins);//direction to output
-	bpDelayUS(delay);//delay	
+	bp_delay_us(delay);//delay	
 }
 
 void bbPins(unsigned int dir, unsigned int pins, unsigned char delay){
@@ -277,7 +277,7 @@ void bbPins(unsigned int dir, unsigned int pins, unsigned char delay){
 			IODIR |= pins;//open collector output high
 		}
 	}
-	bpDelayUS(delay);//delay	
+	bp_delay_us(delay);//delay	
 }
 
 unsigned char bbR(unsigned int pin){

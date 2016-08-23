@@ -84,19 +84,28 @@ void bpInit(void){
 	AD1CON2 = 0;
 }
 
-//take an ADC measurement on the specified channel
-unsigned int bpADC(unsigned char c){
-	AD1CHS=c;//set channel
-	AD1CON1bits.SAMP=1;//start sample
-	AD1CON1bits.DONE=0;//clear done (not really needed)
-	while(AD1CON1bits.DONE==0);//wait for conversion to finish
-	return ADC1BUF0;
-}	
+unsigned int bp_read_adc(unsigned int channel) {
+    /* Set channel. */
+    AD1CHS = channel;
+
+    /* Trigger sample. */
+    AD1CON1bits.SAMP = ON;
+
+    /* Clear "done" flag. */
+    AD1CON1bits.DONE = OFF;
+
+    /* Wait for conversion to finish. */
+    while (AD1CON1bits.DONE == OFF) {
+    }
+
+    /* Return value. */
+    return ADC1BUF0;
+}
 
 //takes a measurement from the ADC probe and prints the result to the user terminal
 void bpADCprobe(void){
 	AD1CON1bits.ADON = 1; // turn ADC ON
-	bpWvolts(bpADC(BP_ADC_PROBE)); //print measurement
+	bpWvolts(bp_read_adc(BP_ADC_PROBE)); //print measurement
 	AD1CON1bits.ADON = 0; // turn ADC OFF
 }
 
@@ -115,7 +124,7 @@ void bpADCCprobe(void)
 	BPMSG1045;
 	while(!UART1RXRdy())				// wait for keypress
 	{	AD1CON1bits.ADON = 1;			// turn ADC ON
-		temp=bpADC(BP_ADC_PROBE);
+		temp=bp_read_adc(BP_ADC_PROBE);
 		AD1CON1bits.ADON = 0;			// turn ADC OFF
 		bpWstring("\x08\x08\x08\x08\x08");	// 5x backspace ( e.g. 5.00V )
 		//BPMSG1046;
@@ -158,18 +167,18 @@ void bpWbyte(unsigned int c)
 	}
 }
 
-void bpDelayMS(unsigned int milliseconds) {
+void bp_delay_ms(unsigned int milliseconds) {
 	unsigned int counter;
 	
 	for (counter = 0; counter < milliseconds; counter++) {
-		bpDelayUS(250);
-		bpDelayUS(250);
-		bpDelayUS(250);
-		bpDelayUS(250);
+		bp_delay_us(250);
+		bp_delay_us(250);
+		bp_delay_us(250);
+		bp_delay_us(250);
 	}
 }
 
-void bpDelayUS(unsigned int microseconds) {
+void bp_delay_us(unsigned int microseconds) {
 	unsigned int counter;
 	
 	/* When running at 32MHz, it can execute 16 instructions per µS */

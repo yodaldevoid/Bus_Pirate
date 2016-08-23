@@ -600,7 +600,7 @@ end:
                         bpBR;
 
                         ADCON();
-                        if (bpADC(BP_ADC_VPU) < 0x50) { //no pullup voltage detected
+                        if (bp_read_adc(BP_ADC_VPU) < 0x50) { //no pullup voltage detected
                             bpWline("Warning: no voltage on Vpullup pin");
                         }
                         ADCOFF();
@@ -666,7 +666,7 @@ bpv4reset:
                 case '$': //bpWline("-bootloader jump");
                     if (agree()) { //bpWline("BOOTLOADER");
                         BPMSG1094;
-                        bpDelayMS(100);
+                        bp_delay_ms(100);
                         bpInit(); // turn off nasty things, cleanup first needed?
                         while (0 == UART1TXEmpty()); //wait untill TX finishes
                         asm volatile ("mov #BLJUMPADDRESS, w1 \n" //bootloader location
@@ -695,9 +695,9 @@ bpv4reset:
                     } else {
                         BP_VREG_ON();
                         ADCON(); // turn ADC ON
-                        bpDelayMS(2); //wait for VREG to come up
+                        bp_delay_ms(2); //wait for VREG to come up
 
-                        if ((bpADC(BP_ADC_3V3) > V33L) && (bpADC(BP_ADC_5V0) > V5L)) { //voltages are correct
+                        if ((bp_read_adc(BP_ADC_3V3) > V33L) && (bp_read_adc(BP_ADC_5V0) > V5L)) { //voltages are correct
                             //bpWmessage(MSG_VREG_ON);
                             BPMSG1096;
                             bpBR;
@@ -750,13 +750,13 @@ bpv4reset:
                     bpWintdec(repeat);
                     //bpWline(OUMSG_PS_DELAY_US);
                     BPMSG1100;
-                    bpDelayUS(repeat);
+                    bp_delay_us(repeat);
                     break;
                 case '%': repeat = getrepeat();
                     BPMSG1099;
                     bpWintdec(repeat);
                     BPMSG1212;
-                    bpDelayMS(repeat);
+                    bp_delay_ms(repeat);
                     break;
                 case '+': //bpWline("-easter egg");
                     //easterEgg();
@@ -1718,49 +1718,49 @@ void pinStates(void) { //bpWline("Pinstates:");
 
 
 #if defined(BUSPIRATEV25)
-    bpWvolts(bpADC(BP_ADC_PROBE));
+    bpWvolts(bp_read_adc(BP_ADC_PROBE));
     BPMSG1045;
     UART1TX('\t');
 #elif defined(BUSPIRATEV4)
-    bpWvolts(bpADC(BP_ADC_5V0));
+    bpWvolts(bp_read_adc(BP_ADC_5V0));
     BPMSG1045;
     UART1TX('\t');
 #else
-    bpWvolts(bpADC(BP_ADC_3V3));
+    bpWvolts(bp_read_adc(BP_ADC_3V3));
     BPMSG1045;
     UART1TX('\t');
 #endif
 
 #if defined(BUSPIRATEV4)
-    bpWvolts(bpADC(BP_ADC_3V3));
+    bpWvolts(bp_read_adc(BP_ADC_3V3));
     BPMSG1045;
     UART1TX('\t');
 #else
-    bpWvolts(bpADC(BP_ADC_5V0));
+    bpWvolts(bp_read_adc(BP_ADC_5V0));
     BPMSG1045;
     UART1TX('\t');
 #endif
 
 #if defined(BUSPIRATEV25)
-    bpWvolts(bpADC(BP_ADC_3V3));
+    bpWvolts(bp_read_adc(BP_ADC_3V3));
     BPMSG1045;
     UART1TX('\t');
 #elif defined(BUSPIRATEV4)
-    bpWvolts(bpADC(BP_ADC_VPU));
+    bpWvolts(bp_read_adc(BP_ADC_VPU));
     BPMSG1045;
     UART1TX('\t');
 #else
-    bpWvolts(bpADC(BP_ADC_PROBE));
+    bpWvolts(bp_read_adc(BP_ADC_PROBE));
     BPMSG1045;
     UART1TX('\t');
 #endif
 
 #if defined(BUSPIRATEV4)
-    bpWvolts(bpADC(BP_ADC_PROBE));
+    bpWvolts(bp_read_adc(BP_ADC_PROBE));
     BPMSG1045;
     UART1TX('\t');
 #else
-    bpWvolts(bpADC(BP_ADC_VPU));
+    bpWvolts(bp_read_adc(BP_ADC_VPU));
     BPMSG1045;
     UART1TX('\t');
 #endif
@@ -1892,9 +1892,9 @@ void setPullupVoltage(void) {
     }
 
     BP_3V3PU_OFF(); //disable any existing pullup
-    bpDelayMS(2);
+    bp_delay_ms(2);
     ADCON();
-    if (bpADC(BP_ADC_VPU) > 0x100) { //is there already an external voltage?
+    if (bp_read_adc(BP_ADC_VPU) > 0x100) { //is there already an external voltage?
         bpWline("Warning: already a voltage on Vpullup pin"); // shouldn;t this be an error?
     }
     ADCOFF();

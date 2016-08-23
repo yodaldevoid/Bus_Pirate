@@ -102,23 +102,18 @@
 // Buspirate version 3 and v2go use the same everything; so this just
 // fixs if the user selected v2go.
 #if defined(BUSPIRATEV2GO)
-        #define BUSPIRATEV3
-#endif
-
-
-#ifdef BUSPIRATEV4
-        #include "hardwarev4a.h"
-#include "dp_usb/usb_stack_globals.h"
-        #include "onboardEEPROM.h"
+#define BUSPIRATEV3
 #endif
 
 #if defined(BUSPIRATEV1A)
-        #include "hardwarev1a.h"
+#include "hardwarev1a.h"
 #elif defined(BUSPIRATEV3)
-        #define BUSPIRATEV2 //v25 (2go) and v3 are about the same, enable the same featue set for both
-        #include "hardwarev3.h"
+#define BUSPIRATEV2 //v25 (2go) and v3 are about the same, enable the same featue set for both
+#include "hardwarev3.h"
 #elif defined(BUSPIRATEV4)
-
+#include "hardwarev4a.h"
+#include "dp_usb/usb_stack_globals.h"
+#include "onboardEEPROM.h"
 #else
 #error "No hardware defined in base.h."
 #endif
@@ -234,21 +229,21 @@ asm (".equ BLJUMPADDRESS, 0xABF8");
 // Also note; the BPV4 project file uses the en_US.s file
 // the buspurate v3 uses the other one...
 #if defined(BUSPIRATEV4)
-        #if defined(LANGUAGE_EN_US)
-                #include "translations/BPv4_en_US.h"
-        #elif defined(LANGUAGE_DE_DE)
-                #include "translations/BPv4_de_DE.h"
-        #else
-                #error "No language defined in base.h."
-        #endif
+#if defined(LANGUAGE_EN_US)
+#include "translations/BPv4_en_US.h"
+#elif defined(LANGUAGE_DE_DE)
+#include "translations/BPv4_de_DE.h"
 #else
-        #if defined(LANGUAGE_EN_US)
-                #include "translations/BPv3_en_US.h"
-        #elif defined(LANGUAGE_DE_DE)
-                #include "translations/BPv3_de_DE.h"
-        #else
-                #error "No language defined in base.h."
-        #endif
+#error "No language defined in base.h."
+#endif
+#else
+#if defined(LANGUAGE_EN_US)
+#include "translations/BPv3_en_US.h"
+#elif defined(LANGUAGE_DE_DE)
+#include "translations/BPv3_de_DE.h"
+#else
+#error "No language defined in base.h."
+#endif
 #endif
 
 
@@ -285,8 +280,18 @@ unsigned int bpRevByte(unsigned int c);
 //reset all peripherals before configuring a new bus protocol
 void bpInit(void);
 
-//take an ADC measurement on channel c
-unsigned int bpADC(unsigned char c);
+
+/**
+ * Reads a value from the ADC on the given channel.
+ * 
+ * @warning this function assumes the ADC is already enabled, and will not turn
+ *          it on or off.
+ * 
+ * @param[in] channel the channel to read data from.
+ * @return the value read from the channel.
+ */
+unsigned int bp_read_adc(unsigned int channel);
+
 //takes a measurement from the ADC probe and prints the result to the user terminal
 void bpADCprobe(void);
 void bpADCCprobe(void);
@@ -300,13 +305,13 @@ void bpWbyte(unsigned int c);
  *
  * @param[in] milliseconds the amount of milliseconds to wait.
  */
-void bpDelayMS(unsigned int milliseconds);
+void bp_delay_ms(unsigned int milliseconds);
 
 /**
  * Pauses execution for the given amount of microseconds.
  *
  * @param[in] microseconds the amount of microseconds to wait.
  */
-void bpDelayUS(unsigned int microseconds);
+void bp_delay_us(unsigned int microseconds);
 
 #endif /* BP_BASE_H */

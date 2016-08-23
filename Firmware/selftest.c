@@ -72,7 +72,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	bpTest(BP_PULLUP,0);
 	
 	BP_VREG_ON();
-	bpDelayMS(2);//in silent mode there's not enought delay for the power supplied to come on
+	bp_delay_ms(2);//in silent mode there's not enought delay for the power supplied to come on
 	//bpPOSTWstring("VREG");
 	BPMSG1169;
 	bpTest(BP_VREGEN,1);
@@ -108,7 +108,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	bpWstring(" ");
 	BPMSG1172; //VPU 
 	
-	bpDelayMS(2);
+	bp_delay_ms(2);
 	bpADCPinTest(BP_ADC_VPU,V5L, V5H);
 	BP_5VPU_OFF();
 
@@ -130,7 +130,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	bpWstring(" ");
 	BPMSG1172; //VPU 
 	
-	bpDelayMS(2);
+	bp_delay_ms(2);
 	bpADCPinTest(BP_ADC_VPU,V33L, V33H);
 	BP_3V3PU_OFF();
 
@@ -175,7 +175,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	BPMSG1175;
 	IODIR&= ~(ALLIO);//output
 	IOLAT|=ALLIO; //high	
-	bpDelayMS(100);
+	bp_delay_ms(100);
 	bpBusPinsTest(1);
 
 	//pullup on, pins=output & low, read input, low?
@@ -188,7 +188,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 		#endif
 		BP_PULLUP_ON();
 	}
-	bpDelayMS(100);
+	bp_delay_ms(100);
 	bpBusPinsTest(0);
 
 	if(jumperTest){
@@ -196,7 +196,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 		//bpPOSTWline("Bus Hi-Z 1");
 		BPMSG1177;
 		IODIR|=ALLIO;//output
-		bpDelayMS(100);
+		bp_delay_ms(100);
 		bpBusPinsTest(1);
 		#if defined	(BUSPIRATEV4)	
 		BP_3V3PU_OFF();
@@ -237,7 +237,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 void bpADCPinTest(unsigned char a, unsigned int lval, unsigned int hval){
 	unsigned int b;
 	UART1TX('(');
-	b=bpADC(a);
+	b=bp_read_adc(a);
 	bpWvolts(b);
 	UART1TX(')');
 	bpTest(((b>lval)&&(b<hval)),1);

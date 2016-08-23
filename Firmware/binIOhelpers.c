@@ -62,9 +62,9 @@ unsigned char binBBpullVoltage(unsigned char ctrlB)
 	else
 	{
    	BP_3V3PU_OFF(); //disable any existing pullup
-   	bpDelayMS(2);
+   	bp_delay_ms(2);
    	ADCON();
-   	if (bpADC(BP_ADC_VPU) > 0x100)
+   	if (bp_read_adc(BP_ADC_VPU) > 0x100)
 		{ //is there already an external voltage?
 			temp =0;
    	}

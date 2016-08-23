@@ -198,7 +198,7 @@ void r2wMacro_78133Write(void){
 	
 	//Reset needs to start low
 	bbCS(0); //bpAuxLow();
-	bpDelayUS(0xff);
+	bp_delay_us(0xff);
 	
 	//RESET HIGH
 	bbCS(1);

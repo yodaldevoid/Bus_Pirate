@@ -517,7 +517,7 @@ void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
         //hold data for write time
         if (i == 3 && (delay > 0)) {
             bbCLK(1);
-            bpDelayMS(delay);
+            bp_delay_ms(delay);
             bbCLK(0);
             continue;
         }

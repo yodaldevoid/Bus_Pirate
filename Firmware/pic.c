@@ -207,7 +207,7 @@ unsigned int picwrite(unsigned int c)
 						BPMSG1078;
 							return 0;
 		}
-		bpDelayMS(piccmddelay);
+		bp_delay_ms(piccmddelay);
 	}
 	else									// send data
 	{	switch(picmode&PICMODEMSK)		// make it future proof

@@ -349,13 +349,13 @@ unsigned char jtagReadDataState(void){
 void jtagDataHigh(void){
         JTAGTDI_TRIS=(~jtagSettings.HiZ);//set output
         JTAGTDI=jtagSettings.HiZ;//data
-        bpDelayUS(JTAGDATASETTLE);//delay
+        bp_delay_us(JTAGDATASETTLE);//delay
 }
 
 void jtagDataLow(void){
         JTAGTDI=0; //data low
         JTAGTDI_TRIS=0;//set to output for HIGHZ low
-        bpDelayUS(JTAGDATASETTLE);//delay
+        bp_delay_us(JTAGDATASETTLE);//delay
 }
 
 void jtagClockTicks(unsigned char c){
@@ -370,24 +370,24 @@ void jtagClockTicks(unsigned char c){
 void jtagClockHigh(void){
         JTAGTCK_TRIS=(~jtagSettings.HiZ);//set output
         JTAGTCK=jtagSettings.HiZ;//data
-        bpDelayUS(JTAGCLOCK);//delay
+        bp_delay_us(JTAGCLOCK);//delay
 }
 
 void jtagClockLow(void){
         JTAGTCK=0;//set clock low
         JTAGTCK_TRIS=0;//set clock output for HIGHZ
-        bpDelayUS(JTAGCLOCK);//delay
+        bp_delay_us(JTAGCLOCK);//delay
 }
 
 void jtagTMSHigh(void){
         JTAGTMS_TRIS=(~jtagSettings.HiZ);//set output
         JTAGTMS=jtagSettings.HiZ;//data
-        bpDelayUS(JTAGDATASETTLE);//delay
+        bp_delay_us(JTAGDATASETTLE);//delay
 }
 
 void jtagTMSLow(void){
         JTAGTMS=0;//cs
         JTAGTMS_TRIS=0;//cs output for HIGHZ
-        bpDelayUS(JTAGDATASETTLE);//delay
+        bp_delay_us(JTAGDATASETTLE);//delay
 }
 

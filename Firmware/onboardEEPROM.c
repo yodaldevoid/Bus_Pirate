@@ -27,10 +27,10 @@ unsigned char eetest(void){
 	eeEnableWrite();
 
 	eeWriteByte(0xFF,0);
-	bpDelayMS(10);
+	bp_delay_ms(10);
 	
 	eeWriteByte(0x10,0);
-	bpDelayMS(10);
+	bp_delay_ms(10);
 	if (eeReadByte(0)==0x10)
 		c= 0;					//in selftest 0 = good.
 	else

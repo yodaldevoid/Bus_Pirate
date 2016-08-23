@@ -405,7 +405,7 @@ int getnumvar(void)
 #endif
 			case TOK_ADC:	//temp=bpADC(BP_ADC_PROBE);
 							ADCON(); // turn ADC ON
-							temp=bpADC(BP_ADC_PROBE);
+							temp=bp_read_adc(BP_ADC_PROBE);
 							ADCOFF(); // turn ADC OFF
 
 //							temp=1234;
@@ -1096,7 +1096,7 @@ void interpreter(void)
 			case TOK_DELAY:	pcupdated=1;
 							pc+=4;
 							temp=assign();
-							bpDelayMS(temp);
+							bp_delay_ms(temp);
 							handleelse();
 
 							break;
@@ -1434,11 +1434,11 @@ unsigned int eeprom_lastmem;
 void HIZbbL(unsigned int pins, int delay)
 {	IOLAT &=(~pins); //pins to 0
 	IODIR &=(~pins);//direction to output
-	bpDelayUS(delay);//delay	
+	bp_delay_us(delay);//delay	
 }
 void HIZbbH(unsigned int pins, int delay)
 {	IODIR |= pins;//open collector output high
-	bpDelayUS(delay);//delay
+	bp_delay_us(delay);//delay
 }
 unsigned char HIZbbR(unsigned int pin)
 {	IODIR |= pin; //pin as input

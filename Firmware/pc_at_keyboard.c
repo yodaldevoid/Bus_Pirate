@@ -226,7 +226,7 @@ unsigned char kbReadByte(void){
 			c=kbReadCode();//read the scancode
 			if(c==0 || c==4)break;//success or error, break the loop
 		}
-		bpDelayUS(5);//delay
+		bp_delay_us(5);//delay
 	}
 
 	//disable any further data by dropping clock line
@@ -256,7 +256,7 @@ unsigned char kbWriteByte(unsigned char c){
 	KBCLK_TRIS=0;//clock low
 	KBCLK=0;
 
-	bpDelayUS(60);//delay at least 1 bit period (60us), interrupt any other data transfer
+	bp_delay_us(60);//delay at least 1 bit period (60us), interrupt any other data transfer
 
 	//data low to signal host->kb transfer
 	KBDIO=0;
@@ -264,7 +264,7 @@ unsigned char kbWriteByte(unsigned char c){
 
 	//take clock high again, KB will start own clock
 	KBCLK_TRIS=1;//clock high/input
-	bpDelayUS(1);
+	bp_delay_us(1);
 
 	//while(KBCLK==1);//wait for first falling edge
 	if(kbWaitClock(0)!=0) return 4; //timeout

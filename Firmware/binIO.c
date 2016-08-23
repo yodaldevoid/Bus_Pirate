@@ -213,14 +213,14 @@ void binBB(void) {
                 //ADC only for v1, v2, v3
             } else if (inByte == 0b10100) {//ADC reading (x/1024)*6.6volts
                 AD1CON1bits.ADON = 1; // turn ADC ON
-                i = bpADC(BP_ADC_PROBE); //take measurement
+                i = bp_read_adc(BP_ADC_PROBE); //take measurement
                 AD1CON1bits.ADON = 0; // turn ADC OFF
                 UART1TX((i >> 8)); //send upper 8 bits
                 UART1TX(i); //send lower 8 bits
             } else if (inByte == 0b10101) {//ADC reading (x/1024)*6.6volts
                 AD1CON1bits.ADON = 1; // turn ADC ON
                 while (1) {
-                    i = bpADC(BP_ADC_PROBE); //take measurement
+                    i = bp_read_adc(BP_ADC_PROBE); //take measurement
                     WAITTXEmpty();
                     UART1TX((i >> 8)); //send upper 8 bits
                     //while(UART1TXRdy==0);
@@ -302,7 +302,7 @@ unsigned char binBBpindirectionset(unsigned char inByte) {
     BP_CS_DIR = i;
 
     //delay for a brief period
-    bpDelayUS(5);
+    bp_delay_us(5);
 
     //return PORT read
     inByte &= (~0b00011111);
@@ -357,7 +357,7 @@ unsigned char binBBpinset(unsigned char inByte) {
     BP_CS = i;
 
     //delay for a brief period
-    bpDelayUS(5);
+    bp_delay_us(5);
 
     //return PORT read
     inByte &= (~0b00011111);

@@ -239,7 +239,7 @@ void LCDmacro(unsigned int c)
                         break;          
                 case 3: //Clear LCD and return home
                         HD44780_WriteByte(HD44780_COMMAND, CMD_CLEARDISPLAY);
-                        bpDelayMS(15);//delay 15ms
+                        bp_delay_ms(15);//delay 15ms
                         //bpWline(OUMSG_LCD_MACRO_CLEAR);
                         BPMSG1222;
                         break;  
@@ -250,7 +250,7 @@ void LCDmacro(unsigned int c)
                         break;
                 case 6: //write numbers 
                         HD44780_WriteByte(HD44780_COMMAND, CMD_CLEARDISPLAY);//Clear LCD and return home
-                        bpDelayMS(15);//delay 15ms
+                        bp_delay_ms(15);//delay 15ms
                         c=0x30;
                         if(input==0) input=80;
                         for(i=0; i<input; i++){
@@ -262,7 +262,7 @@ void LCDmacro(unsigned int c)
                         break;  
                 case 7://write characters                               
                         HD44780_WriteByte(HD44780_COMMAND, CMD_CLEARDISPLAY); //Clear LCD and return home
-                        bpDelayMS(15);//delay 15ms
+                        bp_delay_ms(15);//delay 15ms
                         c=0x21; //start character (!)
                         if(input==0) input=80;
                         for(i=0; i<input; i++){
@@ -297,19 +297,19 @@ void LCDpins(void) {
 void HD44780_Init(unsigned char displaylines){
         //Function set
         HD44780_WriteByte(HD44780_COMMAND, (CMD_FUNCTIONSET + DATAWIDTH4 + FONT5X7 + displaylines)); //0x28, 0b101000
-        bpDelayMS(15);//delay 15ms
+        bp_delay_ms(15);//delay 15ms
         
         //Turn display off
         HD44780_WriteByte(HD44780_COMMAND, CMD_DISPLAYCONTROL + DISPLAYOFF + CURSEROFF + BLINKOFF);//0x08, 0b1000
-        bpDelayMS(15);//delay 15ms
+        bp_delay_ms(15);//delay 15ms
         
         //Clear LCD and return home
         HD44780_WriteByte(HD44780_COMMAND, CMD_CLEARDISPLAY);
-        bpDelayMS(15);//delay 15ms
+        bp_delay_ms(15);//delay 15ms
         
         //Turn on display, turn off cursor and blink
         HD44780_WriteByte(HD44780_COMMAND, CMD_DISPLAYCONTROL + DISPLAYON + CURSERON + BLINKOFF);   // 0x0f, 0b1111
-        bpDelayMS(15);//delay 15ms
+        bp_delay_ms(15);//delay 15ms
 }
 
 //reset LCD to 4bit mode
@@ -317,20 +317,20 @@ void HD44780_Reset(void){
 
         HD44780_SPIwrite(0); //clear IO pins to HD44780
         //# Wait more than 15 msecs after power is applied.
-        bpDelayMS(15);
+        bp_delay_ms(15);
         //# Write 0x03 to LCD and wait 5 msecs for the instruction to complete
         HD44780_WriteNibble(HD44780_COMMAND, 0x03);
-        bpDelayMS(5);
+        bp_delay_ms(5);
         //# Write 0x03 to LCD and wait 160 usecs for instruction to complete
         HD44780_WriteNibble(HD44780_COMMAND, 0x03);
-        bpDelayUS(160);
+        bp_delay_us(160);
         //# Write 0x03 AGAIN to LCD and wait 160 usecs (or poll the Busy Flag) 
         HD44780_WriteNibble(HD44780_COMMAND, 0x03);
-        bpDelayUS(160);
+        bp_delay_us(160);
         //Set the Operating Characteristics of the LCD
     //* Write 0x02 to the LCD to Enable Four Bit Mode 
         HD44780_WriteNibble(HD44780_COMMAND, 0x02);
-        bpDelayUS(160);
+        bp_delay_us(160);
 }
 
 //write byte dat to register reg
