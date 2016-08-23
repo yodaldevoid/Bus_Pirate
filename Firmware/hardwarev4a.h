@@ -120,24 +120,7 @@
 //secondary MISO/CLK/MOSI connection setup (input, low)
 #define BPV4_HWI2CPINS_SETUP()  TRISE|=0b11100000; LATE&=(~0b11100000)
 
-//////////// On-Board EEPROM (OBE) Definitions and Functions
-// OBE Hardware Setup
-#define BP_EEPROM_SETUP()       BP_EE_SDA_DIR=1; BP_EE_SCL_DIR=1;BP_EE_WP_DIR=0;BP_EE_SCL=0; BP_EE_SDA=0; BP_EE_WP=1 //EEPROM pins to input, write protect on
-// OBE Write Protection
-#define BP_EEPROM_WP_ON()       BP_EE_WP=0
-#define BP_EEPROM_WP_OFF()      BP_EE_WP=1
-#define BP_EEPROM_WR_GET()      BP_EE_WP
-// OBE Addressing
-#define BP_EEPROM_ID            0xA0
-#define BP_EEPROM_ID_W          0xA0
-#define BP_EEPROM_ID_R          0xA1
-// OBE Size
-#define BP_EEPROM_MIN           1
-#define BP_EEPROM_MAX           8192
-
 // Hardware 'NORMAL' button on BPv4 definitions
-#define BP_EEPROM_SETUP()       BP_EE_SDA_DIR=1; BP_EE_SCL_DIR=1;BP_EE_WP_DIR=0;BP_EE_SCL=0; BP_EE_SDA=0; BP_EE_WP=1 //EEPROM pins to input, write protect on
-
 #define BP_BUTTON_IF            IFS1bits.CNIF
 #define BP_BUTTON_SETUP()       BP_BUTTON_DIR=1; CNPU1|=0b1; CNEN1|=0b1; IEC1bits.CNIE=0; BP_BUTTON_IF=0;
 #define BP_BUTTON_ISDOWN()      (!BP_BUTTON) //0=DOWN (PRESSED) / 1=UP (UNPRESSED)

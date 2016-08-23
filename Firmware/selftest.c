@@ -14,6 +14,8 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <stdbool.h>
+
 #include "base.h"
 #include "selftest.h"
 #include "busPirateCore.h"
@@ -86,7 +88,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	BPMSG1268; //bpWstring("WP");
 	bpTest(BP_EE_WP, 1);
 	BPMSG1269; //bpWstring("ACK");
-    bpTest(eetest(), 0);
+	bpTest(eeprom_test(), true);
 #endif
 
 	//ADC check
@@ -260,11 +262,11 @@ void bpBusPinsTest(unsigned char d){
 }
 
 //tests pin p for direction d
-void bpTest(unsigned char p, unsigned char d){
-	if(p==d){
+void bpTest(unsigned char obtained, unsigned char expected) {
+	if (obtained == expected) {
 		//bpPOSTWline(" OK");
 		BPMSG1185;
-	}else{
+	} else {
 		//bpPOSTWline(" FAIL");
 		BPMSG1186;
 		errors++;

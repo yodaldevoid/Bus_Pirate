@@ -22,18 +22,51 @@
 #include <stdlib.h>
 #include <string.h>
 
-//typedef unsigned char u8;
-//typedef unsigned int u16;
-//typedef unsigned long u32;
-//typedef unsigned char BYTE;
-
 #define FALSE   0
 #define TRUE    (!FALSE)
 
+/**
+ * Value indicating a bit to be OFF.
+ */
 #define OFF 0
-#define ON  1
 
+/**
+ * Value indicating a bit to be ON.
+ */
+#define ON 1
+
+/**
+ * Value indicating a pin direction to be OUTPUT.
+ */
+#define OUTPUT 0
+
+/**
+ * Value indicating a pin direction to be INPUT.
+ */
+#define INPUT 1
+
+/**
+ * Value indicating a pin state to be LOW.
+ */
+#define LOW 0
+
+/**
+ * Value indicating a pin state to be HIGH.
+ */
+#define HIGH 1
+
+/**
+ * Returns the most significant 16 bits of the given 32-bits integer.
+ * 
+ * @param[in] value a 32-bits integer whose MSW is required.
+ */
 #define HI16(value) (((uint32_t) (value) >> 16) & 0xFFFF)
+
+/**
+ * Returns the least significant 16 bits of the given 32-bits integer.
+ * 
+ * @param[in] value a 32-bits integer whose LSW is required.
+ */
 #define LO16(value) ((uint32_t) (value) & 0xFFFF)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,7 +146,7 @@
 #elif defined(BUSPIRATEV4)
 #include "hardwarev4a.h"
 #include "dp_usb/usb_stack_globals.h"
-#include "onboardEEPROM.h"
+#include "onboard_eeprom.h"
 #else
 #error "No hardware defined in base.h."
 #endif

@@ -45,19 +45,19 @@ void bpInit(void){
 	BP_AUX0_DIR=1;
 	BP_LEDMODE=0; //mode LED OFF
 	BP_LEDMODE_DIR=0;
-	#ifdef BUSPIRATEV4
-		BP_USBLED_OFF();
-		BPV4_HWI2CPINS_SETUP();
-		BP_BUTTON_SETUP();
-		BP_3V3PU_OFF();
-		//BP_5VPU_OFF();
-		BP_EEPROM_SETUP();
-	#endif
-	#ifdef BUSPIRATEV1A
-		BP_PIN6_DIR=1; //AUX2... unused
-		BP_LEDPWR=1; //light power led
-		BP_LEDPWR_DIR=0;
-	#endif
+#ifdef BUSPIRATEV4
+	BP_USBLED_OFF();
+	BPV4_HWI2CPINS_SETUP();
+	BP_BUTTON_SETUP();
+	BP_3V3PU_OFF();
+	//BP_5VPU_OFF();
+	eeprom_initialize();
+#endif /* BUSPIRATEv4 */
+#ifdef BUSPIRATEV1A
+	BP_PIN6_DIR=1; //AUX2... unused
+	BP_LEDPWR=1; //light power led
+	BP_LEDPWR_DIR=0;
+#endif /* BUSPIRATEV1A */
 
 	BP_AUX_RPOUT = 0;    //remove output from AUX pin (PWM/servo modes)
 
