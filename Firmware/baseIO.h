@@ -51,10 +51,10 @@ void bpEchoState(unsigned int c);
 void bpWriteBuffer(const uint8_t *buffer, size_t length);
 
 //Write a string to the user terminal
-void bpWstring(char *s);
+void bpWstring(const char *s);
 
 //write a string and line break to the user terminal
-void bpWline(char *s); 
+void bpWline(const char *s); 
 
 //output an 8bit/byte hex value to the user terminal
 void bpWhex(unsigned int c);

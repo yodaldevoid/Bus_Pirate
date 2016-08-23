@@ -45,14 +45,14 @@ void bpWriteBuffer(const uint8_t *buffer, size_t length) {
 
 //Write a string to the user terminal
 
-void bpWstring(char *s) {
+void bpWstring(const char *s) {
     char c;
     while ((c = *s++)) UART1TX(c);
 }
 
 //write a string to the user terminal, finish with a line break
 
-void bpWline(char *s) {
+void bpWline(const char *s) {
     char c;
     while ((c = *s++)) UART1TX(c);
     UART1TX(0x0d);
@@ -318,7 +318,7 @@ void UARTbufService(void) {
     if (U1STAbits.UTXBF == 0) {//check first for free slot
 
         i = readpointer + 1;
-        if (i == TERMINAL_BUFFER) i = 0; //check for wrap
+        if (i == TERMINAL_BUFFER_SIZE) i = 0; //check for wrap
         if (i == writepointer) return; //buffer empty,
         readpointer = i;
         U1TXREG = bpConfig.terminalInput[readpointer]; //move a byte to UART
@@ -330,7 +330,7 @@ void UARTbufFlush(void) {
 
     while (1) {
         i = readpointer + 1;
-        if (i == TERMINAL_BUFFER) i = 0; //check for wrap
+        if (i == TERMINAL_BUFFER_SIZE) i = 0; //check for wrap
         if (i == writepointer) return; //buffer empty,
 
         if (U1STAbits.UTXBF == 0) {//free slot, move a byte to UART
@@ -347,7 +347,7 @@ void UARTbuf(char c) {
     } else {
         bpConfig.terminalInput[writepointer] = c;
         writepointer++;
-        if (writepointer == TERMINAL_BUFFER) writepointer = 0; //check for wrap
+        if (writepointer == TERMINAL_BUFFER_SIZE) writepointer = 0; //check for wrap
     }
 }
 
@@ -545,7 +545,7 @@ void UARTbufService(void) {
     if (U1STAbits.UTXBF == 0) {//check first for free slot
 
         i = readpointer + 1;
-        if (i == TERMINAL_BUFFER) i = 0; //check for wrap
+        if (i == TERMINAL_BUFFER_SIZE) i = 0; //check for wrap
         if (i == writepointer) return; //buffer empty,
         readpointer = i;
         U1TXREG = bpConfig.terminalInput[readpointer]; //move a byte to UART
@@ -557,7 +557,7 @@ void UARTbufFlush(void) {
 
     while (1) {
         i = readpointer + 1;
-        if (i == TERMINAL_BUFFER) i = 0; //check for wrap
+        if (i == TERMINAL_BUFFER_SIZE) i = 0; //check for wrap
         if (i == writepointer) return; //buffer empty,
 
         if (U1STAbits.UTXBF == 0) {//free slot, move a byte to UART
@@ -574,7 +574,7 @@ void UARTbuf(char c) {
     } else {
         bpConfig.terminalInput[writepointer] = c;
         writepointer++;
-        if (writepointer == TERMINAL_BUFFER) writepointer = 0; //check for wrap
+        if (writepointer == TERMINAL_BUFFER_SIZE) writepointer = 0; //check for wrap
     }
 }
 

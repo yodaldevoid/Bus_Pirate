@@ -13,7 +13,7 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#define TERMINAL_BUFFER 4096
+#define TERMINAL_BUFFER_SIZE 4096
 
 typedef enum
 {

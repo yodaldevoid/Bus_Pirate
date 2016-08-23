@@ -887,7 +887,7 @@ void binI2C(void) {
 
 
                         //check length and report error
-                        if (fw > TERMINAL_BUFFER || fr > TERMINAL_BUFFER) {
+                        if (fw > TERMINAL_BUFFER_SIZE || fr > TERMINAL_BUFFER_SIZE) {
 I2C_write_read_error: //use this for the read error too
                             UART1TX(0);
                             break;

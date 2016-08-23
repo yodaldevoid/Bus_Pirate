@@ -15,22 +15,21 @@
  */
 
 #include "base.h"
-    ///////////////////////////////////////////
-   /////////////[ NOTE ]//////////////////////////////////////
-  ///    The settings and configuration are on [base.h] please open that file if you are new to
- /// compiling the Bus Pirate Firmware.
- ///
- ///                                                                      DangerousPrototypes.com
- ////                                                                 For support and information
- /////                                                        visit the DangerousPrototypes Forum
- ///////////
- 
- 
+    
+///////////////////////////////////////////
+/////////////[ NOTE ]//////////////////////////////////////
+///    The settings and configuration are on [base.h] please open that file if you are new to
+/// compiling the Bus Pirate Firmware.
+///
+///                                                                      DangerousPrototypes.com
+////                                                                 For support and information
+/////                                                        visit the DangerousPrototypes Forum
+///////////
+  
 #include "busPirateCore.h"
 #include "procMenu.h"
 #include "selftest.h"
 #include "basic.h"
-
 
 #if defined (BUSPIRATEV4)
 #include "descriptors.h"
@@ -78,7 +77,7 @@ unsigned char irqFlag = 0;
 void ISRTable(); //Pseudo function to hold ISR remap jump table
 void Initialize(void);
 
-static unsigned char __attribute__((section(".bss.end"))) _buffer[TERMINAL_BUFFER];
+static unsigned char __attribute__((section(".bss.end"))) _buffer[TERMINAL_BUFFER_SIZE];
 struct _bpConfig bpConfig = {.terminalInput = _buffer}; //holds persistant bus pirate settings (see busPirateCore.h)
 struct _modeConfig modeConfig; //holds mode info, cleared between modes
 struct _command bpCommand; //holds the current active command so we don't ahve to put so many variables on the stack

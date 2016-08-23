@@ -232,7 +232,7 @@ void serviceuser(void) {
 left:
                 case 0x02: // ^B (left arrow) or SUMP
                     if (binmodecnt >= 5) {
-                        SUMP();
+                        enter_sump_mode();
                         binmodecnt = 0; // do we get here or not?
                     } else // ^B (left arrow)
                     {

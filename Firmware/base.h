@@ -17,6 +17,7 @@
 #define BP_BASE_H
 
 #include <p24Fxxxx.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +30,11 @@
 #define FALSE   0
 #define TRUE    (!FALSE)
 
+#define OFF 0
+#define ON  1
+
+#define HI16(value) (((uint32_t) (value) >> 16) & 0xFFFF)
+#define LO16(value) ((uint32_t) (value) & 0xFFFF)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////// [ BUS PIRATE SETTINGS ] ////////////////////////////////////////////////////
