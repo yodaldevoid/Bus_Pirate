@@ -33,7 +33,6 @@
       <itemPath>../dp_usb/cdc.h</itemPath>
       <itemPath>../descriptors.h</itemPath>
       <itemPath>../dio.h</itemPath>
-      <itemPath>../globals.h</itemPath>
       <itemPath>../hardwarev3.h</itemPath>
       <itemPath>../hardwarev4a.h</itemPath>
       <itemPath>../1wire_lib.h</itemPath>
