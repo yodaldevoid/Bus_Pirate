@@ -15,33 +15,29 @@
  */
 
 #include "base.h"
-#include "binIO.h"
-
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
 
 #ifdef BP_USE_DIO
 
-void DIOsetup(void)
-{	//modeConfig.HiZ=1;//yes, always HiZ
-	//kbSetup();
+#include "binIO.h"
+
+/**
+ * Bit #9 indicates whether it is to set the pin state or the pin direction.
+ */
+#define DIO_PIN_SET_STATE_FLAG_MASK 0b0000000010000000
+
+void dio_setup(void) {
 }
 
-void DIOsetup_exc(void){}//add something when DIOsetup is filled up
+void dio_setup_execute(void) {
+}
 
-unsigned int DIOread(void)
-{	//kbScancodeResults(kbReadByte());
-	//return kbScancode.code;
+unsigned int dio_read(void) {
 	return PORTB;
 }
 
-unsigned int DIOwrite(unsigned int c)
-{
-	if((c&0b10000000)==0){
-		return binBBpindirectionset(c);
-	}else{
-		return binBBpinset(c);
-	}
-	//return 0x100;
+unsigned int dio_write(unsigned int value) {
+    return (value & DIO_PIN_SET_STATE_FLAG_MASK) ? binBBpinset(value) :
+        binBBpindirectionset(value);
 }
-#endif
+
+#endif /* BP_USE_DIO */

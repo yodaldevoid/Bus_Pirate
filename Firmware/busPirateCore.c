@@ -373,8 +373,8 @@ proto protos[MAXPROTO] = {
 	nullfunc1,				// startR
 	nullfunc1,				// stop
 	nullfunc1,				// stopR
-	DIOwrite,				// send
-	DIOread,				// read
+	dio_write,				// send
+	dio_read,				// read
 	nullfunc1,				// clkh
 	nullfunc1,				// clkl
 	nullfunc1,				// dath
@@ -384,8 +384,8 @@ proto protos[MAXPROTO] = {
 	nullfunc3,				// bitr
 	nullfunc3,				// periodic
 	nullfunc4,				// macro
-	DIOsetup,				// setup
-	DIOsetup_exc,        // setup_exc
+	dio_setup,				// setup
+	dio_setup_execute,        // setup_exc
 	HiZcleanup,				// cleanup
 	HiZpins,
 	HiZsettings,

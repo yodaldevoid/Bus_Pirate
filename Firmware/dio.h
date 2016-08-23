@@ -14,7 +14,38 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-void DIOsetup(void);
-void DIOsetup_exc(void);
-unsigned int DIOread(void);
-unsigned int DIOwrite(unsigned int c);
+#ifndef BP_DIO_H
+#define BP_DIO_H
+
+/**
+ * Prepares the device for Direct I/O (DIO) mode.
+ */
+void dio_setup(void);
+
+/**
+ * Enters Direct I/O (DIO) mode.
+ */
+void dio_setup_execute(void);
+
+/**
+ * Reads a value from the device.
+ * 
+ * @return the value being read.
+ */
+unsigned int dio_read(void);
+
+/**
+ * Writes a value to the device.
+ * 
+ * The given value can be either a state or direction.  If bit #9 is set, then
+ * the value will be interpreted as a state change mask, otherwise it will be
+ * interpreted as a direction change mask.
+ * 
+ * @param[in] value the value to write.
+ * 
+ * @see binBBpinset
+ * @see binBBpindirectionset
+ */
+unsigned int dio_write(unsigned int value);
+
+#endif /* BP_DIO_H */
