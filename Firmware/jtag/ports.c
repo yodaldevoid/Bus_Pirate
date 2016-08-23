@@ -53,7 +53,7 @@ void waitTime(long microsec){
     volatile long i;
 
     for ( i = 0; i < microsec; ++i ){
-                bpDelayUS(1);
+                bp_delay_us(1);
     }
 }
 
