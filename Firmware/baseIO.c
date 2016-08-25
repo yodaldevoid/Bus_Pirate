@@ -268,7 +268,7 @@ unsigned int bpReadFlash(unsigned int page, unsigned int addr) {
     return flash;
 }
 
-#if defined (BUSPIRATEV2) || defined (BUSPIRATEV1A)
+#ifdef BUSPIRATEV2
 //
 //
 // Base user terminal UART functions
@@ -432,8 +432,7 @@ void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
     IFS0bits.U1TXIF = 0;
 }
 
-
-#endif
+#endif /* BUSPIRATEV2 */
 
 #if defined(BUSPIRATEV4) && !defined (BPV4_DEBUG)
 

@@ -4,11 +4,6 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <logicalFolder name="hardware profiles"
-                     displayName="hardware profiles"
-                     projectFiles="true">
-        <itemPath>../hardwarev1a.h</itemPath>
-      </logicalFolder>
       <logicalFolder name="translations"
                      displayName="translations"
                      projectFiles="true">

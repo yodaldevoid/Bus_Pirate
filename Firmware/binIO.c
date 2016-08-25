@@ -171,12 +171,10 @@ void binBB(void) {
 				return;
 #endif
                 //self test is only for v2go and v3
-#ifndef BUSPIRATEV1A 
             } else if (inByte == 0b10000) {//short self test
                 binSelfTest(0);
             } else if (inByte == 0b10001) {//full self test with jumpers
                 binSelfTest(1);
-#endif
             } else if (inByte == 0b10010) {//setup PWM
 
                 //cleanup timers from FREQ measure
@@ -270,9 +268,6 @@ void binReset(void) {
 #endif
     binBBpindirectionset(0xff); //pins to input on start
     binBBpinset(0); //startup everything off, pins at ground
-#if defined(BUSPIRATEV1A) //aux2 pin to input on v1a
-    BP_AUX2_IN();
-#endif
 }
 
 unsigned char binBBpindirectionset(unsigned char inByte) {
@@ -324,13 +319,11 @@ unsigned char binBBpinset(unsigned char inByte) {
         BP_VREG_OFF(); //power off
     }
 
-#ifndef BUSPIRATEV1A 
     if (inByte & 0b100000) {
         BP_PULLUP_ON(); //pullups on
     } else {
         BP_PULLUP_OFF();
     }
-#endif
 
     //set pin LAT
     //using this method is long and nasty,
@@ -370,8 +363,6 @@ unsigned char binBBpinset(unsigned char inByte) {
     return inByte; //return the read
 }
 
-#ifndef BUSPIRATEV1A
-
 void binSelfTest(unsigned char jumperTest) {
     static volatile unsigned int tick = 0;
     unsigned char errors, inByte;
@@ -404,4 +395,3 @@ void binSelfTest(unsigned char jumperTest) {
     }
 
 }
-#endif

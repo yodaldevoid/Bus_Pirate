@@ -81,10 +81,9 @@
 // HARDWARE VERSION
 #if defined(__PIC24FJ256GB106__)        //v4 chip
         #define BUSPIRATEV4
-#elif defined(__PIC24FJ64GA002__)       //v3/v2go/v1a chip
+#elif defined(__PIC24FJ64GA002__)       //v3/v2go
         // Uncomment the hardware version you are building for
         #define BUSPIRATEV3                             // V3 is also V2G0
-        //#define BUSPIRATEV1A                  //probably no longer supported...
 #endif
 
 ////////////////////////////////////////
@@ -138,9 +137,7 @@
 #define BUSPIRATEV3
 #endif
 
-#if defined(BUSPIRATEV1A)
-#include "hardwarev1a.h"
-#elif defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3)
 #define BUSPIRATEV2 //v25 (2go) and v3 are about the same, enable the same featue set for both
 #include "hardwarev3.h"
 #elif defined(BUSPIRATEV4)

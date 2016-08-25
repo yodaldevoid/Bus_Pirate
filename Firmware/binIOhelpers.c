@@ -10,20 +10,11 @@ void binIOperipheralset(unsigned char inByte){
 		BP_VREG_OFF();//power off
 	}
 	
-	#ifndef BUSPIRATEV1A
 	if(inByte&0b100){
 		BP_PULLUP_ON();//pullups on
 	}else{
 		BP_PULLUP_OFF();
 	}
-	#endif
-	#if defined(BUSPIRATEV1A)
-	if(inByte&0b100){
-		BP_AUX2_HI();//AUX2 control
-	}else{
-		BP_AUX2_LOW();
-	}
-	#endif
 
 	//AUX pin, high/low only
 	if(inByte&0b10){

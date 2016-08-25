@@ -393,7 +393,6 @@ void binpic(void)
 												//modeConfig.vregEN=0;
 											}
 											if(cmd&0x01)	// pullup on
-#ifndef BUSPIRATEV1A
 											{	BP_PULLUP_ON(); 
 //												modeConfig.pullupEN=1;
 											}
@@ -401,7 +400,6 @@ void binpic(void)
 											{	BP_PULLUP_OFF();
 //												modeConfig.pullupEN=0;
 											}
-#endif
 										}
 										break;
 							default:	ok=0;

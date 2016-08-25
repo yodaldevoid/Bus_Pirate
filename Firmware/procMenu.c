@@ -17,9 +17,7 @@
 #include "AUXpin.h"
 #include "busPirateCore.h"
 #include "procMenu.h" //need our public versionInfo() function
-#ifndef BUSPIRATEV1A
 #include "selftest.h"
-#endif
 #include "binIO.h"
 #include "SUMP.h"
 #include "basic.h"
@@ -572,7 +570,6 @@ end:
                     bpBR;
                     //}
                     break;
-#ifndef BUSPIRATEV1A
                 case 'p': //bpWline("-pullup resistors off");
 
 
@@ -608,7 +605,6 @@ end:
                         ADCOFF();
                     }
                     break;
-#endif
 #ifdef BUSPIRATEV4
                 case 'e': setPullupVoltage();
                     break;
@@ -636,7 +632,6 @@ end:
                     bpWbin(temp);
                     bpBR;
                     break;
-#ifndef BUSPIRATEV1A 
                 case '~': //bpWline("-selftest");
                     if (bpConfig.busMode == HIZ) {
                         selfTest(1, 1); //self test, showprogress in terminal
@@ -645,7 +640,6 @@ end:
                         BPMSG1092;
                     }
                     break;
-#endif
                 case '#': //bpWline("-reset BP");
                     //removed confirmation in v5.9
                     //ruined AVRdude compatibility
@@ -1624,14 +1618,12 @@ void statusInfo(void) {
     UART1TX(',');
     bpSP;
 
-#ifndef BUSPIRATEV1A
     //pullups available, enabled?
     //was modeConfig.pullupEN
     if (BP_PULLUP == 1) BPMSG1091;
     else BPMSG1089; //bpWmessage(MSG_OPT_PULLUP_ON); else bpWmessage(MSG_OPT_PULLUP_OFF);
     UART1TX(',');
     bpSP;
-#endif
 
 #ifdef BUSPIRATEV4
     if (BP_PUVSEL50_DIR == 0) bpWstring("Vpu=5V, ");

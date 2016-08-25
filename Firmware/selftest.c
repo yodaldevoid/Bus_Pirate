@@ -20,7 +20,6 @@
 #include "selftest.h"
 #include "busPirateCore.h"
 
-#ifndef BUSPIRATEV1A
 void bpTest(unsigned char p, unsigned char d);
 void bpBusPinsTest(unsigned char d);
 void bpADCPinTest(unsigned char a, unsigned int lval, unsigned int hval);
@@ -272,5 +271,3 @@ void bpTest(unsigned char obtained, unsigned char expected) {
 		errors++;
 	}
 }
-
-#endif

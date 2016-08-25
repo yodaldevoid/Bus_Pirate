@@ -39,7 +39,7 @@ void _USB1Interrupt(void);
 extern volatile BYTE usb_device_state; // JTR added
 #endif
 
-#if defined (BUSPIRATEV2) || defined (BUSPIRATEV1A)
+#ifdef BUSPIRATEV2
 //set custom configuration for PIC 24F (now always set in bootloader page, not needed here)
 // Internal FRC OSC = 8MHz
 //#pragma config FNOSC     = FRCPLL
@@ -53,7 +53,8 @@ extern volatile BYTE usb_device_state; // JTR added
 //#pragma config COE       = OFF
 //#pragma config FWDTEN    = OFF
 //#pragma config ICS       = PGx1
-#endif
+#endif /* BUSPIRATEV2 */
+
 #if defined (BUSPIRATEV4)
 #pragma config JTAGEN    = OFF
 #pragma config GCP       = OFF
@@ -134,7 +135,7 @@ void Initialize(void) {
 
     //   volatile unsigned long delay = 0xffff;
     // TBLPAG = 0; // we need to be in page 0 (somehow this isn't set)
-#if defined (BUSPIRATEV2) || defined (BUSPIRATEV1A)
+#ifdef BUSPIRATEV2
     CLKDIVbits.RCDIV0 = 0; //clock divider to 0
     AD1PCFG = 0xFFFF; // Default all pins to digital
 #elif defined (BUSPIRATEV4)
@@ -147,20 +148,20 @@ void Initialize(void) {
     AD1PCFGL = 0x7FD8; //BUSPIRATEV4 has five analog pins b0, b1, b2, b5, b15
     AD1PCFGH = 0x2;
     // usb_register_sof_handler(0);
-#endif
+#endif /* BUSPIRATEV2 */
 
     OSCCONbits.SOSCEN = 0;
 
 
     while (delay--);
     //set pin configuration using peripheral pin select
-#if defined (BUSPIRATEV2) || defined (BUSPIRATEV1A)
+#ifdef BUSPIRATEV2
     BP_TERM_RX = BP_TERM_RX_RP; //Inputs UART1 RX RPINR18bits.U1RXR=4;
     BP_TERM_TX_RP = BP_TERM_TX; // Outputs UART1 TX RPOR1bits.RP3R=U1TX_IO;
 #elif defined (BUSPIRATEV4) && defined (BPV4_DEBUG)
     BP_TERM_RX = BP_TERM_RX_RP; //Inputs UART1 RX RPINR18bits.U1RXR=11;//AUX2
     BP_TERM_TX_RP = BP_TERM_TX; // Outputs UART1 TX RPOR1bits.RP2R=U1TX_IO;//AUX1
-#endif
+#endif /* BUSPIRATEV2 */
 
     //put startup values in config (do first)
     bpConfig.termSpeed = 8; //default PC side port speed, startup in 115200, or saved state (later)....
@@ -168,9 +169,9 @@ void Initialize(void) {
 
     bpInit(); //put startup values in config (do first)clean up, exit in HI-Z
 
-#if defined (BUSPIRATEV2) || defined (BUSPIRATEV1A)
+#ifdef BUSPIRATEV2
     InitializeUART1(); //init the PC side serial port
-#endif
+#endif /* BUSPIRATEV2 */
 
 #if defined (BUSPIRATEV4) && !defined (BPV4_DEBUG)
     initCDC();
