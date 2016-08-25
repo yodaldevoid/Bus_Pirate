@@ -40,6 +40,72 @@ unsigned long bpPeriod_count(unsigned int n);
 int PWMfreq;
 int PWMduty;
 
+static unsigned int setup_prescaler_divisor(unsigned int frequency);
+
+/**
+ * PWM frequency divisor for 1:256 prescaler.
+ */
+#define PWM_DIVISOR_PRESCALER_1_256 62
+
+/**
+ * PWM frequency divisor for 1:64 prescaler.
+ */
+#define PWM_DIVISOR_PRESCALER_1_64 250
+
+/**
+ * PWM frequency divisor for 1:8 prescaler.
+ */
+#define PWM_DIVISOR_PRESCALER_1_8 2000
+
+/**
+ * PWM frequency divisor for 1:1 prescaler.
+ */
+#define PWM_DIVISOR_PRESCALER_1_1 16000
+
+/**
+ * Sets up timer #1's input clock prescaler for the given frequency and returns
+ * an appropriate divisor for it.
+ *
+ * @param[in] frequency the given frequency to set things up for.
+ * @return the appropriate PWM frequency divisor.
+ */
+unsigned int setup_prescaler_divisor(unsigned int frequency) {
+
+    /* Use 1:256 prescaler. */
+
+    if (frequency < 4) {
+        T2CONbits.TCKPS1 = ON;
+        T2CONbits.TCKPS0 = ON;
+
+        return PWM_DIVISOR_PRESCALER_1_256;
+    }
+
+    /* Use 1:64 prescaler. */
+
+    if (frequency < 31) {
+        T2CONbits.TCKPS1 = ON;
+        T2CONbits.TCKPS0 = OFF;
+
+        return PWM_DIVISOR_PRESCALER_1_64;
+    }
+
+    /* Use 1:8 prescaler. */
+
+    if (frequency < 245) {
+        T2CONbits.TCKPS1 = OFF;
+        T2CONbits.TCKPS0 = ON;
+
+        return PWM_DIVISOR_PRESCALER_1_8;
+    }
+
+    /* Use 1:1 prescaler. */
+
+    T2CONbits.TCKPS1 = OFF;
+    T2CONbits.TCKPS0 = OFF;
+
+    return PWM_DIVISOR_PRESCALER_1_1;
+}
+
 //setup PWM frequency using user values in global variables
 void updatePWM(void)
 {       unsigned int PWM_period, PWM_dutycycle, PWM_div;
@@ -55,30 +121,7 @@ void updatePWM(void)
                 return;
         }
 
-        if(PWMfreq<4)
-        {       //use 256 //actual max is 62500hz
-                PWM_div=62;//actually 62500
-                T2CONbits.TCKPS1=1;
-                T2CONbits.TCKPS0=1;
-        }
-        else if(PWMfreq<31)
-        {       //use 64
-                PWM_div=250;
-                T2CONbits.TCKPS1=1;
-                T2CONbits.TCKPS0=0;
-        }
-        else if(PWMfreq<245)
-        {       //use 8
-                PWM_div=2000;
-                T2CONbits.TCKPS1=0;
-                T2CONbits.TCKPS0=1;
-        }
-        else
-        {       //use 1
-                PWM_div=16000;
-                T2CONbits.TCKPS1=0;
-                T2CONbits.TCKPS0=0;
-        }
+        PWM_div = setup_prescaler_divisor(PWMfreq);
         PWM_period=(PWM_div/PWMfreq)-1;
         PR2     = PWM_period;   
 
@@ -148,27 +191,7 @@ void bpPWM(void){
         //choose proper multiplier for whole range
         //bpWstring(OUMSG_AUX_PWM_PRESCALE);
         //BPMSG1031;
-        if(PWM_freq<4){//use 256 //actual max is 62500hz
-                //bpWline("256");
-                PWM_div=62;//actually 62500
-                T2CONbits.TCKPS1=1;
-                T2CONbits.TCKPS0=1;
-        }else if(PWM_freq<31){//use 64
-                //bpWline("64");
-                PWM_div=250;
-                T2CONbits.TCKPS1=1;
-                T2CONbits.TCKPS0=0;
-        }else if(PWM_freq<245){//use 8
-                //bpWline("8");
-                PWM_div=2000;
-                T2CONbits.TCKPS1=0;
-                T2CONbits.TCKPS0=1;
-        }else{//use 1
-                //bpWline("1");
-                PWM_div=16000;
-                T2CONbits.TCKPS1=0;
-                T2CONbits.TCKPS0=0;
-        }
+        PWM_div = setup_prescaler_divisor(PWM_freq);
         PWM_period=(PWM_div/PWM_freq)-1;
         //bpWstring("PR2:");
         //BPMSG1032; 
