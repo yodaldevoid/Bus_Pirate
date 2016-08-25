@@ -80,10 +80,9 @@
 ///////////////////////////////////////
 // HARDWARE VERSION
 #if defined(__PIC24FJ256GB106__)        //v4 chip
-        #define BUSPIRATEV4
+#define BUSPIRATEV4
 #elif defined(__PIC24FJ64GA002__)       //v3/v2go
-        // Uncomment the hardware version you are building for
-        #define BUSPIRATEV3                             // V3 is also V2G0
+#define BUSPIRATEV3
 #endif
 
 ////////////////////////////////////////
@@ -92,16 +91,7 @@
 // used in 'i' and startup
 #define BP_FIRMWARE_STRING "Community Firmware v7.0 - goo.gl/gCzQnW "
 
-
-////////////////////////////////////////
-// LANGUAGE
-// Select language (US AND DE Currently Supported)
-// If you know anyone bi-le
 #define LANGUAGE_EN_US
-//#define LANGUAGE_DE_DE
-//#define LANGUAGE_IT_IT //Not yet supported
-//#define LANGUAGE_ES_ES //Not yet supported
-
 
 ////////////////////////////////////////
 // MODE SELECTION
@@ -113,31 +103,28 @@
 //#define BP_ADDONS
 //#define BP_CUSTOM
 
-
 ////////////////////////////////////////
 // OTHER CONFIGS
 // BP_ENABLE_HISTORY = Enable the 'h' command for whatever reason it was disabled this enables it. can be disabled again.
 // These settings should be left within the BUSPIRATEV4 define due to lack of space on v3. Unless you disable a mode or two
 // for a custom v3 build, only include the following options on a v4 build.
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
 // Enables the 'h' command to show history
 #define BP_ENABLE_HISTORY
-
-#endif
+#endif /* BUSPIRATEV4 */
 
 ///////////////////////
 ///////////////////////////// [ END OF CONFIGURATION ]//////////////////
 ////////////////////////////////////////////////////////////
 /////////////////////////////////////
 
-
 // Buspirate version 3 and v2go use the same everything; so this just
 // fixs if the user selected v2go.
-#if defined(BUSPIRATEV2GO)
+#ifdef BUSPIRATEV2GO
 #define BUSPIRATEV3
-#endif
+#endif /* BUSPIRATEV2GO */
 
-#if defined(BUSPIRATEV3)
+#ifdef BUSPIRATEV3
 #define BUSPIRATEV2 //v25 (2go) and v3 are about the same, enable the same featue set for both
 #include "hardwarev3.h"
 #elif defined(BUSPIRATEV4)
@@ -146,80 +133,72 @@
 #include "onboard_eeprom.h"
 #else
 #error "No hardware defined in base.h."
-#endif
+#endif /* BUSPIRATEV3 || BUSPIRATEV4 */
 
 #include "baseIO.h"
 #include "baseUI.h"
-
-//include/exclude modules here
-// standard protocols
-//#define BP_USE_RAW2WIRE
-//#define BP_USE_RAW3WIRE
 
 //Debugging mode for BPv4, comment out for normal compiling
 //Adds alternative communicaton to UART1 over AUX1 and AUX2 instead of USB.
 //#define BPV4_DEBUG  
 
-
 #if defined(BP_MAIN)
+#define BP_USE_1WIRE
+#define BP_USE_HWUART //hardware uart (now also MIDI)
+#define BP_USE_I2C
+//#define BP_USE_I2C_HW
+#define BP_USE_HWSPI //hardware spi
+#define BP_USE_RAW2WIRE
+#define BP_USE_RAW3WIRE
+#define BP_USE_LCD // include HD44780 LCD library       
+#define BP_USE_BASIC
+#define BP_USE_SUMP
 
-        #define BP_USE_1WIRE
-        //#ifndef BUSPIRATEV4
-        #define BP_USE_HWUART //hardware uart (now also MIDI)
-        //#endif
-        #define BP_USE_I2C
-        //#define BP_USE_I2C_HW
-        #define BP_USE_HWSPI //hardware spi
-        #define BP_USE_RAW2WIRE
-        #define BP_USE_RAW3WIRE
-        #define BP_USE_LCD // include HD44780 LCD library       
-        #define BP_USE_BASIC
-        #define BP_USE_SUMP
-        
-        #if defined(BUSPIRATEV4)
-                #define BP_USE_DIO //binary mode
-                #define BP_USE_PCATKB
-                #define BP_USE_PIC
-                #define BP_USE_JTAG
-        #endif
+#ifdef BUSPIRATEV4
+#define BP_USE_DIO //binary mode
+#define BP_USE_PCATKB
+#define BP_USE_PIC
+#define BP_USE_JTAG
+#endif /* BUSPIRATEV4 */
         
 #elif defined(BP_ADDONS)
-        // most used protos
-        //#define BP_USE_1WIRE
-        //#define BP_USE_HWUART //hardware uart (now also MIDI)
-        //#define BP_USE_I2C
-        //#define BP_USE_I2C_HW
-        //#define BP_USE_HWSPI //hardware spi
-        #define BP_USE_RAW2WIRE
-        #define BP_USE_RAW3WIRE
-        #define BP_USE_PCATKB
-        #define BP_USE_LCD // include HD44780 LCD library
-        #define BP_USE_PIC
-        #define BP_USE_DIO //binary mode
-        
+// most used protos
+//#define BP_USE_1WIRE
+//#define BP_USE_HWUART //hardware uart (now also MIDI)
+//#define BP_USE_I2C
+//#define BP_USE_I2C_HW
+//#define BP_USE_HWSPI //hardware spi
+#define BP_USE_RAW2WIRE
+#define BP_USE_RAW3WIRE
+#define BP_USE_PCATKB
+#define BP_USE_LCD // include HD44780 LCD library
+#define BP_USE_PIC
+#define BP_USE_DIO //binary mode
+
 #elif defined(BP_CUSTOM)
-        // most used protos
-        //#define BP_USE_1WIRE
-        #define BP_USE_HWUART //hardware uart (now also MIDI)
-        //#define BP_USE_I2C
-        //#define BP_USE_I2C_HW
-        //#define BP_USE_HWSPI //hardware spi
-        //#define BP_USE_RAW2WIRE
-        //#define BP_USE_RAW3WIRE
-        //#define BP_USE_PCATKB
-        //#define BP_USE_LCD // include HD44780 LCD library
-        //#define BP_USE_PIC
-        //#define BP_USE_DIO //binary mode
+
+// most used protos
+//#define BP_USE_1WIRE
+#define BP_USE_HWUART //hardware uart (now also MIDI)
+//#define BP_USE_I2C
+//#define BP_USE_I2C_HW
+//#define BP_USE_HWSPI //hardware spi
+//#define BP_USE_RAW2WIRE
+//#define BP_USE_RAW3WIRE
+//#define BP_USE_PCATKB
+//#define BP_USE_LCD // include HD44780 LCD library
+//#define BP_USE_PIC
+//#define BP_USE_DIO //binary mode
 
 #else
 #error "No Bus Pirate configuration defined."
 #endif
 
 //ENABLE BASIC SCRIPTING
-#if defined(BUSPIRATEV4)
-	#define BP_USE_BASIC   // basic subsystem
-	//#define BP_USE_BASICI2C  // use an i2ceeprom for storing
-#endif
+#ifdef BUSPIRATEV4
+#define BP_USE_BASIC   // basic subsystem
+//#define BP_USE_BASICI2C  // use an i2ceeprom for storing
+#endif /* BUSPIRATEV4 */
 
 
 // only 1 should be uncommented
@@ -242,16 +221,6 @@ asm (".equ BLJUMPADDRESS, 0xABF8");
 //
 //
 
-//// left out for now
-/*      my italian and spanish aint that good ;)
-#elif defined(LANGUAGE_IT_IT)
-        #include "translations/it-IT.h"
-//      #include "translations/en-US.h"
-#elif defined(LANGUAGE_ES_ES)
-        #include "translations/es-ES.h"
- */
- 
- 
 // If BUSPIRATEv4 then use the en_US.h otherwise
 // use the v3 one. The version3 one does not include
 // the modes that the v3 cannot fit. This way we dont
@@ -259,28 +228,19 @@ asm (".equ BLJUMPADDRESS, 0xABF8");
 //
 // Also note; the BPV4 project file uses the en_US.s file
 // the buspurate v3 uses the other one...
-#if defined(BUSPIRATEV4)
-#if defined(LANGUAGE_EN_US)
+#ifdef BUSPIRATEV4
+#ifdef LANGUAGE_EN_US
 #include "translations/BPv4_en_US.h"
-#elif defined(LANGUAGE_DE_DE)
-#include "translations/BPv4_de_DE.h"
 #else
 #error "No language defined in base.h."
-#endif
+#endif /* LANGUAGE_EN_US */
 #else
-#if defined(LANGUAGE_EN_US)
+#ifdef LANGUAGE_EN_US
 #include "translations/BPv3_en_US.h"
-#elif defined(LANGUAGE_DE_DE)
-#include "translations/BPv3_de_DE.h"
 #else
 #error "No language defined in base.h."
-#endif
-#endif
-
-
-
-
-
+#endif /* LANGUAGE_EN_US */
+#endif /* BUSPIRATEV4 */
 
 //these settings are destroyed between modes.
 //this is used to pass stuff from protocol libraries to BP
@@ -310,7 +270,6 @@ unsigned int bpRevByte(unsigned int c);
 
 //reset all peripherals before configuring a new bus protocol
 void bpInit(void);
-
 
 /**
  * Reads a value from the ADC on the given channel.
