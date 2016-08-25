@@ -206,7 +206,7 @@ void Initialize(void) {
 
 #if defined(BUSPIRATEV2) || defined(BUSPIRATEV3)
     /* Get the revision identifier. */
-    bpConfig.HWversion = BPV3_HARDWARE_VERSION_TABLE[PORTB >> 2 & 0b00000011];
+    bpConfig.HWversion = BPV3_HARDWARE_VERSION_TABLE[(PORTB >> 2) & 0b00000011];
 
     /* Turn pullups OFF. */
     CNPU1bits.CN6PUE = OFF;
