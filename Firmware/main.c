@@ -31,29 +31,29 @@
 #include "selftest.h"
 #include "basic.h"
 
-#if defined (BUSPIRATEV4)
+#ifdef BUSPIRATEV4
 #include "descriptors.h"
 
 void USBSuspend(void);
 void _USB1Interrupt(void);
 extern volatile BYTE usb_device_state; // JTR added
-#endif
+#endif /* BUSPIRATEV4 */
 
-#ifdef BUSPIRATEV2
+#if defined(BUSPIRATEV2) || defined(BUSPIRATEV3)
 //set custom configuration for PIC 24F (now always set in bootloader page, not needed here)
 // Internal FRC OSC = 8MHz
-//#pragma config FNOSC     = FRCPLL
-//#pragma config OSCIOFNC  = ON 
-//#pragma config POSCMOD   = NONE
-//#pragma config I2C1SEL   = PRI
+#pragma config FNOSC     = FRCPLL
+#pragma config OSCIOFNC  = ON 
+#pragma config POSCMOD   = NONE
+#pragma config I2C1SEL   = PRI
 // turn off junk we don't need
-//#pragma config JTAGEN    = OFF
-//#pragma config GCP       = OFF
-//#pragma config GWRP      = OFF
-//#pragma config COE       = OFF
-//#pragma config FWDTEN    = OFF
-//#pragma config ICS       = PGx1
-#endif /* BUSPIRATEV2 */
+#pragma config JTAGEN    = OFF
+#pragma config GCP       = OFF
+#pragma config GWRP      = OFF
+#pragma config COE       = OFF
+#pragma config FWDTEN    = OFF
+#pragma config ICS       = PGx1
+#endif /* BUSPIRATEV2 || BUSPIRATEV3 */
 
 #if defined (BUSPIRATEV4)
 #pragma config JTAGEN    = OFF
@@ -71,9 +71,7 @@ extern volatile BYTE usb_device_state; // JTR added
 #pragma config IOL1WAY   = ON
 #pragma config PLL_96MHZ = ON
 #pragma config DISUVREG  = OFF
-#endif
-
-unsigned char irqFlag = 0;
+#endif /* BUSPIRATEV4 */
 
 void ISRTable(); //Pseudo function to hold ISR remap jump table
 void Initialize(void);
@@ -82,8 +80,6 @@ static unsigned char __attribute__((section(".bss.end"))) _buffer[TERMINAL_BUFFE
 struct _bpConfig bpConfig = {.terminalInput = _buffer}; //holds persistant bus pirate settings (see busPirateCore.h)
 struct _modeConfig modeConfig; //holds mode info, cleared between modes
 struct _command bpCommand; //holds the current active command so we don't ahve to put so many variables on the stack
-
-unsigned char binmodecnt = 0; //, terminalInput[TERMINAL_BUFFER];
 
 #pragma code
 //this loop services user input and passes it to be processed on <enter>
@@ -126,11 +122,27 @@ int main(void) {
 //bus pirate initialization
 //setup clock, terminal UART, pins, LEDs, and display version info
 
-void Initialize(void) {
-#if defined (BUSPIRATEV2)
-	unsigned char i;
-#endif
+#ifdef BUSPIRATEV3
 
+//Version | RB3 | RB2
+//2go, 3a | 1   |  1
+//v3b     | 1   |  0
+//v3.5    | 0   |  0
+
+static const uint8_t BPV3_HARDWARE_VERSION_TABLE[] = {
+    /* RB3 == 0 && RB2 == 0 */
+    '5',
+    /* RB3 == 0 && RB2 == 1 */
+    '?',
+    /* RB3 == 1 && RB2 == 0 */
+    'b',
+    /* RB3 == 1 && RB2 == 1 */
+    'a'
+};
+
+#endif /* BUSPIRATEV3 */
+
+void Initialize(void) {
     volatile unsigned long delay = 0xffff;
 
     //   volatile unsigned long delay = 0xffff;
@@ -183,43 +195,29 @@ void Initialize(void) {
     InitializeUART1(); //init the PC side serial port
 #endif
 
-#if defined (BUSPIRATEV2)
-    //find the Bus Pirate revision
-    //pullup on, do it now so it can settle during the next operations
-    CNPU1bits.CN6PUE = 1;
-    CNPU1bits.CN7PUE = 1;
-#endif
-    //#ifndef BUSPIRATEV4
-    // Get the chip type and revision
+#if defined(BUSPIRATEV2) || defined(BUSPIRATEV3)
+    /* Turn pullups ON. */
+    CNPU1bits.CN6PUE = ON;
+    CNPU1bits.CN7PUE = ON;
+#endif /* BUSPIRATEV2 || BUSPIRATEV3 */
+
     bpConfig.dev_type = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_TYPE);
     bpConfig.dev_rev = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_REV);
-    //#endif
 
-#if defined (BUSPIRATEV2)
-    //now check the revision
-	//Version | RB3 | RB2
-	//2go, 3a | 1   |  1
-	//v3b     | 1   |  0
-	//v3.5    | 0   |  0
-	i=PORTB; //get settings
-	i=i>>2; //remove unused
-	i&=(~0b11111100); //clear others
-    if (i==0b11) {
-        bpConfig.HWversion = 'a';
-    } else if(i==0b10){
-        bpConfig.HWversion = 'b';
-    }else if(i==0){
-        bpConfig.HWversion = '5';
-	}
-    //pullup off
-    CNPU1bits.CN6PUE = 0;
-    CNPU1bits.CN7PUE = 0;
+#if defined(BUSPIRATEV2) || defined(BUSPIRATEV3)
+    /* Get the revision identifier. */
+    bpConfig.HWversion = BPV3_HARDWARE_VERSION_TABLE[PORTB >> 2 & 0b00000011];
+
+    /* Turn pullups OFF. */
+    CNPU1bits.CN6PUE = OFF;
+    CNPU1bits.CN7PUE = OFF;
 #else
     bpConfig.HWversion = 0;
-#endif
+#endif /* BUSPIRATEV2 || BUSPIRATEV3 */
 
     bpConfig.quiet = 0; // turn output on (default)
     modeConfig.numbits = 8;
+    
 #ifdef BP_USE_BASIC
     initpgmspace();
 #endif
@@ -229,8 +227,7 @@ void Initialize(void) {
 #ifndef BUSPIRATEV4
     bpWBR; //send a line feed
     versionInfo(); //prints hardware and firmware version info (base.c)
-#endif
-
+#endif /* !BUSPIRATEV4 */
 }
 
 //Interrupt Remap method 2:  Using Goto and jump table
@@ -263,6 +260,7 @@ void __attribute__((interrupt, no_auto_psv)) _USB1Interrupt() {
     //}
 }
 #pragma code
-#endif
+
+#endif /* BUSPIRATEV4 */
 
 

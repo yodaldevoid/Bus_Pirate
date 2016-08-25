@@ -294,7 +294,7 @@ static const uint8_t SUMP_METADATA[] = {
     SUMP_METADATA_DEVICE_NAME,
 #ifdef BUSPIRATEV4
     'B', 'P', 'v', '4', '\0',
-#elif BUSPIRATEV3
+#elif defined(BUSPIRATEV3)
     'B', 'P', 'v', '3', '\0',
 #else
 #error "Invalid or unknown Bus Pirate version!"

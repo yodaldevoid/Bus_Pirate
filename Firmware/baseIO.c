@@ -269,6 +269,7 @@ unsigned int bpReadFlash(unsigned int page, unsigned int addr) {
 }
 
 #ifdef BUSPIRATEV2
+
 //
 //
 // Base user terminal UART functions

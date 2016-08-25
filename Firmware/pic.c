@@ -26,6 +26,9 @@ pic10, pic12, pic14, pic16 and pic18
 
 */
 #include "base.h"
+
+#ifdef BP_USE_PIC
+
 #include "pic.h"
 #include "bitbang.h"
 #include "baseIO.h"
@@ -35,8 +38,6 @@ pic10, pic12, pic14, pic16 and pic18
 
 extern struct _bpConfig bpConfig;
 extern struct _modeConfig modeConfig;
-
-#ifdef BP_USE_PIC
 
 int picmode;
 int piccmddelay;
@@ -435,5 +436,6 @@ void binpic(void)
 						break;
 		}
 	}
-}		
-#endif
+}
+
+#endif /* BP_USE_PIC */

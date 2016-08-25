@@ -2,6 +2,10 @@
 #ifndef xsvf_ports_h
 #define xsvf_ports_h
 
+#include "../base.h"
+
+#ifdef BP_USE_JTAG
+
 #define TCK (short) 0
 #define TMS (short) 1
 #define TDI (short) 2
@@ -20,5 +24,7 @@ extern void readByte(unsigned char *data);
 
 //pause one microsecond
 extern void waitTime(long microsec);
+
+#endif /* BP_USE_JTAG */
 
 #endif

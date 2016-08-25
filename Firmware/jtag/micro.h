@@ -13,6 +13,10 @@
 #ifndef XSVF_MICRO_H
 #define XSVF_MICRO_H
 
+#include "../base.h"
+
+#ifdef BP_USE_JTAG
+
 /* Legacy error codes for xsvfExecute from original XSVF player v2.0 */
 #define XSVF_LEGACY_SUCCESS 1
 #define XSVF_LEGACY_ERROR   0
@@ -37,6 +41,8 @@
 * Returns:      int - For error codes see above.
 *****************************************************************************/
 extern int xsvfExecute();
+
+#endif /* BP_USE_JTAG */
 
 #endif  /* XSVF_MICRO_H */
 

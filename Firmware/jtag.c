@@ -16,6 +16,9 @@
  */
 
 #include "base.h"
+
+#ifdef BP_USE_JTAG
+
 #include "jtag.h"
 #include "jtag/micro.h"
 #include "jtag/ports.h"
@@ -391,3 +394,4 @@ void jtagTMSLow(void){
         bp_delay_us(JTAGDATASETTLE);//delay
 }
 
+#endif /* BP_USE_JTAG */

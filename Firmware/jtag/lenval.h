@@ -7,6 +7,11 @@
 #ifndef lenval_dot_h
 #define lenval_dot_h
 
+#include "../base.h"
+
+#ifdef BP_USE_JTAG
+
+
 /* the lenVal structure is a byte oriented type used to store an */
 /* arbitrary length binary value. As an example, the hex value   */
 /* 0x0e3d is represented as a lenVal with len=2 (since 2 bytes   */
@@ -88,6 +93,8 @@ extern void SetBit(lenVal *lv, int byte, int bit, short val);
 
 /* read from XSVF numBytes bytes of data into x */
 extern void  readVal(lenVal *x, short numBytes);
+
+#endif /* BP_USE_JTAG */
 
 #endif
 

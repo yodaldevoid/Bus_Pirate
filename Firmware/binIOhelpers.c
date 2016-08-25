@@ -1,9 +1,7 @@
 #include "base.h"
 extern struct _modeConfig modeConfig; //holds persistant bus pirate settings (see base.h)
 
-
-void binIOperipheralset(unsigned char inByte){
-
+void binIOperipheralset(unsigned char inByte) {
 	if(inByte&0b1000){
 		BP_VREG_ON();//power on
 	}else{

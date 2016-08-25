@@ -21,30 +21,28 @@
 #include "selftest.h"
 
 #ifdef BP_USE_HWSPI
-	#include "SPI.h"
+#include "SPI.h"
 #endif
 #ifdef BP_USE_I2C
-	#include "I2C.h"
+#include "I2C.h"
 #endif
 #ifdef BP_USE_HWUART
-	#include "UART.h"
+#include "UART.h"
 #endif
 #ifdef BP_USE_1WIRE
-	#include "1wire.h"
+#include "1wire.h"
 #endif
 #ifdef BP_USE_PIC
-	#include "pic.h"
+#include "pic.h"
 #endif
 #ifdef BP_USE_JTAG
-	#include "jtag.h"
+#include "jtag.h"
+#include "OpenOCD.h"
 #endif
 
 #include "binIO.h"
 #include "AUXpin.h"
 #include "binwire.h"
-#include "OpenOCD.h"
-
-
 
 extern struct _modeConfig modeConfig;
 
@@ -147,9 +145,9 @@ void binBB(void) {
                 binBBversion(); //say name on return
             } else if (inByte == 6) {//goto OpenOCD mode
                 binReset();
-#ifndef BUSPIRATEV4
+#if !defined(BUSPIRATEV4) && defined(BP_USE_JTAG)
                 binOpenOCD();
-#endif
+#endif /* !BUSPIRATEV4 && BP_USE_JTAG */
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 7) {//goto pic mode

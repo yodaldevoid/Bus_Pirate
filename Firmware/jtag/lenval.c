@@ -3,6 +3,11 @@
 /* abstract:  This file contains routines for using    */
 /*            the lenVal data structure.               */
 /*******************************************************/
+
+#include "../base.h"
+
+#ifdef BP_USE_JTAG
+
 #include "lenval.h"
 #include "ports.h"
 
@@ -188,3 +193,4 @@ void readVal( lenVal*   plv,
     }
 }
 
+#endif /* BP_USE_JTAG */

@@ -14,6 +14,9 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "base.h"
+
+#ifdef BP_USE_RAW2WIRE
+
 //#include "raw2wire.h"
 #include "bitbang.h"
 #include "AUXpin.h"
@@ -297,3 +300,5 @@ void r2wMacro_78133Read(void){
 	bpWdec(i);
 	bpBR;
 }
+
+#endif /* BP_USE_RAW2WIRE */

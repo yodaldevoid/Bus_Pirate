@@ -146,40 +146,38 @@
 #define BP_USE_1WIRE
 #define BP_USE_HWUART //hardware uart (now also MIDI)
 #define BP_USE_I2C
-//#define BP_USE_I2C_HW
 #define BP_USE_HWSPI //hardware spi
-#define BP_USE_RAW2WIRE
-#define BP_USE_RAW3WIRE
-#define BP_USE_LCD // include HD44780 LCD library       
-#define BP_USE_BASIC
-#define BP_USE_SUMP
 
 #ifdef BUSPIRATEV4
+#define BP_USE_BASIC
+#define BP_USE_I2C_HW
+//#define BP_USE_BASICI2C  // use an i2ceeprom for storing
+#define BP_USE_RAW2WIRE
+#define BP_USE_RAW3WIRE
 #define BP_USE_DIO //binary mode
 #define BP_USE_PCATKB
 #define BP_USE_PIC
 #define BP_USE_JTAG
+#define BP_USE_LCD // include HD44780 LCD library       
+#define BP_USE_SUMP
 #endif /* BUSPIRATEV4 */
         
 #elif defined(BP_ADDONS)
 // most used protos
-//#define BP_USE_1WIRE
-//#define BP_USE_HWUART //hardware uart (now also MIDI)
-//#define BP_USE_I2C
-//#define BP_USE_I2C_HW
-//#define BP_USE_HWSPI //hardware spi
+#define BP_USE_LCD // include HD44780 LCD library       
 #define BP_USE_RAW2WIRE
 #define BP_USE_RAW3WIRE
 #define BP_USE_PCATKB
 #define BP_USE_LCD // include HD44780 LCD library
 #define BP_USE_PIC
 #define BP_USE_DIO //binary mode
+#define BP_USE_SUMP
 
 #elif defined(BP_CUSTOM)
 
 // most used protos
 //#define BP_USE_1WIRE
-#define BP_USE_HWUART //hardware uart (now also MIDI)
+//#define BP_USE_HWUART //hardware uart (now also MIDI)
 //#define BP_USE_I2C
 //#define BP_USE_I2C_HW
 //#define BP_USE_HWSPI //hardware spi
@@ -193,13 +191,6 @@
 #else
 #error "No Bus Pirate configuration defined."
 #endif
-
-//ENABLE BASIC SCRIPTING
-#ifdef BUSPIRATEV4
-#define BP_USE_BASIC   // basic subsystem
-//#define BP_USE_BASICI2C  // use an i2ceeprom for storing
-#endif /* BUSPIRATEV4 */
-
 
 // only 1 should be uncommented
 //#define BASICTEST

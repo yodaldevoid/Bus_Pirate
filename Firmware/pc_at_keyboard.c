@@ -15,7 +15,10 @@
  */
 
 #include "base.h"
-//#include "pc_at_keyboard.h"
+
+#ifdef BP_USE_PCATKB
+
+#include "pc_at_keyboard.h"
 
 #define KBCLK_TRIS 	BP_CLK_DIR
 #define KBCLK 			BP_CLK
@@ -25,8 +28,6 @@
 
 extern struct _modeConfig modeConfig;
 extern struct _command bpCommand;
-
-#ifdef BP_USE_PCATKB
 
 void kbSetup(void);
 void KEYBsetup_exc(void);
@@ -80,7 +81,7 @@ unsigned int KEYBwrite(unsigned int c)
 	return 0x100;
 }
 
-void KEYBmacro(unsigned char c)
+void KEYBmacro(unsigned int c)
 {	switch(c)
 	{	case 0:	//bpWline(OUMSG_KB_MACRO_MENU);
 				BPMSG1238;
@@ -310,4 +311,4 @@ unsigned char kbWaitClock(unsigned char c){
 	}
 }
 
-#endif
+#endif /* BP_USE_PCATKB */

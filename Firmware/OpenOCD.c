@@ -1,4 +1,7 @@
 #include "base.h"
+
+#ifdef BP_USE_JTAG
+
 #include "baseIO.h"
 #include "busPirateCore.h"
 #include "binIOhelpers.h"
@@ -311,3 +314,5 @@ static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
 			break;
 	}
 }
+
+#endif /* BP_USE_JTAG */

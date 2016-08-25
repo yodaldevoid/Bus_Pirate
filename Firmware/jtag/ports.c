@@ -5,6 +5,9 @@
 // IT doesn't have a stated license so we're hesitant to include it in SVN
 // Get it here: http://www.xilinx.com/support/documentation/application_notes/xapp058.zip
 #include "../base.h"
+
+#ifdef BP_USE_JTAG
+
 #include "ports.h"
 #include "../jtag.h"
 #define MAX_BUFFER 4096
@@ -57,3 +60,4 @@ void waitTime(long microsec){
     }
 }
 
+#endif /* BP_USE_JTAG */

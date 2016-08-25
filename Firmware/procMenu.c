@@ -61,8 +61,8 @@ int cmderror;
 #define USRMACROS	5
 #define USRMACROLEN	32
 
-char usrmacros[USRMACROS][USRMACROLEN];
-int usrmacro;
+static char usrmacros[USRMACROS][USRMACROLEN];
+static int usrmacro;
 
 void serviceuser(void) {
     int cmd, stop;
@@ -753,9 +753,6 @@ bpv4reset:
                     bpWintdec(repeat);
                     BPMSG1212;
                     bp_delay_ms(repeat);
-                    break;
-                case '+': //bpWline("-easter egg");
-                    //easterEgg();
                     break;
 #ifdef BP_USE_BASIC
                 case 's': //bpWline("Listing:");

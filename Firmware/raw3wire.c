@@ -14,6 +14,9 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "base.h"
+
+#ifdef BP_USE_RAW3WIRE
+
 //#include "raw3wire.h"
 #include "bitbang.h"
 #include "procMenu.h"		// for the userinteraction subs
@@ -204,4 +207,4 @@ void R3Wpins(void) {
         #endif
 }
 
-
+#endif /* BP_USE_RAW3WIRE */
