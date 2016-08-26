@@ -1500,7 +1500,7 @@ void versionInfo(void) {
     unsigned int i;
 
 
-#if defined (BUSPIRATEV2) //we can tell if it's v3a or v3b, show it here
+#if defined (BUSPIRATEV3) //we can tell if it's v3a or v3b, show it here
     bpWstring(BP_VERSION_STRING);
     UART1TX('.');
     UART1TX(bpConfig.HWversion);
@@ -1681,8 +1681,6 @@ void pinStates(void) { //bpWline("Pinstates:");
 #endif
 #if defined(BUSPIRATEV4)
     BPMSG1257; //bpWstring("GND\t5.0V\t3.3V\tVPU\tADC\tAUX2\tAUX1\tAUX\t");
-#elif defined(BUSPIRATEV25)
-    BPMSG1235; //bpWstring("GND\tADC\t5.0V\t3.3V\tVPU\tAUX\t");
 #else
     BPMSG1227; //bpWstring("GND\t3.3V\t5.0V\tADC\tVPU\tAUX\t");
 #endif
@@ -1708,11 +1706,7 @@ void pinStates(void) { //bpWline("Pinstates:");
     ADCON();
 
 
-#if defined(BUSPIRATEV25)
-    bpWvolts(bp_read_adc(BP_ADC_PROBE));
-    BPMSG1045;
-    UART1TX('\t');
-#elif defined(BUSPIRATEV4)
+#if defined(BUSPIRATEV4)
     bpWvolts(bp_read_adc(BP_ADC_5V0));
     BPMSG1045;
     UART1TX('\t');
@@ -1732,11 +1726,7 @@ void pinStates(void) { //bpWline("Pinstates:");
     UART1TX('\t');
 #endif
 
-#if defined(BUSPIRATEV25)
-    bpWvolts(bp_read_adc(BP_ADC_3V3));
-    BPMSG1045;
-    UART1TX('\t');
-#elif defined(BUSPIRATEV4)
+#if defined(BUSPIRATEV4)
     bpWvolts(bp_read_adc(BP_ADC_VPU));
     BPMSG1045;
     UART1TX('\t');

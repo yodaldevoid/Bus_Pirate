@@ -39,7 +39,7 @@ void _USB1Interrupt(void);
 extern volatile BYTE usb_device_state; // JTR added
 #endif /* BUSPIRATEV4 */
 
-#if defined(BUSPIRATEV2) || defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3)
 //set custom configuration for PIC 24F (now always set in bootloader page, not needed here)
 // Internal FRC OSC = 8MHz
 #pragma config FNOSC     = FRCPLL
@@ -53,7 +53,7 @@ extern volatile BYTE usb_device_state; // JTR added
 #pragma config COE       = OFF
 #pragma config FWDTEN    = OFF
 #pragma config ICS       = PGx1
-#endif /* BUSPIRATEV2 || BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 */
 
 #if defined (BUSPIRATEV4)
 #pragma config JTAGEN    = OFF
@@ -147,7 +147,7 @@ void Initialize(void) {
 
     //   volatile unsigned long delay = 0xffff;
     // TBLPAG = 0; // we need to be in page 0 (somehow this isn't set)
-#ifdef BUSPIRATEV2
+#ifdef BUSPIRATEV3
     CLKDIVbits.RCDIV0 = 0; //clock divider to 0
     AD1PCFG = 0xFFFF; // Default all pins to digital
 #elif defined (BUSPIRATEV4)
@@ -160,20 +160,20 @@ void Initialize(void) {
     AD1PCFGL = 0x7FD8; //BUSPIRATEV4 has five analog pins b0, b1, b2, b5, b15
     AD1PCFGH = 0x2;
     // usb_register_sof_handler(0);
-#endif /* BUSPIRATEV2 */
+#endif /* BUSPIRATEV3 || BUSPIRATEV4 */
 
     OSCCONbits.SOSCEN = 0;
 
 
     while (delay--);
     //set pin configuration using peripheral pin select
-#ifdef BUSPIRATEV2
+#ifdef BUSPIRATEV3
     BP_TERM_RX = BP_TERM_RX_RP; //Inputs UART1 RX RPINR18bits.U1RXR=4;
     BP_TERM_TX_RP = BP_TERM_TX; // Outputs UART1 TX RPOR1bits.RP3R=U1TX_IO;
 #elif defined (BUSPIRATEV4) && defined (BPV4_DEBUG)
     BP_TERM_RX = BP_TERM_RX_RP; //Inputs UART1 RX RPINR18bits.U1RXR=11;//AUX2
     BP_TERM_TX_RP = BP_TERM_TX; // Outputs UART1 TX RPOR1bits.RP2R=U1TX_IO;//AUX1
-#endif /* BUSPIRATEV2 */
+#endif /* BUSPIRATEV3 || (BUSPIRATEV4 && BPV4_DEBUG) */
 
     //put startup values in config (do first)
     bpConfig.termSpeed = 8; //default PC side port speed, startup in 115200, or saved state (later)....
@@ -181,9 +181,9 @@ void Initialize(void) {
 
     bpInit(); //put startup values in config (do first)clean up, exit in HI-Z
 
-#ifdef BUSPIRATEV2
+#ifdef BUSPIRATEV3
     InitializeUART1(); //init the PC side serial port
-#endif /* BUSPIRATEV2 */
+#endif /* BUSPIRATEV3 */
 
 #if defined (BUSPIRATEV4) && !defined (BPV4_DEBUG)
     initCDC();
@@ -195,16 +195,16 @@ void Initialize(void) {
     InitializeUART1(); //init the PC side serial port
 #endif
 
-#if defined(BUSPIRATEV2) || defined(BUSPIRATEV3)
+#if  defined(BUSPIRATEV3)
     /* Turn pullups ON. */
     CNPU1bits.CN6PUE = ON;
     CNPU1bits.CN7PUE = ON;
-#endif /* BUSPIRATEV2 || BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 */
 
     bpConfig.dev_type = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_TYPE);
     bpConfig.dev_rev = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_REV);
 
-#if defined(BUSPIRATEV2) || defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3)
     /* Get the revision identifier. */
     bpConfig.HWversion = BPV3_HARDWARE_VERSION_TABLE[(PORTB >> 2) & 0b00000011];
 
@@ -213,7 +213,7 @@ void Initialize(void) {
     CNPU1bits.CN7PUE = OFF;
 #else
     bpConfig.HWversion = 0;
-#endif /* BUSPIRATEV2 || BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 */
 
     bpConfig.quiet = 0; // turn output on (default)
     modeConfig.numbits = 8;

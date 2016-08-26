@@ -268,7 +268,7 @@ unsigned int bpReadFlash(unsigned int page, unsigned int addr) {
     return flash;
 }
 
-#ifdef BUSPIRATEV2
+#ifdef BUSPIRATEV3
 
 //
 //
@@ -433,7 +433,7 @@ void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
     IFS0bits.U1TXIF = 0;
 }
 
-#endif /* BUSPIRATEV2 */
+#endif /* BUSPIRATEV3 */
 
 #if defined(BUSPIRATEV4) && !defined (BPV4_DEBUG)
 

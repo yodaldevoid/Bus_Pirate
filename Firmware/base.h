@@ -118,14 +118,7 @@
 ////////////////////////////////////////////////////////////
 /////////////////////////////////////
 
-// Buspirate version 3 and v2go use the same everything; so this just
-// fixs if the user selected v2go.
-#ifdef BUSPIRATEV2GO
-#define BUSPIRATEV3
-#endif /* BUSPIRATEV2GO */
-
 #ifdef BUSPIRATEV3
-#define BUSPIRATEV2 //v25 (2go) and v3 are about the same, enable the same featue set for both
 #include "hardwarev3.h"
 #elif defined(BUSPIRATEV4)
 #include "hardwarev4a.h"

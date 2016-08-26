@@ -264,21 +264,21 @@ void I2Csetup(void) {
             BPMSG1065;
             modeConfig.speed = (getnumber(1, 1, 4, 0) - 1);
         } else {
-#ifdef BUSPIRATEV2
+#ifdef BUSPIRATEV3
             // There is a hardware incompatibility with <B4
             // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
             if (bpConfig.dev_rev <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
-#endif /* BUSPIRATEV2 */
+#endif /* BUSPIRATEV3 */
             //bpWline(OUMSG_I2C_HWSPEED);
             BPMSG1067;
             modeConfig.speed = (getnumber(1, 1, 3, 0) - 1);
         }
     } else {
-#ifdef BUSPIRATEV2
+#ifdef BUSPIRATEV3
         // There is a hardware incompatibility with <B4
         // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
         if (bpConfig.dev_rev <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
-#endif /* BUSPIRATEV2 */
+#endif /* BUSPIRATEV3 */
         I2Csettings();
 
         i2c_state.i2c_acknowledgment_pending = FALSE;
