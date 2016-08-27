@@ -67,8 +67,8 @@
 	#include "dio.h"
 #endif
 
-extern struct _bpConfig bpConfig;
-extern struct _modeConfig modeConfig;
+extern bus_pirate_configuration_t bpConfig;
+extern mode_configuration_t modeConfig;
 extern int cmderror;	
 
 void nullfunc1(void)

@@ -90,8 +90,8 @@
 //7bit display data RAM address
 
 //configuration structure
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 
 struct _HD44780_interface {
         unsigned char EN:1; //clock, active high

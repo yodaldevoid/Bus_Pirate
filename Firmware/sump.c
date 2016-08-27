@@ -340,7 +340,7 @@ static const uint8_t SUMP_DEVICE_ID[] = {
     '1', 'A', 'L', 'S'
 };
 
-extern struct _bpConfig bpConfig;
+extern bus_pirate_configuration_t bpConfig;
 
 /**
  * Sampler states.

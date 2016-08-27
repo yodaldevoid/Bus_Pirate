@@ -33,8 +33,8 @@
 #define R3WCS 			BP_CS 
 
 // should this come from an .h?
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 void R3Wsetup_exc(void);
 /*
 // move into a .h or other .c??? 

@@ -22,9 +22,9 @@
 #include "SUMP.h"
 #include "basic.h"
 
-extern struct _bpConfig bpConfig;
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern bus_pirate_configuration_t bpConfig;
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 extern proto protos[MAXPROTO];
 
 #ifdef BUSPIRATEV4

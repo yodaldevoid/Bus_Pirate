@@ -15,7 +15,7 @@
  */
 #include "base.h"
 #include "busPirateCore.h"//need access to bpConfig
-extern struct _bpConfig bpConfig; //holds persistant bus pirate settings (see base.h) need hardware version info
+extern bus_pirate_configuration_t bpConfig; //holds persistant bus pirate settings (see base.h) need hardware version info
 
 #if defined (BUSPIRATEV4)
 extern BYTE cdc_In_len;

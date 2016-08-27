@@ -25,7 +25,7 @@ void bpBusPinsTest(unsigned char d);
 void bpADCPinTest(unsigned char a, unsigned int lval, unsigned int hval);
 
 static unsigned char errors;
-extern struct _bpConfig bpConfig;
+extern bus_pirate_configuration_t bpConfig;
 
 
 //self test, showProgress=1 displays the test results in the terminal, set to 0 for silent mode

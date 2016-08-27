@@ -232,7 +232,7 @@ asm (".equ BLJUMPADDRESS, 0xABF8");
 //TO DO: add global scratch buffer to setting array for use in 
 //	1-Wire enumeration, JTAG input buffer, etc...
 
-struct _modeConfig {
+typedef struct {
     unsigned char speed;
     unsigned char numbits;
     unsigned char buf[16];
@@ -242,13 +242,13 @@ struct _modeConfig {
     unsigned char HiZ : 1;
     unsigned char int16 : 1; // 16 bits output?
     unsigned char wwr : 1; // write with read
-};
+} mode_configuration_t;
 
-struct _command {
+typedef struct {
     unsigned char cmd;
     unsigned int num;
     unsigned int repeat;
-};
+} command_t;
 
 unsigned int bpRevByte(unsigned int c);
 

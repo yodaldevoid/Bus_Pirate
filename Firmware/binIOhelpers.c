@@ -1,5 +1,5 @@
 #include "base.h"
-extern struct _modeConfig modeConfig; //holds persistant bus pirate settings (see base.h)
+extern mode_configuration_t modeConfig; //holds persistant bus pirate settings (see base.h)
 
 void binIOperipheralset(unsigned char inByte) {
 	if(inByte&0b1000){

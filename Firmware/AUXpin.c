@@ -25,7 +25,7 @@
 						// RPOR10bits.RP20R
 #define AUXPIN_RPOUT    BP_AUX_RPOUT
 
-extern struct _modeConfig modeConfig;
+extern mode_configuration_t modeConfig;
 
 static enum _auxmode
         {

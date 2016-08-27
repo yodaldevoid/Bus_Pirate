@@ -46,9 +46,9 @@
 
 #define SPICS_RPIN		BP_CS_RPIN
 
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
-extern struct _bpConfig bpConfig; //we use the big buffer
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
+extern bus_pirate_configuration_t bpConfig; //we use the big buffer
 
 void binSPIversionString(void);
 //void spiSetup(unsigned char spiSpeed);

@@ -36,8 +36,8 @@ pic10, pic12, pic14, pic16 and pic18
 #include "procMenu.h"		// for the userinteraction subs
 #include "AUXpin.h"
 
-extern struct _bpConfig bpConfig;
-extern struct _modeConfig modeConfig;
+extern bus_pirate_configuration_t bpConfig;
+extern mode_configuration_t modeConfig;
 
 int picmode;
 int piccmddelay;

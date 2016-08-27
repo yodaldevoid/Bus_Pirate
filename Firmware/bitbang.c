@@ -38,7 +38,7 @@
 #define	BB_MAXSPEED_CLOCK 0
 #define	BB_MAXSPEED_HALFCLOCK 0
 
-extern struct _modeConfig modeConfig;
+extern mode_configuration_t modeConfig;
 
 struct _bitbang{
 	unsigned char pins;

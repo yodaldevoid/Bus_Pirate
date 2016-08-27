@@ -6,8 +6,8 @@
 #include "smps.h"
 #endif
 
-extern struct _modeConfig modeConfig;
-extern struct _bpConfig bpConfig;
+extern mode_configuration_t modeConfig;
+extern bus_pirate_configuration_t bpConfig;
 void binrawversionString(void);
 void PIC24NOP(void);
 

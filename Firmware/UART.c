@@ -23,8 +23,8 @@
 #include "procMenu.h"		// for the userinteraction subs
 
 
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 
 /*
 // move into a .h or other .c??? 

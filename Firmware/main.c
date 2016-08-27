@@ -77,9 +77,9 @@ void ISRTable(); //Pseudo function to hold ISR remap jump table
 void Initialize(void);
 
 static unsigned char __attribute__((section(".bss.end"))) _buffer[TERMINAL_BUFFER_SIZE];
-struct _bpConfig bpConfig = {.terminalInput = _buffer}; //holds persistant bus pirate settings (see busPirateCore.h)
-struct _modeConfig modeConfig; //holds mode info, cleared between modes
-struct _command bpCommand; //holds the current active command so we don't ahve to put so many variables on the stack
+bus_pirate_configuration_t bpConfig = {.terminalInput = _buffer}; //holds persistant bus pirate settings (see busPirateCore.h)
+mode_configuration_t modeConfig; //holds mode info, cleared between modes
+command_t bpCommand; //holds the current active command so we don't ahve to put so many variables on the stack
 
 #pragma code
 //this loop services user input and passes it to be processed on <enter>

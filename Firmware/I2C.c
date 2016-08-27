@@ -44,9 +44,9 @@ i2c_state_t i2c_state = { 0 };
 #define SDA 		BP_MOSI        //-- The SDA output pin
 #define SDA_TRIS 	BP_MOSI_DIR    //-- The SDA Direction Register Bit
 
-extern struct _bpConfig bpConfig; //holds persistant bus pirate settings (see base.h) need hardware version info
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern bus_pirate_configuration_t bpConfig; //holds persistant bus pirate settings (see base.h) need hardware version info
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 
 /*
 static struct _i2csniff {

@@ -17,8 +17,8 @@
 #include "base.h"
 #include "busPirateCore.h"
 
-extern struct _bpConfig bpConfig; //global config variables
-extern struct _modeConfig modeConfig; //mode config variables
+extern bus_pirate_configuration_t bpConfig; //global config variables
+extern mode_configuration_t modeConfig; //mode config variables
 
 void clearModeConfig(void); //private function to clear modeConfig on reset
 

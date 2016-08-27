@@ -26,8 +26,8 @@
 #define KBDIO_TRIS 	BP_MOSI_DIR
 #define KBDIO 			BP_MOSI
 
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 
 void kbSetup(void);
 void KEYBsetup_exc(void);

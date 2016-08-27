@@ -22,8 +22,8 @@
 #include "1wire.h"
 #include "binIOhelpers.h"
 
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 
 //the roster stores the first OW_DEV_ROSTER_SLOTS 1-wire addresses found during a ROM SEARCH command
 //these addresses are available as MACROs for quick address entry

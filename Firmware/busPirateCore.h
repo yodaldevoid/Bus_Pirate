@@ -53,7 +53,7 @@ typedef enum
 
 //these settings persist between modes
 // such as terminal side baud rate, display mode, bus mode
-struct _bpConfig {
+typedef struct {
 	unsigned char *terminalInput; //hold user terminal input
 	unsigned char termSpeed;
 	enum {
@@ -70,10 +70,9 @@ struct _bpConfig {
 	unsigned char quiet:1;					// no output 
 	unsigned char basic:1;					// basic commandline
 	unsigned char overflow:1; 			//overflow error flag
-};
+} bus_pirate_configuration_t;
 
-
-typedef struct _proto {
+typedef struct {
 	void (*protocol_start)(void);
 	void (*protocol_startR)(void);
 	void (*protocol_stop)(void);

@@ -34,8 +34,8 @@
 #define ISO78133ATR 1
 #define ISO78133ATR_PARSE 2
 
-extern struct _modeConfig modeConfig;
-extern struct _command bpCommand;
+extern mode_configuration_t modeConfig;
+extern command_t bpCommand;
 
 void r2wMacro_78133Read(void);
 void r2wMacro_78133Write(void);
