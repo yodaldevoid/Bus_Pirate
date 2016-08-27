@@ -4,9 +4,12 @@
 // You'll also need lenval.c and micro.c from XAPP058
 // IT doesn't have a stated license so we're hesitant to include it in SVN
 // Get it here: http://www.xilinx.com/support/documentation/application_notes/xapp058.zip
-#include "../base.h"
 
-#ifdef BP_USE_JTAG
+#include "../configuration.h"
+
+#ifdef BP_ENABLE_JTAG_SUPPORT
+
+#ifdef BP_JTAG_XSVF_SUPPORT
 
 #include "ports.h"
 #include "../jtag.h"
@@ -60,4 +63,6 @@ void waitTime(long microsec){
     }
 }
 
-#endif /* BP_USE_JTAG */
+#endif /* BP_JTAG_XSVF_SUPPORT */
+
+#endif /* BP_ENABLE_JTAG_SUPPORT */

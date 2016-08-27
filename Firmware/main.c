@@ -218,9 +218,9 @@ void Initialize(void) {
     bpConfig.quiet = 0; // turn output on (default)
     modeConfig.numbits = 8;
     
-#ifdef BP_USE_BASIC
+#ifdef BP_ENABLE_BASIC_SUPPORT
     initpgmspace();
-#endif
+#endif /* BP_ENABLE_BASIC_SUPPORT */
 
     TBLPAG = 0; // we need to be in page 0 (somehow this isn't set)
 

@@ -13,11 +13,12 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
- 
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_1WIRE_SUPPORT
 
 #include "base.h"
-
-#ifdef BP_USE_1WIRE
 
 #include "1wire_lib.h"
 
@@ -29,14 +30,12 @@
  #error BP_MOSI_DIR Must be defined for 1-wire Bus I/O
 #endif
 
-
 #if(USE_OWGLOBALS)
 // OWShort: If 1; there is a short on the bus (set during OWReset)
 static unsigned char OWShort=0;
 // OWDevice: If 1; There is atleast one device on the bus (set during OWReset)
 static unsigned char OWDevice=0;
 #endif
-
 
 /* ***********************************************************************************
    Function: OWReset
@@ -148,11 +147,6 @@ unsigned char OWByte(unsigned char OWbyte){
 	return OWbyte;
 }
 
-
-
-
-
-
 /* ***********************************************************************************
    Function: OWShortOnBus
    Args[0]:
@@ -168,11 +162,6 @@ unsigned char OWShortOnBus(void)
 }
 #endif
 #endif
-
-
-
-
-
 
 /* BrentBXR [2011] - No License, No Nothing! -Enjoy :) For questions join the Dangerous Prototypes Forums */
 #endif

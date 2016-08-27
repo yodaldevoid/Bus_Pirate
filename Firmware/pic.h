@@ -14,16 +14,12 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/*
+#ifndef BP_PIC_H
+#define BP_PIC_H
 
-these are lowlevel interface subs for programming pics
+#include "configuration.h"
 
-supported platforms (should) are pic10, pic12, pic14, pic16 and pic18
-
-{ 0xff } or [ 0xff] sends 4 byte cmd (pic18) or 6 byte cmd (pic10, 12, 14, 16)
-
-*/
-
+#ifdef BP_ENABLE_PIC_SUPPORT
 
 #define PICMODE6	6
 #define PICMODE4	4
@@ -46,4 +42,6 @@ void binpic(void);
 void picmacro(unsigned int macro);
 void picpins(void);
 
+#endif /* BP_ENABLE_PIC_SUPPORT */
 
+#endif /* BP_PIC_H */

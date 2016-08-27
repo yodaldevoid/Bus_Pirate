@@ -4,7 +4,7 @@
 
 #include "../base.h"
 
-#ifdef BP_USE_JTAG
+#ifdef BP_ENABLE_JTAG_SUPPORT
 
 #define TCK (short) 0
 #define TMS (short) 1

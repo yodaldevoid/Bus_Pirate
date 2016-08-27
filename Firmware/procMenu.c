@@ -13,13 +13,16 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#include "configuration.h"
+
 #include "base.h"
 #include "AUXpin.h"
 #include "busPirateCore.h"
 #include "procMenu.h" //need our public versionInfo() function
 #include "selftest.h"
 #include "binIO.h"
-#include "SUMP.h"
+#include "sump.h"
 #include "basic.h"
 
 extern bus_pirate_configuration_t bpConfig;
@@ -51,17 +54,15 @@ void setPullupVoltage(void); // onboard Vpu selection
 #endif
 
 //global vars    move to bpconfig structure?
-char cmdbuf[CMDBUFLEN];
+char cmdbuf[BP_COMMAND_BUFFER_SIZE];
 unsigned int cmdend;
 unsigned int cmdstart;
 int cmderror;
 
 //int currentproto;	// port to the other way :)
 
-#define USRMACROS	5
-#define USRMACROLEN	32
 
-static char usrmacros[USRMACROS][USRMACROLEN];
+static char usrmacros[BP_USER_MACROS_COUNT][BP_USER_MACRO_MAX_LENGTH];
 static int usrmacro;
 
 void serviceuser(void) {
@@ -84,12 +85,12 @@ void serviceuser(void) {
     tmpcmdend = cmdend;
     histcnt = 0;
     tmphistcnt = 0;
-    bpConfig.busMode = HIZ;
+    bpConfig.busMode = BP_HIZ;
     temp2 = 0;
     cmderror = 0; // we don't want to start with error do we?
     binmodecnt = 0;
 
-    for (repeat = 0; repeat < USRMACROS; repeat++) {
+    for (repeat = 0; repeat < BP_USER_MACROS_COUNT; repeat++) {
         for (temp = 0; temp < 32; temp++) {
             usrmacros[repeat][temp] = 0;
         }
@@ -98,9 +99,12 @@ void serviceuser(void) {
 
     while (1) {
         bpWstring(protos[bpConfig.busMode].protocol_name);
-        if (bpConfig.basic) { //bpWstring("(BASIC)");
+#ifdef BP_ENABLE_BASIC_SUPPORT
+        if (bpConfig.basic) {
+            //bpWstring("(BASIC)");
             BPMSG1084;
         }
+#endif /* BP_ENABLE_BASIC_SUPPORT */
         bpWstring(">");
         while (!cmd) {
             if (usrmacro) {
@@ -229,12 +233,12 @@ void serviceuser(void) {
                     break;
 left:
                 case 0x02: // ^B (left arrow) or SUMP
-#ifdef BP_USE_SUMP
+#ifdef BP_ENABLE_SUMP_SUPPORT                    
                     if (binmodecnt >= 5) {
                         enter_sump_mode();
                         binmodecnt = 0; // do we get here or not?
                     } else // ^B (left arrow)
-#endif /* BP_USE_SUMP */
+#endif /* BP_ENABLE_SUMP_SUPPORT */
                     {
                         if (tmpcmdend != cmdstart) // at the begining?
                         {
@@ -281,7 +285,11 @@ up:
                                 }
                                 bpWstring("\x1B[2K\x0D"); // clear line, CR
                                 bpWstring(protos[bpConfig.busMode].protocol_name);
-                                if (bpConfig.basic) BPMSG1084;
+#ifdef BP_ENABLE_BASIC_SUPPORT
+                                if (bpConfig.basic) {
+                                    BPMSG1084;
+                                }
+#endif /* BP_ENABLE_BASIC_SUPPORT */
                                 bpWstring(">");
                                 for (repeat = temp2; repeat != temp; repeat = (repeat + 1) & CMDLENMSK) {
                                     UART1TX(cmdbuf[repeat]);
@@ -322,7 +330,11 @@ down:
                                 }
                                 bpWstring("\x1B[2K\x0D"); // clear line, CR
                                 bpWstring(protos[bpConfig.busMode].protocol_name);
-                                if (bpConfig.basic) BPMSG1084;
+#ifdef BP_ENABLE_BASIC_SUPPORT
+                                if (bpConfig.basic) {
+                                    BPMSG1084;
+                                }
+#endif /* BP_ENABLE_BASIC_SUPPORT */
                                 bpWstring(">");
                                 for (repeat = temp2; repeat != temp; repeat = (repeat + 1) & CMDLENMSK) {
                                     UART1TX(cmdbuf[repeat]);
@@ -339,7 +351,11 @@ down:
                         if (histcnt == 1) {
                             bpWstring("\x1B[2K\x0D"); // clear line, CR
                             bpWstring(protos[bpConfig.busMode].protocol_name);
-                            if (bpConfig.basic) BPMSG1084;
+#ifdef BP_ENABLE_BASIC_SUPPORT
+                            if (bpConfig.basic) {
+                                BPMSG1084;
+                            }
+#endif /* BP_ENABLE_BASIC_SUPPORT */
                             bpWstring(">");
                             while (cmdend != cmdstart) {
                                 cmdbuf[cmdend] = 0x00;
@@ -452,14 +468,14 @@ end:
         stop = 0;
         cmderror = 0;
 
-#ifdef BP_USE_BASIC
+#ifdef BP_ENABLE_BASIC_SUPPORT
         if (bpConfig.basic) {
             basiccmdline();
             //bpWline("Ready.");
             BPMSG1085;
             stop = 1;
         }
-#endif
+#endif /* BP_ENABLE_BASIC_SUPPORT */
 
         //		for(i=0; i<CMDBUFLEN; i++)						// print ringbuffer
         //		{	if(cmdbuf[i]) UART1TX(cmdbuf[i]);
@@ -479,7 +495,7 @@ end:
 
             switch (c) { // generic commands (not bus specific)
                 case 'h': //bpWline("-command history");
-#if defined(BP_ENABLE_HISTORY)
+#if defined(BP_ENABLE_COMMAND_HISTORY)
                     if (!cmdhistory()) {
                         oldstart = cmdstart;
                         newstart = cmdend;
@@ -492,7 +508,7 @@ end:
                     break;
                 case 'i': //bpWline("-Status info");
                     versionInfo(); //display hardware and firmware version string
-                    if (bpConfig.busMode != HIZ) {
+                    if (bpConfig.busMode != BP_HIZ) {
                         statusInfo();
                     }
                     break;
@@ -520,7 +536,7 @@ end:
                             break;
                     }
                     else*/
-                    if (bpConfig.busMode == HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         bpPWM();
@@ -574,7 +590,7 @@ end:
 
 
                     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
-                    if (bpConfig.busMode == HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         BP_PULLUP_OFF(); //pseudofunction in hardwarevx.h
@@ -586,7 +602,7 @@ end:
                     break;
                 case 'P': //bpWline("-pullup resistors on");
                     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
-                    if (bpConfig.busMode == HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         if (modeConfig.HiZ == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
@@ -633,7 +649,7 @@ end:
                     bpBR;
                     break;
                 case '~': //bpWline("-selftest");
-                    if (bpConfig.busMode == HIZ) {
+                    if (bpConfig.busMode == BP_HIZ) {
                         selfTest(1, 1); //self test, showprogress in terminal
                     } else {
                         //bpWline(OUMSG_PM_SELFTEST_HIZ);
@@ -686,7 +702,7 @@ bpv4reset:
                     }
                     break;
                 case 'W': //bpWline("-PSU on");	//enable any active power supplies
-                    if (bpConfig.busMode == HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         BP_VREG_ON();
@@ -713,7 +729,7 @@ bpv4reset:
                     }
                     break;
                 case 'w': //bpWline("-PSU off");	//disable the power supplies
-                    if (bpConfig.busMode == HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         //disengaging Clutch
@@ -754,13 +770,13 @@ bpv4reset:
                     BPMSG1212;
                     bp_delay_ms(repeat);
                     break;
-#ifdef BP_USE_BASIC
+#ifdef BP_ENABLE_BASIC_SUPPORT
                 case 's': //bpWline("Listing:");
                     bpConfig.basic = 1;
                     break;
-#endif
+#endif /* BP_ENABLE_BASIC_SUPPORT */
                 case 'S': //servo control
-                    if (bpConfig.busMode == HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         bpServo();
@@ -773,16 +789,16 @@ bpv4reset:
                         if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == '>') cmderror = 0; // clear error if we found a > before the command ends
                         temp++;
                     }
-                    if (temp >= (USRMACROLEN + 3)) cmderror = 1; // too long (avoid overflows)
+                    if (temp >= (BP_USER_MACRO_MAX_LENGTH + 3)) cmderror = 1; // too long (avoid overflows)
                     if (!cmderror) {
                         cmdstart = (cmdstart + 1) & CMDLENMSK;
                         temp = getint();
                         if (cmdbuf[((cmdstart) & CMDLENMSK)] == '=') // assignment
                         {
-                            if ((temp > 0) && (temp <= USRMACROS)) {
+                            if ((temp > 0) && (temp <= BP_USER_MACROS_COUNT)) {
                                 cmdstart = (cmdstart + 1) & CMDLENMSK;
                                 temp--;
-                                for (repeat = 0; repeat < USRMACROLEN; repeat++) {
+                                for (repeat = 0; repeat < BP_USER_MACRO_MAX_LENGTH; repeat++) {
                                     usrmacros[temp][repeat] = 0;
                                 }
                                 repeat = 0;
@@ -796,13 +812,13 @@ bpv4reset:
                             }
                         } else {
                             if (temp == 0) {
-                                for (repeat = 0; repeat < USRMACROS; repeat++) {
+                                for (repeat = 0; repeat < BP_USER_MACROS_COUNT; repeat++) {
                                     bpWdec(repeat + 1);
                                     bpWstring(". <");
                                     bpWstring(usrmacros[repeat]);
                                     bpWline(">");
                                 }
-                            } else if ((temp > 0) && (temp <= USRMACROS)) { //bpWstring("execute : ");
+                            } else if ((temp > 0) && (temp <= BP_USER_MACROS_COUNT)) { //bpWstring("execute : ");
                                 //BPMSG1236;
                                 //bpWdec(temp-1);
                                 bpBR;
@@ -1031,7 +1047,7 @@ bpv4reset:
                 {
                     bpWdec(cmdstart - oldstart);
                 } else {
-                    bpWdec((CMDBUFLEN + cmdstart) - oldstart);
+                    bpWdec((BP_COMMAND_BUFFER_SIZE + cmdstart) - oldstart);
                 }
                 cmderror = 0;
                 stop = 1;
@@ -1233,12 +1249,12 @@ void changemode(void) {
 } //changemode(void)
 
 
-#if defined(BP_ENABLE_HISTORY)
+#if defined(BP_ENABLE_COMMAND_HISTORY)
 
 int cmdhistory(void) {
     int i, j, k;
 
-    int historypos[CMDHISTORY];
+    int historypos[BP_COMMAND_HISTORY_LENGTH];
 
     i = 1;
     j = (cmdstart - 1) & CMDLENMSK;
@@ -1256,7 +1272,7 @@ int cmdhistory(void) {
             }
             historypos[i] = (j + 1) & CMDLENMSK;
             i++;
-            if (i == CMDHISTORY) break;
+            if (i == BP_COMMAND_HISTORY_LENGTH) break;
             bpWline("");
         }
         j = (j - 1) & CMDLENMSK;
@@ -1861,7 +1877,7 @@ void setPullupVoltage(void) {
 
 
     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
-    if (bpConfig.busMode == HIZ) { //bpWmessage(MSG_ERROR_MODE);
+    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
         BPMSG1088;
         cmderror = 1; // raise error
         return;

@@ -1,22 +1,28 @@
+#include "openocd.h"
+
+#ifdef BP_JTAG_OPENOCD_SUPPORT
+
+#ifdef BUSPIRATEV4
+#error "OpenOCD support for Bus Pirate v4 is not there yet!"
+#endif /* BUSPIRATEV4 */
+
 #include "base.h"
-
-#ifdef BP_USE_JTAG
-
 #include "baseIO.h"
 #include "busPirateCore.h"
 #include "binIOhelpers.h"
 
-extern struct _modeConfig modeConfig;
-extern struct _bpConfig bpConfig;
+extern mode_configuration_t modeConfig;
+extern bus_pirate_configuration_t bpConfig;
+
 // tris registers
 #define OOCD_TDO_TRIS   BP_MISO_DIR
 #define OOCD_TMS_TRIS   BP_CS_DIR
 #define OOCD_CLK_TRIS   BP_CLK_DIR
 #define OOCD_TDI_TRIS   BP_MOSI_DIR
 #define OOCD_SRST_TRIS  BP_AUX0_DIR
-#if defined (BUSPIRATEV3)
+#ifdef BUSPIRATEV3
 #define OOCD_TRST_TRIS  BP_PGD_DIR
-#endif
+#endif /* BUSPIRATEV3 */
 
 // io ports
 #define OOCD_TDO        BP_MISO
@@ -24,9 +30,9 @@ extern struct _bpConfig bpConfig;
 #define OOCD_CLK        BP_CLK 
 #define OOCD_TDI        BP_MOSI 
 #define OOCD_SRST       BP_AUX0
-#if defined (BUSPIRATEV3)
+#ifdef BUSPIRATEV3
 #define OOCD_TRST       BP_PGD
-#endif
+#endif /* BUSPIRATEV3 */
 
 // open-drain control
 #define OOCD_TDO_ODC    BP_MISO
@@ -34,9 +40,9 @@ extern struct _bpConfig bpConfig;
 #define OOCD_CLK_ODC    BP_CLK 
 #define OOCD_TDI_ODC    BP_MOSI 
 #define OOCD_SRST_ODC   BP_AUX0
-#if defined (BUSPIRATEV3)
+#ifdef BUSPIRATEV3
 #define OOCD_TRST_ODC   BP_PGD
-#endif
+#endif /* BUSPIRATEV3 */
 
 #define CMD_UNKNOWN       0x00
 #define CMD_PORT_MODE     0x01
@@ -53,7 +59,6 @@ static void binOpenOCDPinMode(unsigned char mode);
 static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action);
 static void binOpenOCDAnswer(unsigned char *buf, unsigned int len);
 extern void binOpenOCDTapShiftFast(unsigned char *in_buf, unsigned char *out_buf, unsigned int bits, unsigned int delay);
-
 
 enum {
 	FEATURE_LED=0x01,
@@ -134,16 +139,16 @@ this will misbehave when polling is turned off in OpenOCD
 				buf[0] = CMD_READ_ADCS;
 				buf[1] = 8;
 				AD1CON1bits.ADON = 1; // turn ADC ON
-				i=bpADC(12); // ADC pin
+				i=bp_read_adc(12); // ADC pin
 				buf[2] = (unsigned char)(i>>8);
 				buf[3] = (unsigned char)(i);
-				i=bpADC(11); // VEXT pin
+				i=bp_read_adc(11); // VEXT pin
 				buf[4] = (unsigned char)(i>>8);
 				buf[5] = (unsigned char)(i);
-				i=bpADC(10); // V33 pin
+				i=bp_read_adc(10); // V33 pin
 				buf[6] = (unsigned char)(i>>8);
 				buf[7] = (unsigned char)(i);
-				i=bpADC(9); // V50 pin
+				i=bp_read_adc(9); // V50 pin
 				buf[8] = (unsigned char)(i>>8);
 				buf[9] = (unsigned char)(i);
 				AD1CON1bits.ADON = 0; // turn ADC OFF
@@ -315,4 +320,4 @@ static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
 	}
 }
 
-#endif /* BP_USE_JTAG */
+#endif /* BP_JTAG_OPENOCD_SUPPORT */

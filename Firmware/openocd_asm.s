@@ -1,5 +1,5 @@
 ;
-; OpenOCD_asm.S
+; OpenOCD_asm.s
 ;
 ; Optimized function for the OpenOCD mode
 ;
@@ -14,34 +14,40 @@
 ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ;
 
+.ifdef __PIC24FJ256GB106__
+	.error "Bus Pirate v4 is not yet supported!"
+.endif ; __PIC24FJ256GB106__
+
+.ifdef __PIC24FJ64GA002__
 	.equ __24FJ64GA002, 1
 	.include "p24FJ64GA002.inc"
-
-
-
+.endif ; __PIC24FJ64GA002__
 
 ;
 ; Hardware configuration
 ;
 
 ;  Do we support delay ?
-#define HAS_DELAY	1
+.equ HAS_DELAY, 1
 
 ;  Bus pirate v3 hardware
-#define IOPOR		PORTB
+.equ IOPOR, PORTB
 
-#define BP_MOSI_BIT	RB9
-#define BP_CLK_BIT	RB8
-#define BP_MISO_BIT	RB7
-#define BP_CS_BIT	RB6
+; .equ BP_MOSI_BIT, RB9
+; .equ BP_CLK_BIT, RB8
+; .equ BP_MISO_BIT, RB7
+; .equ BP_CS_BIT, RB6
+	
+.equ BP_MOSI_BIT, #0x0009
+.equ BP_CLK_BIT, #0x0008
+.equ BP_MISO_BIT, #0x0007
+.equ BP_CS_BIT, #0x0006
 
 ;  Pin usage by OpenOCD
-#define OOCD_TDO_BIT	BP_MISO_BIT
-#define OOCD_TMS_BIT	BP_CS_BIT
-#define OOCD_CLK_BIT	BP_CLK_BIT
-#define OOCD_TDI_BIT	BP_MOSI_BIT
-
-
+.equ OOCD_TDO_BIT, BP_MISO_BIT
+.equ OOCD_TMS_BIT, BP_CS_BIT
+.equ OOCD_CLK_BIT, BP_CLK_BIT
+.equ OOCD_TDI_BIT, BP_MOSI_BIT
 
 ;
 ; void binOpenOCDTapShiftFast(void *in_buf, void *out_buf, unsigned int bits, unsigned int delay)
@@ -74,14 +80,21 @@
 	.text
 	.global _binOpenOCDTapShiftFast
 
+	.extern _UART1RXToRecv
+	.extern _UART1RXRecvd
+	.extern _UART1TXAvailable
+	.extern _UART1TXSent
+	.extern _UART1TXBuf
+	.extern _UART1RXBuf
+	
 _binOpenOCDTapShiftFast:
 
 		; Save registers
 		push.d	w8			; save w8,w9
 		push.d	w10			; save w10,w11
-#ifdef HAS_DELAY
+.ifdef HAS_DELAY
 		push.w	w12			; save 12
-#endif
+.endif
 
 		; Init consumed byte counter
 		clr	w5			; w5 = 0
@@ -90,9 +103,9 @@ _binOpenOCDTapShiftFast:
 		dec.w	w2, w6			; w6 = w2 - 1;
 		mov.w	w0, w7			; w7  = w0;
 		mov.w	w1, w8			; w8  = w1;
-#ifdef HAS_DELAY
+.ifdef HAS_DELAY
 		mov.w	w3, w12
-#endif
+.endif
 
 		; Constants
 		mov.w	#IOPOR, w9		; w9 = IOPOR;
@@ -140,10 +153,10 @@ __loop_word:					; do {
 __loop_bit:					;   do {
  
  		;     Delay loop
-#if HAS_DELAY
+.ifdef HAS_DELAY
 		repeat	w12
 		nop
-#endif
+.endif
 
 		;     Clear TCK
 		bclr.w	[w9], #OOCD_CLK_BIT
@@ -155,13 +168,13 @@ __loop_bit:					;   do {
 		bsw.c	[w9], w11
 
  		;     Delay loop
-#if HAS_DELAY
+.ifdef HAS_DELAY
 		repeat	w12
 		nop
-#else
+.else
 		nop				; /* still must pause a cycle because */
 						; /* we wrote [w9] last cycle ...     */
-#endif
+.endif
 
 		;     Set TCK
 		bset.w	[w9], #OOCD_CLK_BIT
@@ -188,15 +201,20 @@ __loop_bit:					;   do {
 		;   Trigger TX if needed
 		;   (we're in the loop, so use optimized version, also we can't
 		;   loose register content -> no function call)
-		btst	IEC0, #U1TXIE
+		
+		; Referencing an .equiv symbol does not work anymore?
+; 		btst	IEC0, #U1TXIE
+		btst	IEC0, #0x000C
 		bra	z, 1f
 
 		mov	_UART1TXSent, w0
 		cp	_UART1TXAvailable
 		bra	z, 1f
 
-		bclr	IFS0, #U1TXIF
-		bset	IEC0, #U1TXIE
+;		bclr	IFS0, U1TXIF
+		;bclr	IFS0, #0x000C
+;		bset	IEC0, U1TXIE
+		;bset	IEC0, #0x000C
 		add	_UART1TXBuf, wreg
 		mov	[w0], w0
 		mov	w0, U1TXREG
@@ -207,9 +225,9 @@ __loop_bit:					;   do {
 		bra	c, __loop_word		; } while (w6>=0);
 
 		; Restore registers
-#ifdef HAS_DELAY
+.ifdef HAS_DELAY
 		pop.w	w12			; restore w12
-#endif
+.endif
 		pop.d	w10			; restore w10,w11
 		pop.d	w8			; restore w8,w9
 

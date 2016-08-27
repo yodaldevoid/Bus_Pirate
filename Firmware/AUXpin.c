@@ -40,6 +40,13 @@ unsigned long bpPeriod_count(unsigned int n);
 int PWMfreq;
 int PWMduty;
 
+/**
+ * Sets up timer #1's input clock prescaler for the given frequency and returns
+ * an appropriate divisor for it.
+ *
+ * @param[in] frequency the given frequency to set things up for.
+ * @return the appropriate PWM frequency divisor.
+ */
 static unsigned int setup_prescaler_divisor(unsigned int frequency);
 
 /**
@@ -62,13 +69,6 @@ static unsigned int setup_prescaler_divisor(unsigned int frequency);
  */
 #define PWM_DIVISOR_PRESCALER_1_1 16000
 
-/**
- * Sets up timer #1's input clock prescaler for the given frequency and returns
- * an appropriate divisor for it.
- *
- * @param[in] frequency the given frequency to set things up for.
- * @return the appropriate PWM frequency divisor.
- */
 unsigned int setup_prescaler_divisor(unsigned int frequency) {
 
     /* Use 1:256 prescaler. */
@@ -649,13 +649,13 @@ unsigned int bpAuxRead(void){
 #ifndef BUSPIRATEV4
         if(modeConfig.altAUX==0){
                 BP_AUX0_DIR=1;//aux input
-                asm( "nop" );//needs one TCY to get pin direction
-                asm( "nop" );//needs one TCY to get pin direction
+                Nop();
+                Nop();
                 c=BP_AUX0;
         }else{
                 BP_CS_DIR=1;
-                asm( "nop" );//needs one TCY to get pin direction
-                asm( "nop" );//needs one TCY to get pin direction
+                Nop();
+                Nop();
                 c=BP_CS;
         }
 #endif
@@ -663,23 +663,23 @@ unsigned int bpAuxRead(void){
 #ifdef BUSPIRATEV4
         switch(modeConfig.altAUX)
         {       case 0: BP_AUX0_DIR=1;
-                                asm("nop");
-                                asm("nop");
+                Nop();
+                Nop();
                                 c=BP_AUX0;
                                 break;
                 case 1: BP_CS_DIR=1;
-                                asm("nop");
-                                asm("nop");
+                Nop();
+                Nop();
                                 c=BP_CS;
                                 break;
                 case 2: BP_AUX1_DIR=1;
-                                asm("nop");
-                                asm("nop");
+                Nop();
+                Nop();
                                 c=BP_AUX1;
                                 break;
                 case 3: BP_AUX2_DIR=1;
-                                asm("nop");
-                                asm("nop");
+                Nop();
+                Nop();
                                 c=BP_AUX2;
                                 break;
         }

@@ -13,11 +13,12 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#include "raw3wire.h"
+
+#ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
+
 #include "base.h"
-
-#ifdef BP_USE_RAW3WIRE
-
-//#include "raw3wire.h"
 #include "bitbang.h"
 #include "procMenu.h"		// for the userinteraction subs
 
@@ -32,19 +33,9 @@
 #define R3WMISO 		BP_MISO 
 #define R3WCS 			BP_CS 
 
-// should this come from an .h?
 extern mode_configuration_t modeConfig;
 extern command_t bpCommand;
 void R3Wsetup_exc(void);
-/*
-// move into a .h or other .c??? 
-int getnumber(int def, int max); // everything to make the compiler happy *dubbelzucht*
-int getint(void);
-int getrepeat(void);
-void consumewhitechars(void);
-extern int cmderror;
-*/
-
 
 struct _R3W{
 //	unsigned char wwr:1;
@@ -207,4 +198,4 @@ void R3Wpins(void) {
         #endif
 }
 
-#endif /* BP_USE_RAW3WIRE */
+#endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */

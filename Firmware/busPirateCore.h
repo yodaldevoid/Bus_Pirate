@@ -13,41 +13,43 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#include "configuration.h"
+
 #define TERMINAL_BUFFER_SIZE 4096
 
-typedef enum
-{
-	HIZ = 0,
-#ifdef BP_USE_1WIRE
-	DS1WIRE,
-#endif
-#ifdef BP_USE_HWUART
-	HWUART,
-#endif
-#ifdef BP_USE_I2C
-	I2C,
-#endif
-#ifdef BP_USE_HWSPI
-	HWSPI,
-#endif
-#ifdef BP_USE_RAW2WIRE
-	RAW2WIRE,
-#endif
-#ifdef BP_USE_RAW3WIRE
-	RAW3WIRE,
-#endif
-#ifdef BP_USE_PCATKB
-	PCATKB,
-#endif
-#ifdef BP_USE_LCD
-	LCD,
-#endif
-#ifdef BP_USE_PIC
-	PICPROG,
-#endif
-#ifdef BP_USE_DIO
-	DIO,
-#endif
+typedef enum {
+	BP_HIZ = 0,
+#ifdef BP_ENABLE_1WIRE_SUPPORT
+	BP_1WIRE,
+#endif /* BP_ENABLE_1WIRE_SUPPORT */
+#ifdef BP_ENABLE_UART_SUPPORT
+	BP_UART,
+#endif /* BP_ENABLE_UART_SUPPORT */
+#ifdef BP_ENABLE_I2C_SUPPORT
+	BP_I2C,
+#endif /* BP_ENABLE_I2C_SUPPORT */
+#ifdef BP_ENABLE_SPI_SUPPORT
+	BP_SPI,
+#endif /* BP_ENABLE_SPI_SUPPORT */
+#ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
+	BP_RAW2WIRE,
+#endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
+#ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
+	BP_RAW3WIRE,
+#endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
+#ifdef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
+	BP_PCATKBD,
+#endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
+#ifdef BP_ENABLE_HD44780_SUPPORT
+	BP_HD44780,
+#endif /* BP_ENABLE_HD44780_SUPPORT */
+#ifdef BP_ENABLE_PIC_SUPPORT
+	BP_PICPROG,
+#endif /* BP_ENABLE_PIC_SUPPORT */
+#ifdef BP_ENABLE_DIO_SUPPORT
+	BP_DIO,
+#endif /* BP_ENABLE_DIO_SUPPORT */
 	MAXPROTO
 } protocol_t;
 
@@ -68,7 +70,9 @@ typedef struct {
 	unsigned int dev_rev;
 	unsigned char HWversion;				//holds hardware revision for v3a/v3b
 	unsigned char quiet:1;					// no output 
+#ifdef BP_ENABLE_BASIC_SUPPORT
 	unsigned char basic:1;					// basic commandline
+#endif /* BP_ENABLE_BASIC_SUPPORT */
 	unsigned char overflow:1; 			//overflow error flag
 } bus_pirate_configuration_t;
 
@@ -95,28 +99,6 @@ typedef struct {
 	void (*protocol_settings)(void);
 	char protocol_name[8];
 } proto;
-
-
-
-/*
-//send command to correct protocol library for processing
-//switch based on bpConfig.busMode variable
-void bpProcess(void);
-
-//echo the name of the current bus mode to the user terminal
-//used to show user prompt
-void bpEchoCurrentBusMode(void);
-
-//echo the name of the bus mode in the name array at position m to the user terminal
-//used for listing available bus modes
-void bpEchoBusMode(unsigned char m);
-
-//the number of bus modes available
-//used to navigate the protocol list array, 
-//done here because mode array isn't availble to other functions
-unsigned char bpNumBusModes(void);
-
-*/
 
 //bridge UART input in UART mode
 void busPirateAsyncUARTService(void);

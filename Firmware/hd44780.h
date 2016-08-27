@@ -13,21 +13,28 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-void spiProcess(void);
-void binSPI(void);
 
-void SPIstart(void);
-void SPIstartr(void);
-void SPIstop(void);
-unsigned int SPIread(void);
-unsigned int SPIwrite(unsigned int c);
-void SPIsetup(void);
-void SPIsetup_exc(void);
-void SPIcleanup(void);
-void SPImacro(unsigned int macro);
-void SPIpins(void);
-void spiSetup(unsigned char spiSpeed);
+#ifndef BP_HD44780_H
+#define BP_HD44780_H
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_HD44780_SUPPORT
+
+unsigned int LCDread(void);
+unsigned int LCDwrite(unsigned int c);
+void LCDstart(void);
+void LCDstop(void);
+void LCDsetup(void);
+void LCDsetup_exc(void);
+void LCDmacro(unsigned int c);
+void LCDpins(void);
+
+// to satisfy the compiler when split firmware
+#ifndef BP_MAIN
 void spiDisable(void);
-unsigned char spiWriteByte(unsigned char c);
-void SPIsettings(void);
+#endif
 
+#endif /* BP_ENABLE_HD44780_SUPPORT */
+
+#endif /* !BP_HD44780_H */

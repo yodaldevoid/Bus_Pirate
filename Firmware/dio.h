@@ -17,6 +17,10 @@
 #ifndef BP_DIO_H
 #define BP_DIO_H
 
+#include "configuration.h"
+
+#ifdef BP_ENABLE_DIO_SUPPORT
+
 /**
  * Prepares the device for Direct I/O (DIO) mode.
  */
@@ -47,5 +51,7 @@ unsigned int dio_read(void);
  * @see binBBpindirectionset
  */
 unsigned int dio_write(unsigned int value);
+
+#endif /* BP_ENABLE_DIO_SUPPORT */
 
 #endif /* BP_DIO_H */

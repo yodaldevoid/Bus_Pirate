@@ -14,18 +14,15 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "SPI.h"
+#include "spi.h"
+
+#ifdef BP_ENABLE_SPI_SUPPORT
+
 #include "base.h"
 #include "busPirateCore.h"
 #include "binIOhelpers.h"
 
 #include "procMenu.h"		// for the userinteraction subs
-
-//#define USE_SPICS //the CS hardware pin on silicone REV 3 doesn't work, optionally enable it here
-
-#ifdef BP_USE_HWSPI
-// enable special AVR-specific commands for bulk flash reading and other purposes
-#define AVR_EXTENDED_COMMANDS
 
 //direction registers
 #define SPIMOSI_TRIS 	BP_MOSI_DIR	
@@ -341,20 +338,6 @@ void spiSetup(unsigned char spiSpeed) {
 	BP_MOSI_RPOUT = SDO1_IO; //B9 MOSI
 	BP_CLK_RPOUT = SCK1OUT_IO; //B8 CLK
 	
-	//#if defined(BUSPIRATEV3)
-	//    // Inputs
-	//    RPINR20bits.SDI1R = 7; //B7 MISO
-	//    // Outputs
-	//    RPOR4bits.RP9R = SDO1_IO; //B9 MOSI
-	//    RPOR4bits.RP8R = SCK1OUT_IO; //B8 CLK
-	//#elif defined(BUSPIRATEV4)
-	//    // Inputs
-	//    RPINR20bits.SDI1R = 22; //B7 MISO
-	//    // Outputs
-	//    RPOR12bits.RP24R = SDO1_IO; //B9 MOSI
-	//    RPOR11bits.RP23R = SCK1OUT_IO; //B8 CLK
-	//#endif
-
     SPICS = 1; //B6 cs high
     SPICS_TRIS = 0; //B6 cs output
 
@@ -381,14 +364,6 @@ void spiDisable(void) {
     //PPS Disable
     BP_MOSI_RPOUT=0;
     BP_CLK_RPOUT=0;
-    
-//	#if defined(BUSPIRATEV3)
-//        RPOR4bits.RP9R=0;                       //B9 MOSI
-//        RPOR4bits.RP8R=0;                       //B8 CLK
-//	#elif defined(BUSPIRATEV4)
-//        RPOR12bits.RP24R=0;                       //B9 MOSI
-//        RPOR11bits.RP23R=0;                       //B8 CLK
-//	#endif
 
     //disable all open drain control register bits
     SPIMOSI_ODC = 0;
@@ -411,7 +386,6 @@ unsigned char spiWriteByte(unsigned char c) {
 //	SPI Sniffer 
 //
 //
-#define USE_SPICS //enabled SPI CS pin
 
 void spiSniffer(unsigned char csState, unsigned char termMode) {
     unsigned char c, lastCS;
@@ -510,23 +484,12 @@ void spiSlaveSetup(void) {
     SPIMOSI_TRIS = 1; //b9 SDO input
     
     //More PPS
-    //#ifdef USE_SPICS
     RPINR21bits.SS1R = BP_CS_RPIN; //SPICS_RPIN; //assign CS function to bus pirate CS pin
     RPINR23bits.SS2R = BP_CS_RPIN;
-    //#endif
     RPINR20bits.SDI1R = BP_MOSI_RPIN; //B9 MOSI
     RPINR20bits.SCK1R = BP_CLK_RPIN; //SPICLK_RPIN; //assign SPI1 CLK input to bus pirate CLK pin
     RPINR22bits.SDI2R = BP_MISO_RPIN; //B7 MiSo
     RPINR22bits.SCK2R = BP_CLK_RPIN; //SPICLK_RPIN; //assign SPI2 CLK input to bus pirate CLK pin
-
-//    //#ifdef USE_SPICS
-//    RPINR21bits.SS1R = 6; //SPICS_RPIN; //assign CS function to bus pirate CS pin
-//    RPINR23bits.SS2R = 6;
-//    //#endif
-//    RPINR20bits.SDI1R = 9; //B9 MOSI
-//    RPINR20bits.SCK1R = 8; //SPICLK_RPIN; //assign SPI1 CLK input to bus pirate CLK pin
-//    RPINR22bits.SDI2R = 7; //B7 MiSo
-//    RPINR22bits.SCK2R = 8; //SPICLK_RPIN; //assign SPI2 CLK input to bus pirate CLK pin
 
     //clear old SPI settings first
     SPI1CON1 = (SPIspeed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
@@ -577,10 +540,8 @@ void spiSlaveDisable(void) {
     SPI2STATbits.SPIEN = 0; //SPI module off
     SPI2CON1bits.DISSDO = 0; //restore SDO pin
     
-    //#ifdef USE_SPICS
     RPINR21bits.SS1R = 0b11111; //assign CS input to none
     RPINR23bits.SS2R = 0b11111; //assign CS input to none
-    //#endif
     RPINR20bits.SDI1R = 0b11111;
     RPINR20bits.SCK1R = 0b11111; //assign CLK input to none
     RPINR22bits.SDI2R = 0b11111;
@@ -831,4 +792,4 @@ void binSPI(void) {
     }//while loop
 }//function
 
-#endif
+#endif /* BP_ENABLE_SPI_SUPPORT */

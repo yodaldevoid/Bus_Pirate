@@ -13,27 +13,19 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#include "uart.h"
+
+#ifdef BP_ENABLE_UART_SUPPORT
+
 #include "base.h"
-
-#ifdef BP_USE_HWUART
-
 #include "uart2io.h"
 #include "binIOhelpers.h"
 
 #include "procMenu.h"		// for the userinteraction subs
 
-
 extern mode_configuration_t modeConfig;
 extern command_t bpCommand;
-
-/*
-// move into a .h or other .c??? 
-int getnumber(int def, int max); // everything to make the compiler happy *dubbelzucht*
-int getint(void);
-int getrepeat(void);
-void consumewhitechars(void);
-extern int cmderror;
-*/
 
 void UARTgetbaud_InitTimer(void);
 void UARTgetbaud_clrTimer(void);
@@ -824,4 +816,4 @@ void binUART(void){
 	}//while loop
 }//function
 
-#endif
+#endif /* BP_ENABLE_UART_SUPPORT */

@@ -14,21 +14,25 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "basic.h"
+
+#ifdef BP_ENABLE_BASIC_SUPPORT
+
+#if defined(BUSPIRATEV3) && defined(BP_BASIC_I2C_FILESYSTEM)
+#warning "BP_BASIC_I2C_FILESYSTEM is not supported on v3 boards!"
+#undef BP_BASIC_I2C_FILESYSTEM
+#endif /* BP_BASIC_I2C_FILESYSTEM */
 
 #include "base.h"
-#include "basic.h"
 #include "AUXpin.h"
 #include "busPirateCore.h"
 #include "procMenu.h"
 #include "bitbang.h"
 
-
 extern bus_pirate_configuration_t bpConfig;
 extern mode_configuration_t modeConfig;
 extern command_t bpCommand;
 extern proto protos[MAXPROTO];
-
-#ifdef BP_USE_BASIC
 
 int vars[26];					// var a-z
 int stack_[GOSUBMAX];				// max 5 gosubs
@@ -1356,7 +1360,7 @@ void basiccmdline(void)
 		else if(compare("EXIT"))
 		{	bpConfig.basic=0;
 		}
-#ifdef BP_USE_BASICI2C
+#ifdef BP_BASIC_I2C_FILESYSTEM
 		else if(compare("FORMAT"))
 		{	format();
 		}
@@ -1366,7 +1370,7 @@ void basiccmdline(void)
 		else if(compare("LOAD"))
 		{	load();
 		}
-#endif
+#endif /* BP_BASIC_I2C_FILESYSTEM */
 		else if(compare("DEBUG"))
 		{	for(i=0; i<PGMSIZE; i+=16)
 			{	for(j=0; j<16; j++)
@@ -1399,7 +1403,7 @@ void initpgmspace(void)
 
 
 
-#ifdef BP_USE_BASICI2C
+#ifdef BP_BASIC_I2C_FILESYSTEM
 
 // i2c eeprom interaction
 // need to incorperate it in bitbang or r2wire!
@@ -1665,5 +1669,5 @@ void load(void)
 	}
 }
 
-#endif // BP_USE_BASICI2C
-#endif // BP_USE_BASIC
+#endif // BP_BASIC_I2C_FILESYSTEM
+#endif /* BP_ENABLE_BASIC_SUPPORT */

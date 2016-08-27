@@ -14,6 +14,13 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_RAW3WIRE_H
+#define BP_RAW3WIRE_H
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
+
 void r3wProcess(void);
 
 unsigned int R3Wread(void);
@@ -33,3 +40,6 @@ void R3Wsetup_exc(void);
 void R3Wpins(void);
 void R3Wsettings(void);
 
+#endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
+
+#endif /* !BP_RAW3WIRE_H */

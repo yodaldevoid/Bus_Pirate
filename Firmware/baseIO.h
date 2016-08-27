@@ -97,10 +97,10 @@ void bpWvolts(unsigned int adc);
 #define UART_FAST_SPEED    3
 
 /* interrupt transfer related stuff */
-extern unsigned char *UART1RXBuf;
+extern uint8_t *UART1RXBuf;
 extern unsigned int UART1RXToRecv;
 extern unsigned int UART1RXRecvd;
-extern unsigned char *UART1TXBuf;
+extern uint8_t *UART1TXBuf;
 extern unsigned int UART1TXSent;
 extern unsigned int UART1TXAvailable;
 

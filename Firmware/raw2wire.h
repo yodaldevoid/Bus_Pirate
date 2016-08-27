@@ -14,6 +14,13 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_RAW2WIRE_H
+#define BP_RAW2WIRE_H
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
+
 void r2wProcess(void);
 
 //these need to be visible to the MACROs, add as needed.
@@ -38,3 +45,6 @@ void R2Wsetup_exc(void);
 void R2Wpins(void);
 void R2Wsettings(void);
 
+#endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
+
+#endif /* BP_RAW2WIRE_H */

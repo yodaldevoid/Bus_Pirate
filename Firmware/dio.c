@@ -14,10 +14,11 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "dio.h"
+
+#ifdef BP_ENABLE_DIO_SUPPORT
+
 #include "base.h"
-
-#ifdef BP_USE_DIO
-
 #include "binIO.h"
 
 /**
@@ -40,4 +41,4 @@ unsigned int dio_write(unsigned int value) {
         binBBpindirectionset(value);
 }
 
-#endif /* BP_USE_DIO */
+#endif /* BP_ENABLE_DIO_SUPPORT */

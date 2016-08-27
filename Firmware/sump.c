@@ -18,13 +18,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "base.h"
-
-#ifdef BP_USE_SUMP
-
-#include "UART.h"
-#include "busPirateCore.h"
 #include "sump.h"
+
+#ifdef BP_ENABLE_SUMP_SUPPORT
+
+#include "base.h"
+#include "uart.h"
+#include "busPirateCore.h"
 #include "baseIO.h"
 
 /*
@@ -506,7 +506,11 @@ bool sump_handle_command_byte(unsigned char input_byte) {
      * No need to clear it first, as it will be properly initialized upon
      * receiving a long (5 bytes) command.
      */
-    sump_command_t command_buffer;
+    sump_command_t command_buffer = {
+        .bytes = { 0 },
+        .count = 0,
+        .left = 0
+    };
 
     switch (command_processor_state) {
 
@@ -739,4 +743,4 @@ bool sump_acquire_samples(void) {
     return false;
 }
 
-#endif /* BP_USE_SUMP */
+#endif /* BP_ENABLE_SUMP_SUPPORT */

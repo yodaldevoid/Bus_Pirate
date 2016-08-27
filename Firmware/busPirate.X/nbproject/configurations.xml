@@ -8,14 +8,10 @@
                      displayName="translations"
                      projectFiles="true">
         <itemPath>../translations/BPv4_en_US.h</itemPath>
+        <itemPath>../translations/BPv3_en_US.h</itemPath>
       </logicalFolder>
       <itemPath>../1wire.h</itemPath>
       <itemPath>../AUXpin.h</itemPath>
-      <itemPath>../HD44780.h</itemPath>
-      <itemPath>../I2C.h</itemPath>
-      <itemPath>../OpenOCD.h</itemPath>
-      <itemPath>../SPI.h</itemPath>
-      <itemPath>../UART.h</itemPath>
       <itemPath>../base.h</itemPath>
       <itemPath>../baseIO.h</itemPath>
       <itemPath>../baseUI.h</itemPath>
@@ -43,6 +39,14 @@
       <itemPath>../usb_lang.h</itemPath>
       <itemPath>../dp_usb/usb_stack.h</itemPath>
       <itemPath>../onboard_eeprom.h</itemPath>
+      <itemPath>../i2c.h</itemPath>
+      <itemPath>../configuration.h</itemPath>
+      <itemPath>../hd44780.h</itemPath>
+      <itemPath>../spi.h</itemPath>
+      <itemPath>../uart.h</itemPath>
+      <itemPath>../jtag.h</itemPath>
+      <itemPath>../smps.h</itemPath>
+      <itemPath>../openocd.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -69,10 +73,6 @@
       </logicalFolder>
       <itemPath>../1wire.c</itemPath>
       <itemPath>../AUXpin.c</itemPath>
-      <itemPath>../HD44780.c</itemPath>
-      <itemPath>../I2C.c</itemPath>
-      <itemPath>../SPI.c</itemPath>
-      <itemPath>../UART.c</itemPath>
       <itemPath>../base.c</itemPath>
       <itemPath>../baseIO.c</itemPath>
       <itemPath>../baseUI.c</itemPath>
@@ -101,6 +101,12 @@
       <itemPath>../uart2io.c</itemPath>
       <itemPath>../dp_usb/usb_stack.c</itemPath>
       <itemPath>../onboard_eeprom.c</itemPath>
+      <itemPath>../i2c.c</itemPath>
+      <itemPath>../hd44780.c</itemPath>
+      <itemPath>../spi.c</itemPath>
+      <itemPath>../uart.c</itemPath>
+      <itemPath>../openocd.c</itemPath>
+      <itemPath>../openocd_asm.s</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -582,6 +588,16 @@
         <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
       </makeCustomizationType>
       <item path="../dp_usb/cdc.c" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../dp_usb/cdc.h" ex="true" overriding="false">
         <C30>
@@ -644,10 +660,40 @@
         </C30Global>
       </item>
       <item path="../onboard_eeprom.c" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../onboard_eeprom.h" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../p24FJ256GB106.gld" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../translations/BPv4_en_US.h" ex="true" overriding="false">
         <C30>
@@ -1190,10 +1236,64 @@
         <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
       </makeCustomizationType>
       <item path="../hardwarev3.h" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
+      </item>
+      <item path="../openocd_asm.s" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../p24FJ64GA002.gld" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
+      </item>
+      <item path="../translations/BPv3_en_US.h" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../translations/BPv3_en_US.s" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <C30>
         <property key="code-model" value="large-code"/>

@@ -9,8 +9,7 @@
 
 #include "../base.h"
 
-#ifdef BP_USE_JTAG
-
+#ifdef BP_ENABLE_JTAG_SUPPORT
 
 /* the lenVal structure is a byte oriented type used to store an */
 /* arbitrary length binary value. As an example, the hex value   */
@@ -62,8 +61,8 @@
                      2500      20000  - required for blank check
                                       - blank check max 1 device = 16384 bits
 */
-#define MAX_LEN 50
 
+#define MAX_LEN 50
 
 typedef struct var_len_byte
 {

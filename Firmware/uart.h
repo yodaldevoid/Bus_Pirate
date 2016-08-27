@@ -13,23 +13,29 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-//void HD44780Process(void);
 
-unsigned int LCDread(void);
-unsigned int LCDwrite(unsigned int c);
-void LCDstart(void);
-void LCDstop(void);
-void LCDsetup(void);
-void LCDsetup_exc(void);
-void LCDmacro(unsigned int c);
-void LCDpins(void);
+#ifndef BP_UART_H
+#define BP_UART_H
 
+#include "configuration.h"
 
-// to satisfy the compiler when split firmware
-#ifndef BP_MAIN
-void spiDisable(void);
-#endif
+#ifdef BP_ENABLE_UART_SUPPORT
 
+void uartProcess(void);
+void binUART(void);
 
+unsigned UARTwrite(unsigned int c);
+unsigned int UARTread(void);
+void UARTsetup(void);
+void UARTsetup_exc(void);
+void UARTcleanup(void);
+void UARTmacro(unsigned int c);
+void UARTstart(void);
+void UARTstop(void);
+unsigned int UARTperiodic(void);
+void UARTpins(void);
+void UARTsettings(void);
 
+#endif /* BP_ENABLE_UART_SUPPORT */
 
+#endif /* !BP_UART_H */

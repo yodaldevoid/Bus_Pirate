@@ -14,6 +14,13 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_1WIRE_H
+#define BP_1WIRE_H
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_1WIRE_SUPPORT
+
 void DS1wireProcess(void);
 unsigned char PROBE_CHECKSUM (unsigned char *BYTE, int size_of_BYTE);
 void bin1WIRE(void);
@@ -32,6 +39,6 @@ unsigned int OWstate(void);
 // from m_1wire123.h anything to make the compiler.linker happy *zucht*
 void DS1wireReset(void);
 
+#endif /* BP_ENABLE_1WIRE_SUPPORT */
 
-
-
+#endif /* !BP_1WIRE_H */

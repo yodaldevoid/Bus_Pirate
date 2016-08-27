@@ -13,18 +13,32 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-void uartProcess(void);
-void binUART(void);
 
-unsigned UARTwrite(unsigned int c);
-unsigned int UARTread(void);
-void UARTsetup(void);
-void UARTsetup_exc(void);
-void UARTcleanup(void);
-void UARTmacro(unsigned int c);
-void UARTstart(void);
-void UARTstop(void);
-unsigned int UARTperiodic(void);
-void UARTpins(void);
-void UARTsettings(void);
+#ifndef BP_SPI_H
+#define BP_SPI_H
 
+#include "configuration.h"
+
+#ifdef BP_ENABLE_SPI_SUPPORT
+
+void spiProcess(void);
+void binSPI(void);
+
+void SPIstart(void);
+void SPIstartr(void);
+void SPIstop(void);
+unsigned int SPIread(void);
+unsigned int SPIwrite(unsigned int c);
+void SPIsetup(void);
+void SPIsetup_exc(void);
+void SPIcleanup(void);
+void SPImacro(unsigned int macro);
+void SPIpins(void);
+void spiSetup(unsigned char spiSpeed);
+void spiDisable(void);
+unsigned char spiWriteByte(unsigned char c);
+void SPIsettings(void);
+
+#endif /* BP_ENABLE_SPI_SUPPORT */
+
+#endif /* BP_SPI_H */

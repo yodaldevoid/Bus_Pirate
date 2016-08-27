@@ -16,35 +16,39 @@
 
 /* Binary access modes for Bus Pirate scripting */
 
+#include "configuration.h"
+
 #include "base.h"
 #include "bitbang.h"
 #include "selftest.h"
 
-#ifdef BP_USE_HWSPI
-#include "SPI.h"
-#endif
-#ifdef BP_USE_I2C
-#include "I2C.h"
-#endif
-#ifdef BP_USE_HWUART
-#include "UART.h"
-#endif
-#ifdef BP_USE_1WIRE
+#ifdef BP_ENABLE_SPI_SUPPORT
+#include "spi.h"
+#endif /* BP_ENABLE_SPI_SUPPORT */
+#ifdef BP_ENABLE_I2C_SUPPORT
+#include "i2c.h"
+#endif /* BP_ENABLE_I2C_SUPPORT */
+#ifdef BP_ENABLE_UART_SUPPORT
+#include "uart.h"
+#endif /* BP_ENABLE_UART_SUPPORT */
+#ifdef BP_ENABLE_1WIRE_SUPPORT
 #include "1wire.h"
-#endif
-#ifdef BP_USE_PIC
+#endif /* BP_ENABLE_1WIRE_SUPPORT */
+#ifdef BP_ENABLE_PIC_SUPPORT
 #include "pic.h"
-#endif
-#ifdef BP_USE_JTAG
+#endif /* BP_ENABLE_PIC_SUPPORT */
+#ifdef BP_ENABLE_JTAG_SUPPORT
 #include "jtag.h"
-#include "OpenOCD.h"
-#endif
+#ifdef BP_JTAG_OPENOCD_SUPPORT
+#include "openocd.h"
+#endif /* BP_JTAG_OPENOCD_SUPPORT */
+#endif /* BP_ENABLE_JTAG_SUPPORT */
 
 #include "binIO.h"
 #include "AUXpin.h"
 #include "binwire.h"
 
-extern struct mode_configuration_t modeConfig;
+extern mode_configuration_t modeConfig;
 
 //unsigned char binBBpindirectionset(unsigned char inByte);
 //unsigned char binBBpinset(unsigned char inByte);
@@ -112,30 +116,30 @@ void binBB(void) {
                 binBBversion();
             } else if (inByte == 1) {//goto SPI mode
                 binReset();
-#ifdef BP_USE_HWSPI
+#ifdef BP_ENABLE_SPI_SUPPORT
                 binSPI(); //go into rawSPI loop
-#endif
+#endif /* BP_ENABLE_SPI_SUPPORT */
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 2) {//goto I2C mode
                 binReset();
-#ifdef BP_USE_I2C
+#ifdef BP_ENABLE_I2C_SUPPORT
                 binI2C();
-#endif
+#endif /* BP_ENABLE_I2C_SUPPORT */
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 3) {//goto UART mode
                 binReset();
-#ifdef BP_USE_HWUART
+#ifdef BP_ENABLE_UART_SUPPORT
                 binUART();
 #endif
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 4) {//goto 1WIRE mode
                 binReset();
-#ifdef BP_USE_1WIRE
+#ifdef BP_ENABLE_1WIRE_SUPPORT
                 bin1WIRE();
-#endif
+#endif /* BP_ENABLE_1WIRE_SUPPORT */
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 5) {//goto RAW WIRE mode
@@ -145,16 +149,16 @@ void binBB(void) {
                 binBBversion(); //say name on return
             } else if (inByte == 6) {//goto OpenOCD mode
                 binReset();
-#if !defined(BUSPIRATEV4) && defined(BP_USE_JTAG)
+#ifdef BP_JTAG_OPENOCD_SUPPORT
                 binOpenOCD();
-#endif /* !BUSPIRATEV4 && BP_USE_JTAG */
+#endif /* BP_JTAG_OPENOCD_SUPPORT */
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 7) {//goto pic mode
                 binReset();
-#ifdef BP_USE_PIC
+#ifdef BP_ENABLE_PIC_SUPPORT
                 binpic();
-#endif
+#endif /* BP_ENABLE_PIC_SUPPORT */
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 0b1111) {//return to terminal

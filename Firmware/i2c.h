@@ -14,9 +14,15 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_I2C_H
+#define BP_I2C_H
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_I2C_SUPPORT
+
 void i2cProcess(void);
 void binI2C(void);
-
 
 unsigned int I2Cread(void);
 unsigned int I2Cwrite(unsigned int c);
@@ -29,3 +35,6 @@ void I2Cmacro(unsigned int c);
 void I2Cpins(void);
 void I2Csettings(void);
 
+#endif /* BP_ENABLE_I2C_SUPPORT */
+
+#endif /* !BP_I2C_H */

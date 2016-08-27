@@ -18,6 +18,10 @@
 #ifndef BP_JTAG_H
 #define BP_JTAG_H
 
+#include "configuration.h"
+
+#ifdef BP_ENABLE_JTAG_SUPPORT
+
 //we need the pin definitions here for use in port.c of the XSVF programmer
 #define JTAGTDI_TRIS BP_MOSI_DIR
 #define JTAGTCK_TRIS BP_CLK_DIR
@@ -30,5 +34,7 @@
 #define JTAGTMS BP_CS
 
 void jtag(void);
+
+#endif /* BP_ENABLE_JTAG_SUPPORT */
 
 #endif /* BP_JTAG_H */

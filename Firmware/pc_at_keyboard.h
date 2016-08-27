@@ -14,11 +14,19 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_PC_AT_KEYBOARD_H
+#define BP_PC_AT_KEYBOARD_H
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
+
 void KEYBsetup(void);
 void KEYBsetup_exc(void);
 unsigned int KEYBread(void);
 unsigned int KEYBwrite(unsigned int c);
 void KEYBmacro(unsigned int c);
 
+#endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
 
-
+#endif /* BP_PC_AT_KEYBOARD_H */

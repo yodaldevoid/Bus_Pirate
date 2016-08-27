@@ -16,10 +16,12 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "base.h"
-#ifdef BP_USE_1WIRE
-#include "1wire_lib.h"
 #include "1wire.h"
+
+#ifdef BP_ENABLE_1WIRE_SUPPORT
+
+#include "base.h"
+#include "1wire_lib.h"
 #include "binIOhelpers.h"
 
 extern mode_configuration_t modeConfig;
@@ -27,7 +29,7 @@ extern command_t bpCommand;
 
 //the roster stores the first OW_DEV_ROSTER_SLOTS 1-wire addresses found during a ROM SEARCH command
 //these addresses are available as MACROs for quick address entry
-#define OW_DEV_ROSTER_SLOTS 10 //how many devices max to store addresses as MACROs
+
 struct _OWID{
 //      unsigned char familyID; //to lazy to do it right, for now...
         unsigned char id[8];
@@ -36,7 +38,7 @@ struct _OWID{
 
 struct _OWIDREG{
         unsigned char num;
-        struct _OWID dev[OW_DEV_ROSTER_SLOTS];
+        struct _OWID dev[BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS];
 } ;
 
 struct _OWIDREG OWroster;
@@ -204,7 +206,7 @@ void OWmacro(unsigned int macro)
                                 
                                 //keep the first X number of one wire IDs in a roster
                                 //so we can refer to them by macro, rather than ID
-                                if(j<OW_DEV_ROSTER_SLOTS){//only as many as we have room for
+                                if(j<BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS){//only as many as we have room for
                                         for(i=0;i<8;i++) OWroster.dev[OWroster.num].id[i]=ROM_NO[i];
                                         OWroster.num++;//increment the roster count
                                 }
@@ -657,4 +659,4 @@ void bin1WIRE(void){
 
 }
 
-#endif
+#endif /* BP_ENABLE_1WIRE_SUPPORT */

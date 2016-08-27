@@ -13,6 +13,7 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
 #ifndef BP_BASE_H
 #define BP_BASE_H
 
@@ -21,6 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "configuration.h"
 
 #define FALSE   0
 #define TRUE    (!FALSE)
@@ -77,14 +80,6 @@
 ///////////
 ///////////                                                 Bus Pirate - Brought to you by DangerousPrototypes.com
 
-///////////////////////////////////////
-// HARDWARE VERSION
-#if defined(__PIC24FJ256GB106__)        //v4 chip
-#define BUSPIRATEV4
-#elif defined(__PIC24FJ64GA002__)       //v3/v2go
-#define BUSPIRATEV3
-#endif
-
 ////////////////////////////////////////
 // FIRMWARE VERSION STRING
 // Build Firmware Version String
@@ -105,13 +100,6 @@
 
 ////////////////////////////////////////
 // OTHER CONFIGS
-// BP_ENABLE_HISTORY = Enable the 'h' command for whatever reason it was disabled this enables it. can be disabled again.
-// These settings should be left within the BUSPIRATEV4 define due to lack of space on v3. Unless you disable a mode or two
-// for a custom v3 build, only include the following options on a v4 build.
-#ifdef BUSPIRATEV4
-// Enables the 'h' command to show history
-#define BP_ENABLE_HISTORY
-#endif /* BUSPIRATEV4 */
 
 ///////////////////////
 ///////////////////////////// [ END OF CONFIGURATION ]//////////////////
@@ -136,51 +124,15 @@
 //#define BPV4_DEBUG  
 
 #if defined(BP_MAIN)
-#define BP_USE_1WIRE
-#define BP_USE_HWUART //hardware uart (now also MIDI)
-#define BP_USE_I2C
-#define BP_USE_HWSPI //hardware spi
 
 #ifdef BUSPIRATEV4
-#define BP_USE_BASIC
-#define BP_USE_I2C_HW
-//#define BP_USE_BASICI2C  // use an i2ceeprom for storing
-#define BP_USE_RAW2WIRE
-#define BP_USE_RAW3WIRE
-#define BP_USE_DIO //binary mode
-#define BP_USE_PCATKB
-#define BP_USE_PIC
-#define BP_USE_JTAG
-#define BP_USE_LCD // include HD44780 LCD library       
-#define BP_USE_SUMP
+#define BP_ENABLE_JTAG_SUPPORT
 #endif /* BUSPIRATEV4 */
         
 #elif defined(BP_ADDONS)
 // most used protos
-#define BP_USE_LCD // include HD44780 LCD library       
-#define BP_USE_RAW2WIRE
-#define BP_USE_RAW3WIRE
-#define BP_USE_PCATKB
-#define BP_USE_LCD // include HD44780 LCD library
-#define BP_USE_PIC
-#define BP_USE_DIO //binary mode
-#define BP_USE_SUMP
 
 #elif defined(BP_CUSTOM)
-
-// most used protos
-//#define BP_USE_1WIRE
-//#define BP_USE_HWUART //hardware uart (now also MIDI)
-//#define BP_USE_I2C
-//#define BP_USE_I2C_HW
-//#define BP_USE_HWSPI //hardware spi
-//#define BP_USE_RAW2WIRE
-//#define BP_USE_RAW3WIRE
-//#define BP_USE_PCATKB
-//#define BP_USE_LCD // include HD44780 LCD library
-//#define BP_USE_PIC
-//#define BP_USE_DIO //binary mode
-
 #else
 #error "No Bus Pirate configuration defined."
 #endif

@@ -13,16 +13,16 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#include "raw2wire.h"
+
+#ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
+
 #include "base.h"
-
-#ifdef BP_USE_RAW2WIRE
-
-//#include "raw2wire.h"
 #include "bitbang.h"
 #include "AUXpin.h"
 
 #include "procMenu.h"		// for the userinteraction subs
-
 
 #define R2WCLK_TRIS 	BP_CLK_DIR
 #define R2WCLK 			BP_CLK 
@@ -178,12 +178,14 @@ void R2Wmacro(unsigned int c)
 	}
 }
 
-void R2Wpins(pins) {
-        #if defined(BUSPIRATEV4)
-        BPMSG1261; //bpWline("-\t-\tSCL\tSDA");
-        #else
-       	BPMSG1231; //bpWline("SCL\tSDA\t-\t-");
-        #endif
+void R2Wpins(void) {
+#ifdef BUSPIRATEV4
+    //bpWline("-\t-\tSCL\tSDA");
+    BPMSG1261;
+#else
+    //bpWline("SCL\tSDA\t-\t-");
+    BPMSG1231;
+#endif /* BUSPIRATEV4 */
 }
 
 //
@@ -301,4 +303,4 @@ void r2wMacro_78133Read(void){
 	bpBR;
 }
 
-#endif /* BP_USE_RAW2WIRE */
+#endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */

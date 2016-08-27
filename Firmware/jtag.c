@@ -15,11 +15,15 @@
  *
  */
 
+#include "jtag.h"
+
+#ifdef BP_ENABLE_JTAG_SUPPORT
+
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "base.h"
 
-#ifdef BP_USE_JTAG
-
-#include "jtag.h"
 #include "jtag/micro.h"
 #include "jtag/ports.h"
 
@@ -55,19 +59,23 @@ void jtagClockTicks(unsigned char c);
 void jtagTMSHigh(void);
 void jtagTMSLow(void);
 
-static unsigned char jtagState=0, jtagBitPending=0, jtagDelayedBit=0;//static configuration variables for highZ and LSB
+typedef struct {
+    uint8_t state : 2;
+    uint8_t hiz : 1;
+    uint8_t bit_pending : 1;
+    uint8_t delayed_bit : 1;
+} jtag_settings_t;
 
-struct _JTAG{
-        unsigned char HiZ:1;
-} jtagSettings;
-
+static jtag_settings_t jtag_settings = { 0 };
 
 void jtag(void){
         static unsigned char c, cmd;
         static unsigned int i;
 
         jtagSetup();
-        jtagSettings.HiZ=1;
+        jtag_settings.hiz = true;
+        jtag_settings.bit_pending = false;
+        jtag_settings.delayed_bit = false;
 
         while(1){
         cmd=UART1RX();
@@ -115,6 +123,7 @@ void jtag(void){
                         }
                         jtagLeaveState(); //clean up from previous state
                         break;
+#ifdef BP_JTAG_XSVF_SUPPORT
                 case 3://XSFV player
                         //data MUST be low when we start or we get error 3!
                         jtagDataLow();
@@ -140,6 +149,7 @@ void jtag(void){
                         i=xsvfExecute();
                         UART1TX(i);
                         break;
+#endif /* BP_JTAG_XSVF_SUPPORT */
                 default:
                         break;//bpWmessage(MSG_ERROR_MACRO);
         }//switch
@@ -151,32 +161,32 @@ void jtag(void){
 void jtagLeaveState(void){
         //move to IDLE
 //      bpWstring("JTAGSM: ");
-        switch(jtagState){
+        switch (jtag_settings.state) {
                 case IDLE://already in idle
                         //bpWline("ALREADY IDLE");
                         break;
                 case RESET://move to idle 0
                         jtagTMSLow();
                         jtagClockTicks(1);
-                        jtagState=IDLE;
+                        jtag_settings.state = IDLE;
                         //bpWline("RESET->IDLE");
                         break;
                 case SHIFTIR://clean up pending writes...
-                        if(jtagBitPending==1){
+                        if (jtag_settings.bit_pending) {
                                 //set proper bit direction
-                                if(jtagDelayedBit==1){
+                                if (jtag_settings.delayed_bit) {
                                         jtagDataHigh();
-                                }else{
+                                } else {
                                         jtagDataLow();
                                 }
-                                jtagBitPending=0;//clear pending
+                                jtag_settings.bit_pending = false; //clear pending
                                 //bpWstring("(WROTE DELAYED BIT) ");
                         }
                         jtagTMSHigh();
                         jtagClockTicks(2);
                         jtagTMSLow();//always return to low for writes
                         jtagClockTicks(1);
-                        jtagState=IDLE;
+                        jtag_settings.state = IDLE;
                         //bpWline("IR->IDLE");
                         break;
                 case SHIFTDR://both same path 110
@@ -184,7 +194,7 @@ void jtagLeaveState(void){
                         jtagClockTicks(2);
                         jtagTMSLow();//always return to low for writes
                         jtagClockTicks(1);
-                        jtagState=IDLE;
+                        jtag_settings.state = IDLE;
                         //bpWline("DR->IDLE");
                         break;
                 default:
@@ -198,7 +208,7 @@ void jtagReset(void){
         jtagTMSHigh();
         jtagClockTicks(10);//one extra if clk starts high
         jtagTMSLow();//always return to low for writes
-        jtagState=RESET;
+        jtag_settings.state = RESET;
 }
 
 //moves to specified state from IDLE (reset from anywhere)
@@ -220,7 +230,7 @@ void jtagSetState(unsigned char c){
                         jtagClockTicks(1);
                         jtagTMSLow();//always return to low for writes
                         jtagClockTicks(2);
-                        jtagState=SHIFTDR;
+                        jtag_settings.state = SHIFTDR;
                         //bpWline("IDLE->Data Register");
                         break;
                 case SHIFTIR: //1100 from IDLE
@@ -228,7 +238,7 @@ void jtagSetState(unsigned char c){
                         jtagClockTicks(2);
                         jtagTMSLow();//always return to low for writes
                         jtagClockTicks(2);
-                        jtagState=SHIFTIR;
+                        jtag_settings.state = SHIFTIR;
                         //bpWline("IDLE->Instruction Register (DELAYED ONE BIT FOR TMS)");
                         break;
                 default:
@@ -258,9 +268,9 @@ unsigned char jtagWriteByte(unsigned char c){
         jtagClockLow();//begin with clock low...
 
         //clean up any pending bits
-        if(jtagBitPending==1){
-                jtagWriteBit(jtagDelayedBit);
-                jtagBitPending=0;//clear pending
+        if (jtag_settings.bit_pending){
+                jtagWriteBit(jtag_settings.delayed_bit);
+                jtag_settings.bit_pending = false;//clear pending
                 //bpWstring("NOTE: WROTE DELAYED BIT\x0D\x0A");
         }
 
@@ -286,9 +296,9 @@ unsigned char jtagWriteByte(unsigned char c){
                 jtagClockLow();//set clock low
 
                 //catch bit seven and delay the write until we do the next byte or exit state with TMS=1....
-                if(jtagState==SHIFTIR && i==6){
-                        jtagBitPending=1;
-                        if((c & l)==0)  jtagDelayedBit=0; else jtagDelayedBit=1;
+                if(jtag_settings.state == SHIFTIR && i==6){
+                        jtag_settings.bit_pending = true;
+                        if((c & l)==0)  jtag_settings.delayed_bit = false; else jtag_settings.delayed_bit = 1;
                         return a;//meaningless....rather, 1 bit short
                 }
         }
@@ -300,9 +310,9 @@ unsigned char jtagReadByte(void){
 
         jtagClockLow();//begin with clock low...
 
-        if(jtagBitPending==1){
-                jtagWriteBit(jtagDelayedBit);
-                jtagBitPending=0;//clear pending
+        if (jtag_settings.bit_pending){
+                jtagWriteBit(jtag_settings.delayed_bit);
+                jtag_settings.bit_pending = false;//clear pending
                 //bpWstring("NOTE: WROTE DELAYED BIT\x0D\x0A");
         }
 
@@ -350,8 +360,8 @@ unsigned char jtagReadDataState(void){
 }
 
 void jtagDataHigh(void){
-        JTAGTDI_TRIS=(~jtagSettings.HiZ);//set output
-        JTAGTDI=jtagSettings.HiZ;//data
+        JTAGTDI_TRIS=~jtag_settings.hiz;//set output
+        JTAGTDI=jtag_settings.hiz;//data
         bp_delay_us(JTAGDATASETTLE);//delay
 }
 
@@ -371,8 +381,8 @@ void jtagClockTicks(unsigned char c){
 }
 
 void jtagClockHigh(void){
-        JTAGTCK_TRIS=(~jtagSettings.HiZ);//set output
-        JTAGTCK=jtagSettings.HiZ;//data
+        JTAGTCK_TRIS=~jtag_settings.hiz;//set output
+        JTAGTCK=jtag_settings.hiz;//data
         bp_delay_us(JTAGCLOCK);//delay
 }
 
@@ -383,8 +393,8 @@ void jtagClockLow(void){
 }
 
 void jtagTMSHigh(void){
-        JTAGTMS_TRIS=(~jtagSettings.HiZ);//set output
-        JTAGTMS=jtagSettings.HiZ;//data
+        JTAGTMS_TRIS=~jtag_settings.hiz;//set output
+        JTAGTMS=jtag_settings.hiz;//data
         bp_delay_us(JTAGDATASETTLE);//delay
 }
 
@@ -394,4 +404,4 @@ void jtagTMSLow(void){
         bp_delay_us(JTAGDATASETTLE);//delay
 }
 
-#endif /* BP_USE_JTAG */
+#endif /* BP_ENABLE_JTAG_SUPPORT */

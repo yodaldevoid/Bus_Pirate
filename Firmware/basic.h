@@ -13,6 +13,12 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_BASIC_H
+#define BP_BASIC_H
+
+#include "configuration.h"
+
+#ifdef BP_ENABLE_BASIC_SUPPORT
 
 // tokens
 #define TOKENS		0x80
@@ -144,3 +150,6 @@ void format(void);
 void load(void);
 void waiteeprom(void);
 
+#endif /* BP_ENABLE_BASIC_SUPPORT */
+
+#endif /* BP_BASIC_H */

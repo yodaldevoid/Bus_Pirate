@@ -1,12 +1,12 @@
 #ifndef BP_OPENOCD_H
 #define BP_OPENOCD_H
 
-#include "base.h"
+#include "configuration.h"
 
-#ifdef BP_USE_JTAG
+#ifdef BP_JTAG_OPENOCD_SUPPORT
 
 void binOpenOCD(void);
 
-#endif /* BP_USE_JTAG */
+#endif /* BP_JTAG_OPENOCD_SUPPORT */
 
 #endif /* !BP_OPENOCD_H */

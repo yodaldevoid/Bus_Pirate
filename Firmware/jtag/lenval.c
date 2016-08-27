@@ -4,9 +4,11 @@
 /*            the lenVal data structure.               */
 /*******************************************************/
 
-#include "../base.h"
+#include "../configuration.h"
 
-#ifdef BP_USE_JTAG
+#ifdef BP_ENABLE_JTAG_SUPPORT
+
+#ifdef BP_JTAG_XSVF_SUPPORT
 
 #include "lenval.h"
 #include "ports.h"
@@ -193,4 +195,6 @@ void readVal( lenVal*   plv,
     }
 }
 
-#endif /* BP_USE_JTAG */
+#endif /* BP_JTAG_XSVF_SUPPORT */
+
+#endif /* BP_ENABLE_JTAG_SUPPORT */

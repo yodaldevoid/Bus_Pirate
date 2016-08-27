@@ -14,11 +14,11 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "base.h"
-
-#ifdef BP_USE_PCATKB
-
 #include "pc_at_keyboard.h"
+
+#ifdef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
+
+#include "base.h"
 
 #define KBCLK_TRIS 	BP_CLK_DIR
 #define KBCLK 			BP_CLK
@@ -311,4 +311,4 @@ unsigned char kbWaitClock(unsigned char c){
 	}
 }
 
-#endif /* BP_USE_PCATKB */
+#endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */

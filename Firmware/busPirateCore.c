@@ -18,54 +18,44 @@
 //add new modules here and in busPirateCore.h.
 //be sure menu entries line up with the _bpConfig.busMode list in busPirateCore.h
 
+#include "configuration.h"
+
 #include "base.h"
 #include "busPirateCore.h"
 
-
-//include functions needed for protocol libraries
-//add new libraries here
-#ifdef BP_USE_1WIRE
-	#include "1wire.h"
+#ifdef BP_ENABLE_1WIRE_SUPPORT
+#include "1wire.h"
+#endif /* BP_ENABLE_1WIRE_SUPPORT */
+#ifdef BP_ENABLE_UART_SUPPORT
+#include "uart.h"
 #endif
-#ifdef BP_USE_HWUART
-	#include "UART.h"
-#endif
-#ifdef BP_USE_I2C
-	#include "I2C.h"
-#endif
-#ifdef BP_USE_HWSPI
-	#include "SPI.h"
-#endif
-#ifdef BP_USE_JTAG
-	#include "jtag.h"
-#endif
-#ifdef BP_USE_RAW2WIRE
-	#include "raw2wire.h"
-#endif
-#ifdef BP_USE_RAW3WIRE
-	#include "raw3wire.h"
-#endif
-#ifdef BP_USE_PCATKB
-	#include "pc_at_keyboard.h"
-#endif
-#ifdef BP_USE_MIDI
-	#include "midi.h"
-#endif
-#ifdef BP_USE_LIN
-	#include "lin.h"
-#endif
-#ifdef BP_USE_CAN
-	#include "can.h"
-#endif
-#ifdef BP_USE_LCD
-	#include "HD44780.h"
-#endif
-#ifdef BP_USE_PIC
-	#include "pic.h"
-#endif
-#ifdef BP_USE_DIO
-	#include "dio.h"
-#endif
+#ifdef BP_ENABLE_I2C_SUPPORT
+#include "i2c.h"
+#endif /* BP_ENABLE_I2C_SUPPORT */
+#ifdef BP_ENABLE_SPI_SUPPORT
+#include "spi.h"
+#endif /* BP_ENABLE_SPI_SUPPORT */
+#ifdef BP_ENABLE_JTAG_SUPPORT
+#include "jtag.h"
+#endif /* BP_ENABLE_JTAG_SUPPORT */
+#ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
+#include "raw2wire.h"
+#endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
+#ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
+#include "raw3wire.h"
+#endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
+#ifdef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
+#include "pc_at_keyboard.h"
+#endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
+#ifdef BP_ENABLE_HD44780_SUPPORT
+#include "hd44780.h"
+#endif /* BP_ENABLE_HD44780_SUPPORT */
+#ifdef BP_ENABLE_PIC_SUPPORT
+#include "pic.h"
+#endif /* BP_ENABLE_PIC_SUPPORT */
+#ifdef BP_ENABLE_DIO_SUPPORT
+#include "dio.h"
+#endif /* BP_ENABLE_DIO_SUPPORT */
 
 extern bus_pirate_configuration_t bpConfig;
 extern mode_configuration_t modeConfig;
@@ -108,11 +98,13 @@ void HiZcleanup(void)
 }
 
 void HiZpins(void) {
-	#if defined(BUSPIRATEV4)
-        BPMSG1258; //bpWline("CS\tMISO\tCLK\tMOSI");
-        #else
-       	BPMSG1225; //bpWline("CLK\tMOSI\tCS\tMISO");
-        #endif
+#if defined(BUSPIRATEV4)
+    //bpWline("CS\tMISO\tCLK\tMOSI");
+    BPMSG1258;
+#else
+    //bpWline("CLK\tMOSI\tCS\tMISO");
+    BPMSG1225;
+#endif
 }
 
 void HiZsettings(void)
@@ -142,7 +134,7 @@ proto protos[MAXPROTO] = {
 	HiZsettings,			// HiZ doesn't have settings
 	"HiZ" 					// name
 }
-#ifdef BP_USE_1WIRE
+#ifdef BP_ENABLE_1WIRE_SUPPORT
 ,
 {	DS1wireReset,			// start
 	DS1wireReset,			// startR
@@ -166,8 +158,8 @@ proto protos[MAXPROTO] = {
 	HiZsettings,			// settings
 	"1-WIRE" 				// name
 }
-#endif
-#ifdef BP_USE_HWUART
+#endif /* BP_ENABLE_1WIRE_SUPPORT */
+#ifdef BP_ENABLE_UART_SUPPORT
 ,
 {	UARTstart,				// start
 	UARTstart,				// startR
@@ -191,8 +183,8 @@ proto protos[MAXPROTO] = {
 	UARTsettings,
 	"UART" 					// name
 }
-#endif
-#ifdef BP_USE_I2C
+#endif /* BP_ENABLE_UART_SUPPORT */
+#ifdef BP_ENABLE_I2C_SUPPORT
 ,
 {	I2Cstart,				// start
 	I2Cstart,				// startR
@@ -216,8 +208,8 @@ proto protos[MAXPROTO] = {
 	I2Csettings,
 	"I2C" 					// name
 }
-#endif
-#ifdef BP_USE_HWSPI
+#endif /* BP_ENABLE_I2C_SUPPORT */
+#ifdef BP_ENABLE_SPI_SUPPORT
 ,
 {	SPIstart,				// start
 	SPIstartr,				// startR
@@ -241,8 +233,8 @@ proto protos[MAXPROTO] = {
 	SPIsettings,
 	"SPI" 					// name
 }
-#endif
-#ifdef BP_USE_RAW2WIRE
+#endif /* BP_ENABLE_SPI_SUPPORT */
+#ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
 ,
 {	R2Wstart,				// start
 	R2Wstart,				// startR
@@ -266,8 +258,8 @@ proto protos[MAXPROTO] = {
 	R2Wsettings,
 	"2WIRE"					// name
 }
-#endif
-#ifdef BP_USE_RAW3WIRE
+#endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
+#ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
 ,
 {	R3Wstart,				// start
 	R3Wstartr,				// startR
@@ -291,8 +283,8 @@ proto protos[MAXPROTO] = {
 	R3Wsettings,
 	"3WIRE" 					// name
 }
-#endif
-#ifdef BP_USE_PCATKB
+#endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
+#ifdef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
 ,
 {	nullfunc1,				// start
 	nullfunc1,				// startR
@@ -316,8 +308,8 @@ proto protos[MAXPROTO] = {
 	HiZsettings,
 	"KEYB" 					// name
 }
-#endif
-#ifdef BP_USE_LCD
+#endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
+#ifdef BP_ENABLE_HD44780_SUPPORT
 ,
 {	LCDstart,				// start
 	LCDstart,				// startR
@@ -341,8 +333,8 @@ proto protos[MAXPROTO] = {
 	HiZsettings,
 	"LCD" 					// name
 }
-#endif
-#ifdef BP_USE_PIC
+#endif /* BP_ENABLE_HD44780_SUPPORT */
+#ifdef BP_ENABLE_PIC_SUPPORT
 ,
 {	picstart,				// start
 	picstart,				// startR
@@ -366,8 +358,8 @@ proto protos[MAXPROTO] = {
 	HiZsettings,
 	"PIC" 					// name
 }
-#endif
-#ifdef BP_USE_DIO
+#endif /* BP_ENABLE_PIC_SUPPORT */
+#ifdef BP_ENABLE_DIO_SUPPORT
 ,
 {	nullfunc1,				// start
 	nullfunc1,				// startR
@@ -391,7 +383,5 @@ proto protos[MAXPROTO] = {
 	HiZsettings,
 	"DIO" 					// name
 }
-#endif
-
+#endif /* BP_ENABLE_DIO_SUPPORT */
 };
-

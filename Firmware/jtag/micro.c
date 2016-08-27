@@ -39,16 +39,11 @@
 *                         pulse TCK during the waitTime.
 *****************************************************************************/
 
-#include "../base.h"
+#include "../configuration.h"
 
-#ifdef BP_USE_JTAG
+#ifdef BP_ENABLE_JTAG_SUPPORT
 
-/*============================================================================
-* #pragmas
-============================================================================*/
-#ifdef  _MSC_VER
-    #pragma warning( disable : 4100 )
-#endif  /* _MSC_VER */
+#ifdef BP_JTAG_XSVF_SUPPORT
 
 /*============================================================================
 * #include files
@@ -1633,4 +1628,6 @@ int xsvfExecute()
     return( XSVF_ERRORCODE(xsvfInfo.iErrorCode) );
 }
 
-#endif /* BP_USE_JTAG */
+#endif /* BP_JTAG_XSVF_SUPPORT */
+
+#endif /* BP_ENABLE_JTAG_SUPPORT */

@@ -13,23 +13,12 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-/*
+#include "pic.h"
 
-these are lowlevel interface subs for programming pics
+#ifdef BP_ENABLE_PIC_SUPPORT
 
-supported platform (should) are:
-
-pic10, pic12, pic14, pic16 and pic18
-
-{0xFF} sends 4 byte cmd (pic18)
-[0xFF] sends 6 byte cmd (pic10, 12, 14, 16)
-
-*/
 #include "base.h"
 
-#ifdef BP_USE_PIC
-
-#include "pic.h"
 #include "bitbang.h"
 #include "baseIO.h"
 #include "busPirateCore.h"
@@ -438,4 +427,4 @@ void binpic(void)
 	}
 }
 
-#endif /* BP_USE_PIC */
+#endif /* BP_ENABLE_PIC_SUPPORT */

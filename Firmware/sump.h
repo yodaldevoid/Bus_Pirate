@@ -17,15 +17,15 @@
 #ifndef BP_SUMP_H
 #define BP_SUMP_H
 
-#include "base.h"
+#include "configuration.h"
 
-#ifdef BP_USE_SUMP
+#ifdef BP_ENABLE_SUMP_SUPPORT
 
 /**
  * Enters into SUMP acquisition mode.
  */
 void enter_sump_mode(void);
 
-#endif /* BP_USE_SUMP */
+#endif /* BP_ENABLE_SUMP_SUPPORT */
 
 #endif /* BP_SUMP_H */

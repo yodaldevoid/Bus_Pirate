@@ -14,24 +14,19 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define CMDHISTORY	15
 #define BELL	0x07
 
-#define CMDBUFLEN	256
-#define CMDLENMSK	(CMDBUFLEN-1)
+#define CMDLENMSK	(BP_COMMAND_BUFFER_SIZE-1)
 
-extern char cmdbuf[CMDBUFLEN];
+extern char cmdbuf[BP_COMMAND_BUFFER_SIZE];
 extern unsigned int cmdend;
 extern unsigned int cmdstart;
 extern int cmderror;
-//extern int currentproto;
-//extern proto protos[MAXPROTO];
 
 //prints version, used internally and in main.c
 void versionInfo(void); 
 
 void serviceuser(void);
-
 
 int getint(void);
 int getrepeat(void);
@@ -39,11 +34,12 @@ int getnumbits(void);
 unsigned char changeReadDisplay(void);
 void consumewhitechars(void);
 void changemode(void);
-#if defined(BP_ENABLE_HISTORY)
+#ifdef BP_ENABLE_COMMAND_HISTORY
 int cmdhistory(void);
-#endif
+#endif /* BP_ENABLE_COMMAND_HISTORY */
+
 int getnumber(int def, int min, int max, int x);	
 #if defined(BUSPIRATEV4)
 long getlong(long def, int min, long max, int x);
-#endif
+#endif /* BUSPIRATEV4 */
 

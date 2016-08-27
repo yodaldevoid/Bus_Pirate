@@ -14,11 +14,13 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "hd44780.h"
+
+#ifdef BP_ENABLE_HD44780_SUPPORT
+
 #include "SPI.h"
 #include "base.h"
 #include "procMenu.h"
-
-#ifdef BP_USE_LCD
 
 //direction registers
 #define SPIMOSI_TRIS    BP_MOSI_DIR     
@@ -135,32 +137,6 @@ void LCDsetup(void)
 void LCDsetup_exc(void)
 {
         HD44780.RS=HD44780_DATA;
-/*
-        consumewhitechars();
-        type=getint();
-        consumewhitechars();
-        address=getint();
-
-        if(!((type==1)&&(address>=0x00)&&(address<=0xFF)))
-        {       cmderror=0;
-
-                //bpWline(OUMSG_LCD_SETUP_ADAPTER);
-                BPMSG1217;
-                //c=bpUserNumberPrompt(1, 1, 1);
-                getnumber(1,1,1,0);             // schiet mij maar in een kapotje :S
-        
-                // address of expander?
-                BPMSG1215;
-                HD44780.PCF8574=getnumber(0x40,0, 255, 0);
-        }
-        else
-        {       BPMSG1218;
-                bpWdec(type); bpSP;
-                bpWdec(address); bpSP;
-                BPMSG1162;
-                HD44780.PCF8574=address;
-        }
-*/
 
 		//PPS Setup
 		// Inputs
@@ -168,20 +144,6 @@ void LCDsetup_exc(void)
 		// Outputs
 		BP_MOSI_RPOUT = SDO1_IO; //B9 MOSI
 		BP_CLK_RPOUT = SCK1OUT_IO; //B8 CLK
-
-//		#if defined(BUSPIRATEV3)
-//		    // Inputs
-//		    RPINR20bits.SDI1R = 7; //B7 MISO
-//		    // Outputs
-//		    RPOR4bits.RP9R = SDO1_IO; //B9 MOSI
-//		    RPOR4bits.RP8R = SCK1OUT_IO; //B8 CLK
-//		#elif defined(BUSPIRATEV4)
-//		    // Inputs
-//		    RPINR20bits.SDI1R = 22; //B7 MISO
-//		    // Outputs
-//		    RPOR12bits.RP24R = SDO1_IO; //B9 MOSI
-//		    RPOR11bits.RP23R = SCK1OUT_IO; //B8 CLK
-//		#endif
 
         SPICS=0;                                //B6 cs low
         SPICS_TRIS=0;                   //B6 cs output
@@ -420,5 +382,4 @@ void HD44780_SPIwrite(unsigned char datout){
         SPICS=0;
 }
 
-
-#endif
+#endif /* BP_ENABLE_HD44780_SUPPORT */
