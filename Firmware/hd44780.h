@@ -30,10 +30,9 @@ void LCDsetup_exc(void);
 void LCDmacro(unsigned int c);
 void LCDpins(void);
 
-// to satisfy the compiler when split firmware
-#ifndef BP_MAIN
+#ifndef BP_ENABLE_SPI_SUPPORT
 void spiDisable(void);
-#endif
+#endif /* !BP_ENABLE_SPI_SUPPORT */
 
 #endif /* BP_ENABLE_HD44780_SUPPORT */
 

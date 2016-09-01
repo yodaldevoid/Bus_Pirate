@@ -86,26 +86,6 @@
 // used in 'i' and startup
 #define BP_FIRMWARE_STRING "Community Firmware v7.0 - goo.gl/gCzQnW "
 
-#define LANGUAGE_EN_US
-
-////////////////////////////////////////
-// MODE SELECTION
-// Default Mode Selection
-// BP_MAIN is the default mode setting; varys by hardware version
-// BP_ADDONS is for special builds with special modes
-// BP_CUSTOM is for selecting your own modes below (find: BP_CUSTOM) and uncomment wanted modes
-#define BP_MAIN
-//#define BP_ADDONS
-//#define BP_CUSTOM
-
-////////////////////////////////////////
-// OTHER CONFIGS
-
-///////////////////////
-///////////////////////////// [ END OF CONFIGURATION ]//////////////////
-////////////////////////////////////////////////////////////
-/////////////////////////////////////
-
 #ifdef BUSPIRATEV3
 #include "hardwarev3.h"
 #elif defined(BUSPIRATEV4)
@@ -122,20 +102,6 @@
 //Debugging mode for BPv4, comment out for normal compiling
 //Adds alternative communicaton to UART1 over AUX1 and AUX2 instead of USB.
 //#define BPV4_DEBUG  
-
-#if defined(BP_MAIN)
-
-#ifdef BUSPIRATEV4
-#define BP_ENABLE_JTAG_SUPPORT
-#endif /* BUSPIRATEV4 */
-        
-#elif defined(BP_ADDONS)
-// most used protos
-
-#elif defined(BP_CUSTOM)
-#else
-#error "No Bus Pirate configuration defined."
-#endif
 
 // only 1 should be uncommented
 //#define BASICTEST

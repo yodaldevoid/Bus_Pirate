@@ -111,6 +111,43 @@ void HD44780_WriteNibble(unsigned char reg, unsigned char dat);//write 4 bits to
 void HD44780_SPIwrite(unsigned char datout); //abstracts data output to PCF8574 IO expander over I2C bus
 void LCDsetup_exc(void);
 
+/* 
+ * Duplicate the minimum amount of SPI functionality if SPI support
+ * is disabled.
+ */
+
+#ifndef BP_ENABLE_SPI_SUPPORT
+
+//open drain control registers for OUTPUT pins
+#define SPIMOSI_ODC             BP_MISO_ODC     
+#define SPICLK_ODC              BP_CLK_ODC      
+#define SPICS_ODC               BP_CS_ODC       
+
+unsigned char spiWriteByte(unsigned char c){
+        SPI1BUF = c;
+        while(!IFS0bits.SPI1IF);
+        c=SPI1BUF;
+        IFS0bits.SPI1IF = 0;
+        return c;
+}
+
+void spiDisable(void){
+        SPI1STATbits.SPIEN = 0;
+        RPINR20bits.SDI1R=0b11111;  //B7 MISO
+
+        //PPS Disable
+        BP_MOSI_RPOUT=0;
+        BP_CLK_RPOUT=0;
+
+        //disable all open drain control register bits
+        SPIMOSI_ODC=0;
+        SPICLK_ODC=0;
+        SPICS_ODC=0;
+        //make all input maybe???
+}
+
+#endif /* !BP_ENABLE_SPI_SUPPORT */
+
 unsigned int LCDwrite(unsigned int c)
 {       
         HD44780_WriteByte(HD44780.RS, c);
@@ -328,50 +365,6 @@ void HD44780_WriteNibble(unsigned char reg, unsigned char dat){
         HD44780_SPIwrite(dat);
 
 }
-#ifndef BP_MAIN
-
-//open drain control registers for OUTPUT pins
-#define SPIMOSI_ODC             BP_MISO_ODC     
-#define SPICLK_ODC              BP_CLK_ODC      
-#define SPICS_ODC               BP_CS_ODC       
-
-
-// copied from spi.c, but with thesplitfirmware it was gone..
-unsigned char spiWriteByte(unsigned char c){
-
-        SPI1BUF = c;
-        while(!IFS0bits.SPI1IF);
-        c=SPI1BUF;
-        IFS0bits.SPI1IF = 0;
-        return c;
-}
-
-void spiDisable(void){
-        SPI1STATbits.SPIEN = 0;
-	   	RPINR20bits.SDI1R=0b11111;  //B7 MISO
-	   	
-	   	//PPS Disable
-	   	BP_MOSI_RPOUT=0;
-	   	BP_CLK_RPOUT=0;
-	   	
-//		#if defined(BUSPIRATEV3)
-//	        RPOR4bits.RP9R=0;                       //B9 MOSI
-//	        RPOR4bits.RP8R=0;                       //B8 CLK
-//		#elif defined(BUSPIRATEV4)
-//	        RPOR12bits.RP24R=0;                       //B9 MOSI
-//	        RPOR11bits.RP23R=0;                       //B8 CLK
-//		#endif
-		
-		
-        //disable all open drain control register bits
-        SPIMOSI_ODC=0;
-        SPICLK_ODC=0; 
-        SPICS_ODC=0;
-        //make all input maybe???
-}
-
-
-#endif
 
 
 //write value to 595 IO expander, message and return on ACK error

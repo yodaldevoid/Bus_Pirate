@@ -1530,14 +1530,12 @@ void versionInfo(void) {
 
     bpWstring(BP_FIRMWARE_STRING);
 
-#ifndef BP_MAIN
     UART1TX('[');
     for (i = 0; i < MAXPROTO; i++) {
         if (i) bpSP;
         bpWstring(protos[i].protocol_name);
     }
     UART1TX(']');
-#endif
 
 #ifndef BUSPIRATEV4
     //bpWstring(" Bootloader v");
@@ -1547,7 +1545,7 @@ void versionInfo(void) {
     UART1TX('.');
     bpWdec(i);
 #endif
-    bpWline("");
+    bpBR;
 
     //bpWstring("DEVID:");
     BPMSG1117;
