@@ -1,0 +1,757 @@
+.global _bp_messages
+
+_bp_messages:
+
+	; BPMSG1000
+	.pascii "WRITE BIT: "
+
+	; BPMSG1001
+	.pascii " *next clock (^) will use this value"
+
+	; BPMSG1004
+	.pascii "No device, try (ALARM) SEARCH macro first"
+
+	; BPMSG1005
+	.pascii "ADDRESS MACRO "
+
+	; BPMSG1006
+	.pascii " 0.Macro menu"
+
+	; BPMSG1007
+	.pascii "Macro     1WIRE address"
+
+	; BPMSG1008
+	.pascii "\r\n   *"
+
+	; BPMSG1009
+	.pascii "1WIRE ROM COMMAND MACROs:\r\n 51.READ ROM (0x33) *for single device bus\r\n 85.MATCH ROM (0x55) *followed by 64bit address\r\n 204.SKIP ROM (0xCC) *followed by command\r\n 236.ALARM SEARCH (0xEC)\r\n 240.SEARCH ROM (0xF0)"
+
+	; BPMSG1010
+	.pascii "ALARM SEARCH (0xEC)"
+
+	; BPMSG1011
+	.pascii "SEARCH (0xF0)"
+
+	; BPMSG1012
+	.pascii "Device IDs are available by MACRO, see (0)."
+
+	; BPMSG1013
+	.pascii "READ ROM (0x33): "
+
+	; BPMSG1014
+	.pascii "MATCH ROM (0x55)"
+
+	; BPMSG1015
+	.pascii "SKIP ROM (0xCC)"
+
+	; BPMSG1016
+	.pascii "Unknown macro, try ? or (0) for help"
+
+	; BPMSG1017
+	.pascii "BUS RESET "
+
+	; BPMSG1019
+	.pascii "Warning: "
+
+	; BPMSG1020
+	.pascii "*Short or no pull-up "
+
+	; BPMSG1021
+	.pascii "*No device detected "
+
+	; BPMSG1022
+	.pascii "DS18S20 High Pres Dig Therm"
+
+	; BPMSG1023
+	.pascii "DS18B20 Prog Res Dig Therm"
+
+	; BPMSG1024
+	.pascii "DS1822 Econ Dig Therm"
+
+	; BPMSG1025
+	.pascii "DS2404 Econram time Chip"
+
+	; BPMSG1026
+	.pascii "DS2431 1K EEPROM"
+
+	; BPMSG1027
+	.pascii "Unknown device"
+
+	; BPMSG1028
+	.pascii "PWM disabled"
+
+	; BPMSG1029
+	.pascii "1KHz-4,000KHz PWM"
+
+	; BPMSG1030
+	.pascii "Frequency in KHz "
+
+	; BPMSG1031
+	.pascii "Prescale:"
+
+	; BPMSG1032
+	.pascii "PR2:"
+
+	; BPMSG1033
+	.pascii "Duty cycle in % "
+
+	; BPMSG1034
+	.pascii "PWM active"
+
+	; BPMSG1037
+	.pascii "ERROR: PWM active, g to disable"
+
+	; BPMSG1038
+	.pascii "AUX Frequency: "
+
+	; BPMSG1039
+	.pascii "AUX INPUT/HI-Z"
+
+	; BPMSG1040
+	.pascii "AUX HIGH"
+
+	; BPMSG1041
+	.pascii "AUX LOW"
+
+	; BPMSG1042
+	.pascii "VOLTMETER MODE"
+
+	; BPMSG1044
+	.pascii "VOLTAGE PROBE: "
+
+	; BPMSG1045
+	.pascii "V"
+
+	; BPMSG1047
+	.pascii "Error("
+
+	; BPMSG1048
+	.pascii ") @line:"
+
+	; BPMSG1049
+	.pascii " @pgmspace:"
+
+	; BPMSG1050
+	.pascii " bytes."
+
+	; BPMSG1051
+	.pascii "Too long!"
+
+	; BPMSG1052
+	.pascii "Syntax error"
+
+	; BPMSG1053
+	.pascii "No EEPROM"
+
+	; BPMSG1054
+	.pascii "Erasing"
+
+	; BPMSG1055
+	.pascii "done"
+
+	; BPMSG1056
+	.pascii "Saving to slot "
+
+	; BPMSG1057
+	.pascii "Invalid slot"
+
+	; BPMSG1058
+	.pascii "Loading from slot "
+
+	; BPMSG1059
+	.pascii "ERROR: command has no effect here"
+
+	; BPMSG1060
+	.pascii "ACK"
+
+	; BPMSG1061
+	.pascii "NACK"
+
+	; BPMSG1062
+	.pascii "I2C START BIT"
+
+	; BPMSG1063
+	.pascii "I2C STOP BIT"
+
+	; BPMSG1064
+	.pascii "I2C mode:\r\n 1. Software\r\n 2. Hardware"
+
+	; BPMSG1065
+	.pascii "Set speed:\r\n 1. ~5KHz\r\n 2. ~50KHz\r\n 3. ~100KHz\r\n 4. ~400KHz"
+
+	; BPMSG1066
+	.pascii "WARNING: HARDWARE I2C is broken on this PIC! (REV A3)"
+
+	; BPMSG1067
+	.pascii "Set speed:\r\n 1. 100KHz\r\n 2. 400KHz\r\n 3. 1MHz"
+
+	; BPMSG1068
+	.pascii "I2C (mod spd)=( "
+
+	; BPMSG1069
+	.pascii " 0.Macro menu\r\n 1.7bit address search\r\n 2.I2C sniffer"
+
+	; BPMSG1070
+	.pascii "Searching I2C address space. Found devices at:"
+
+	; BPMSG1071
+	.pascii "Sniffer"
+
+	; BPMSG1084
+	.pascii "(BASIC)"
+
+	; BPMSG1085
+	.pascii "Ready"
+
+	; BPMSG1086
+	.pascii "a/A/@ controls AUX pin"
+
+	; BPMSG1087
+	.pascii "a/A/@ controls CS pin"
+
+	; BPMSG1088
+	.pascii "Command not used in this mode"
+
+	; BPMSG1089
+	.pascii "Pull-up resistors OFF"
+
+	; BPMSG1091
+	.pascii "Pull-up resistors ON"
+
+	; BPMSG1092
+	.pascii "Self-test in HiZ mode only"
+
+	; BPMSG1093
+	.pascii "RESET"
+
+	; BPMSG1094
+	.pascii "BOOTLOADER"
+
+	; BPMSG1095
+	.pascii "AUX INPUT/HI-Z, READ: "
+
+	; BPMSG1096
+	.pascii "POWER SUPPLIES ON"
+
+	; BPMSG1097
+	.pascii "POWER SUPPLIES OFF"
+
+	; BPMSG1098
+	.pascii "DATA STATE: "
+
+	; BPMSG1099
+	.pascii "DELAY "
+
+	; BPMSG1100
+	.pascii "us"
+
+	; BPMSG1101
+	.pascii "WRITE: "
+
+	; BPMSG1102
+	.pascii "READ: "
+
+	; BPMSG1103
+	.pascii "CLOCK, 1"
+
+	; BPMSG1104
+	.pascii "CLOCK, 0"
+
+	; BPMSG1105
+	.pascii "DATA OUTPUT, 1"
+
+	; BPMSG1106
+	.pascii "DATA OUTPUT, 0"
+
+	; BPMSG1107
+	.pascii " *pin is now HiZ"
+
+	; BPMSG1108
+	.pascii "CLOCK TICKS: "
+
+	; BPMSG1109
+	.pascii "READ BIT: "
+
+	; BPMSG1110
+	.pascii "Syntax error at char "
+
+	; BPMSG1111
+	.pascii "x. exit(without change)"
+
+	; BPMSG1112
+	.pascii "no mode change"
+
+	; BPMSG1113
+	.pascii "#: No software reset on v4, use the reset button."
+
+	; BPMSG1114
+	.pascii "Nonexistent protocol!"
+
+	; BPMSG1115
+	.pascii "x. exit"
+
+	; BPMSG1116
+	.pascii "\r\nInvalid choice, try again"
+
+	; BPMSG1117
+	.pascii "DEVID:"
+
+	; BPMSG1118
+	.pascii "http://dangerousprototypes.com"
+
+	; BPMSG1119
+	.pascii "*----------*"
+
+	; BPMSG1120
+	.pascii "Open drain outputs (H=Hi-Z, L=GND)"
+
+	; BPMSG1121
+	.pascii "Normal outputs (H=3.3v, L=GND)"
+
+	; BPMSG1123
+	.pascii "MSB set: MOST sig bit first"
+
+	; BPMSG1124
+	.pascii "LSB set: LEAST sig bit first"
+
+	; BPMSG1126
+	.pascii " Bootloader v"
+
+	; BPMSG1127
+	.pascii " 1. HEX\r\n 2. DEC\r\n 3. BIN\r\n 4. RAW"
+
+	; BPMSG1128
+	.pascii "Display format set"
+
+	; BPMSG1129
+	.pascii "Voltage monitors: "
+
+	; BPMSG1130
+	.pascii "5V: "
+
+	; BPMSG1131
+	.pascii " | 3.3V: "
+
+	; BPMSG1132
+	.pascii " | VPULLUP: "
+
+	; BPMSG1133
+	.pascii "Set serial port speed: (bps)\r\n 1. 300\r\n 2. 1200\r\n 3. 2400\r\n 4. 4800\r\n 5. 9600\r\n 6. 19200\r\n 7. 38400\r\n 8. 57600\r\n 9. 115200\r\n10. BRG raw value"
+
+	; BPMSG1134
+	.pascii "Adjust your terminal"
+
+	; BPMSG1135
+	.pascii "Are you sure? "
+
+	; BPMSG1136
+	.pascii "CFG1:"
+
+	; BPMSG1137
+	.pascii " CFG2:"
+
+	; BPMSG1138
+	.pascii "(\\-/_\\-)"
+
+	; BPMSG1140
+	.pascii "(\\_/-)"
+
+	; BPMSG1142
+	.pascii "Select output type:\r\n 1. Open drain (H=Hi-Z, L=GND)\r\n 2. Normal (H=3.3V, L=GND)"
+
+	; BPMSG1143
+	.pascii "R2W (spd hiz)=( "
+
+	; BPMSG1144
+	.pascii " 0.Macro menu\r\n 1.ISO7816-3 ATR\r\n 2.ISO7816-3 parse only"
+
+	; BPMSG1145
+	.pascii "ISO 7816-3 ATR (RESET on CS)\r\nRESET HIGH, CLOCK TICK, RESET LOW"
+
+	; BPMSG1146
+	.pascii "ISO 7816-3 reply (uses current LSB setting): "
+
+	; BPMSG1147
+	.pascii "Protocol: "
+
+	; BPMSG1148
+	.pascii "serial"
+
+	; BPMSG1149
+	.pascii "3 wire"
+
+	; BPMSG1150
+	.pascii "2 wire"
+
+	; BPMSG1151
+	.pascii "RFU"
+
+	; BPMSG1152
+	.pascii "unknown"
+
+	; BPMSG1153
+	.pascii "Read type: "
+
+	; BPMSG1154
+	.pascii "to end"
+
+	; BPMSG1155
+	.pascii "variable length"
+
+	; BPMSG1156
+	.pascii "Data units: "
+
+	; BPMSG1157
+	.pascii "no indication"
+
+	; BPMSG1158
+	.pascii "Data unit length (bits): "
+
+	; BPMSG1159
+	.pascii "CS ENABLED"
+
+	; BPMSG1160
+	.pascii "CS DISABLED"
+
+	; BPMSG1161
+	.pascii "R3W (spd csl hiz)=( "
+
+	; BPMSG1162
+	.pascii ")\r\n"
+
+	; BPMSG1163
+	.pascii "Disconnect any devices\r\nConnect (Vpu to +5V) and (ADC to +3.3V)"
+
+	; BPMSG1164
+	.pascii "Ctrl"
+
+	; BPMSG1165
+	.pascii "AUX"
+
+	; BPMSG1166
+	.pascii "MODE LED"
+
+	; BPMSG1167
+	.pascii "PULLUP H"
+
+	; BPMSG1168
+	.pascii "PULLUP L"
+
+	; BPMSG1169
+	.pascii "VREG"
+
+	; BPMSG1170
+	.pascii "ADC and supply"
+
+	; BPMSG1171
+	.pascii "5V"
+
+	; BPMSG1172
+	.pascii "VPU"
+
+	; BPMSG1173
+	.pascii "3.3V"
+
+	; BPMSG1174
+	.pascii "ADC"
+
+	; BPMSG1175
+	.pascii "Bus high"
+
+	; BPMSG1176
+	.pascii "Bus Hi-Z 0"
+
+	; BPMSG1177
+	.pascii "Bus Hi-Z 1"
+
+	; BPMSG1178
+	.pascii "MODE and VREG LEDs should be on!"
+
+	; BPMSG1179
+	.pascii "Found "
+
+	; BPMSG1180
+	.pascii " errors."
+
+	; BPMSG1181
+	.pascii "MOSI"
+
+	; BPMSG1182
+	.pascii "CLK"
+
+	; BPMSG1183
+	.pascii "MISO"
+
+	; BPMSG1184
+	.pascii "CS"
+
+	; BPMSG1185
+	.pascii " OK"
+
+	; BPMSG1186
+	.pascii " FAIL"
+
+	; BPMSG1187
+	.pascii "Set speed:\r\n 1. 30KHz\r\n 2. 125KHz\r\n 3. 250KHz\r\n 4. 1MHz"
+
+	; BPMSG1188
+	.pascii "Clock polarity:\r\n 1. Idle low *default\r\n 2. Idle high"
+
+	; BPMSG1189
+	.pascii "Output clock edge:\r\n 1. Idle to active\r\n 2. Active to idle *default"
+
+	; BPMSG1190
+	.pascii "Input sample phase:\r\n 1. Middle *default\r\n 2. End"
+
+	; BPMSG1191
+	.pascii "SPI (spd ckp ske smp csl hiz)=( "
+
+	; BPMSG1192
+	.pascii " 0.Macro menu\r\n 1.Sniff CS low\r\n 2.Sniff all traffic"
+
+	; BPMSG1194
+	.pascii "-p "
+
+	; BPMSG1195
+	.pascii "-f "
+
+	; BPMSG1196
+	.pascii "*Bytes dropped*"
+
+	; BPMSG1197
+	.pascii "FAILED, NO DATA"
+
+	; BPMSG1199
+	.pascii "Data bits and parity:\r\n 1. 8, NONE *default \r\n 2. 8, EVEN \r\n 3. 8, ODD \r\n 4. 9, NONE"
+
+	; BPMSG1200
+	.pascii "Stop bits:\r\n 1. 1 *default\r\n 2. 2"
+
+	; BPMSG1201
+	.pascii "Receive polarity:\r\n 1. Idle 1 *default\r\n 2. Idle 0"
+
+	; BPMSG1202
+	.pascii "UART (spd brg dbp sb rxp hiz)=( "
+
+	; BPMSG1203
+	.pascii " 0.Macro menu\r\n 1.Transparent bridge\r\n 2.Live monitor\r\n 3.Bridge with flow control\n\r 4.Auto Baud Detection"
+
+	; BPMSG1204
+	.pascii "UART bridge"
+
+	; BPMSG1205
+	.pascii "Reset to exit"
+
+	; BPMSG1206
+	.pascii "Raw UART input"
+
+	; BPMSG1207
+	.pascii "UART LIVE DISPLAY, } TO STOP"
+
+	; BPMSG1208
+	.pascii "LIVE DISPLAY STOPPED"
+
+	; BPMSG1209
+	.pascii "WARNING: pins not open drain (HiZ)"
+
+	; BPMSG1210
+	.pascii " REVID:"
+
+	; BPMSG1211
+	.pascii "\r\nInvalid choice, try again"
+
+	; BPMSG1212
+	.pascii "ms"
+
+	; BPMSG1213
+	.pascii "RS LOW, COMMAND MODE"
+
+	; BPMSG1214
+	.pascii "RS HIGH, DATA MODE"
+
+	; BPMSG1215
+	.pascii "Address of PCF8574?"
+
+	; BPMSG1216
+	.pascii "This mode requires an adapter"
+
+	; BPMSG1217
+	.pascii "LCD type:\r\n 1. HD44780 (using PCF8574 IO expander)"
+
+	; BPMSG1218
+	.pascii "LCD (typ addr) = ( "
+
+	; BPMSG1219
+	.pascii " 0.Macro menu\r\n 1.LCD Reset\r\n 2.Init LCD\r\n 3.Clear LCD\r\n 4.Cursor position ex:(4) 0\r\n 6.Write test numbers ex:(6) 80\r\n 7.Write test characters ex:(7) 80"
+
+	; BPMSG1220
+	.pascii "Display lines:\r\n 1. 1 \r\n 2. Multiple"
+
+	; BPMSG1221
+	.pascii "INIT"
+
+	; BPMSG1222
+	.pascii "CLEAR"
+
+	; BPMSG1223
+	.pascii "CURSOR SET"
+
+	; BPMSG1224
+	.pascii "No ACK, check adapter"
+
+	; BPMSG1225
+	.pascii "CLK\tMOSI\tCS\tMISO"
+
+	; BPMSG1226
+	.pascii "Pinstates:"
+
+	; BPMSG1227
+	.pascii "GND\t3.3V\t5.0V\tADC\tVPU\tAUX\t"
+
+	; BPMSG1228
+	.pascii "P\tP\tP\tI\tI\t"
+
+	; BPMSG1229
+	.pascii "-\tOWD\t-\t-"
+
+	; BPMSG1230
+	.pascii "-\tTxD\t-\tRxD"
+
+	; BPMSG1231
+	.pascii "SCL\tSDA\t-\t-"
+
+	; BPMSG1232
+	.pascii "PGC\tPGD\t-\t-"
+
+	; BPMSG1233
+	.pascii "1.(BR)\t2.(RD)\t3.(OR)\t4.(YW)\t5.(GN)\t6.(BL)\t7.(PU)\t8.(GR)\t9.(WT)\t0.(Blk)"
+
+	; BPMSG1234
+	.pascii "GND\t"
+
+	; BPMSG1235
+	.pascii "GND\tADC\t5.0V\t3.3V\tVPU\tAUX\t"
+
+	; BPMSG1236
+	.pascii "execute : "
+
+	; BPMSG1245
+	.pascii " autorange "
+
+	; BPMSG1246
+	.pascii "+MHz)"
+
+	; BPMSG1247
+	.pascii "+kHz)"
+
+	; BPMSG1248
+	.pascii "Raw value for BRG (MIDI=127)"
+
+	; BPMSG1249
+	.pascii "WARNING: Possible bufferoverflow"
+
+	; BPMSG1250
+	.pascii "Any key to exit"
+
+	; BPMSG1251
+	.pascii "Space to continue"
+
+	; BPMSG1252
+	.pascii "Number of bits read/write: "
+
+	; BPMSG1253
+	.pascii "CS:\r\n 1. CS\r\n 2. /CS *default"
+
+	; BPMSG1254
+	.pascii "Position in degrees"
+
+	; BPMSG1255
+	.pascii "Servo active"
+
+	; BPMSG1280
+	.pascii "Waiting activity..."
+
+	; BPMSG1281
+	.pascii "** Early Exit!"
+
+	; BPMSG1282
+	.pascii "**Baud>16m: BP Cannot measure > 16000000, Done."
+
+	; BPMSG1283
+	.pascii "\n\rCalculated: \t"
+
+	; BPMSG1284
+	.pascii "\n\rEstimated:  \t"
+
+	; BPMSG1285
+	.pascii " bps"
+
+	; HLP1000
+	.pascii " General\t\t\t\t\tProtocol interaction"
+
+	; HLP1001
+	.pascii " ---------------------------------------------------------------------------"
+
+	; HLP1002
+	.pascii " ?\tThis help\t\t\t(0)\tList current macros"
+
+	; HLP1003
+	.pascii " =X/|X\tConverts X/reverse X\t\t(x)\tMacro x"
+
+	; HLP1004
+	.pascii " ~\tSelftest\t\t\t[\tStart"
+
+	; HLP1005
+	.pascii " #\tReset the BP   \t\t\t]\tStop"
+
+	; HLP1006
+	.pascii " $\tJump to bootloader\t\t{\tStart with read"
+
+	; HLP1007
+	.pascii " &/%\tDelay 1 us/ms\t\t\t}\tStop"
+
+	; HLP1008
+	.pascii " a/A/@\tAUXPIN (low/HI/READ)\t\t\"abc\"\tSend string"
+
+	; HLP1009
+	.pascii " b\tSet baudrate\t\t\t123"
+
+	; HLP1010
+	.pascii " c/C\tAUX assignment (aux/CS)\t\t0x123"
+
+	; HLP1011
+	.pascii " d/D\tMeasure ADC (once/CONT.)\t0b110\tSend value"
+
+	; HLP1012
+	.pascii " f\tMeasure frequency\t\tr\tRead"
+
+	; HLP1013
+	.pascii " g/S\tGenerate PWM/Servo\t\t/\tCLK hi"
+
+	; HLP1014
+	.pascii " h\tCommandhistory\t\t\t\\\tCLK lo"
+
+	; HLP1015
+	.pascii " i\tVersioninfo/statusinfo\t\t^\tCLK tick"
+
+	; HLP1016
+	.pascii " l/L\tBitorder (msb/LSB)\t\t-\tDAT hi"
+
+	; HLP1017
+	.pascii " m\tChange mode\t\t\t_\tDAT lo"
+
+	; HLP1018
+	.pascii " o\tSet output type\t\t\t.\tDAT read"
+
+	; HLP1019
+	.pascii " p/P\tPullup resistors (off/ON)\t!\tBit read"
+
+	; HLP1020
+	.pascii " s\tScript engine\t\t\t:\tRepeat e.g. r:10"
+
+	; HLP1021
+	.pascii " v\tShow volts/states\t\t.\tBits to read/write e.g. 0x55.2"
+
+	; HLP1022
+	.pascii " w/W\tPSU (off/ON)\t\t<x>/<x= >/<0>\tUsermacro x/assign x/list all"
+
