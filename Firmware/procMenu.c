@@ -504,7 +504,7 @@ end:
                     break;
 
                 case '?': //bpWline("-HELP");
-                    printHelp();
+                    print_help();
                     break;
                 case 'i': //bpWline("-Status info");
                     versionInfo(); //display hardware and firmware version string

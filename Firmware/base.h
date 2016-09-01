@@ -117,7 +117,7 @@
 #endif /* BUSPIRATEV3 || BUSPIRATEV4 */
 
 #include "baseIO.h"
-#include "baseUI.h"
+#include "messages.h"
 
 //Debugging mode for BPv4, comment out for normal compiling
 //Adds alternative communicaton to UART1 over AUX1 and AUX2 instead of USB.
@@ -156,27 +156,6 @@ asm (".equ BLJUMPADDRESS, 0xABF8");
 //
 //
 //
-
-// If BUSPIRATEv4 then use the en_US.h otherwise
-// use the v3 one. The version3 one does not include
-// the modes that the v3 cannot fit. This way we dont
-// waste space on strings we wont see.
-//
-// Also note; the BPV4 project file uses the en_US.s file
-// the buspurate v3 uses the other one...
-#ifdef BUSPIRATEV4
-#ifdef LANGUAGE_EN_US
-#include "translations/BPv4_en_US.h"
-#else
-#error "No language defined in base.h."
-#endif /* LANGUAGE_EN_US */
-#else
-#ifdef LANGUAGE_EN_US
-#include "translations/BPv3_en_US.h"
-#else
-#error "No language defined in base.h."
-#endif /* LANGUAGE_EN_US */
-#endif /* BUSPIRATEV4 */
 
 //these settings are destroyed between modes.
 //this is used to pass stuff from protocol libraries to BP

@@ -4,17 +4,10 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
-      <logicalFolder name="translations"
-                     displayName="translations"
-                     projectFiles="true">
-        <itemPath>../translations/BPv4_en_US.h</itemPath>
-        <itemPath>../translations/BPv3_en_US.h</itemPath>
-      </logicalFolder>
       <itemPath>../1wire.h</itemPath>
       <itemPath>../AUXpin.h</itemPath>
       <itemPath>../base.h</itemPath>
       <itemPath>../baseIO.h</itemPath>
-      <itemPath>../baseUI.h</itemPath>
       <itemPath>../basic.h</itemPath>
       <itemPath>../binIO.h</itemPath>
       <itemPath>../binIOhelpers.h</itemPath>
@@ -47,6 +40,9 @@
       <itemPath>../jtag.h</itemPath>
       <itemPath>../smps.h</itemPath>
       <itemPath>../openocd.h</itemPath>
+      <itemPath>../messages_v3.h</itemPath>
+      <itemPath>../messages_v4.h</itemPath>
+      <itemPath>../messages.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -65,17 +61,10 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <logicalFolder name="translations"
-                     displayName="translations"
-                     projectFiles="true">
-        <itemPath>../translations/BPv4_en_US.s</itemPath>
-        <itemPath>../translations/BPv3_en_US.s</itemPath>
-      </logicalFolder>
       <itemPath>../1wire.c</itemPath>
       <itemPath>../AUXpin.c</itemPath>
       <itemPath>../base.c</itemPath>
       <itemPath>../baseIO.c</itemPath>
-      <itemPath>../baseUI.c</itemPath>
       <itemPath>../basic.c</itemPath>
       <itemPath>../binIO.c</itemPath>
       <itemPath>../binIOhelpers.c</itemPath>
@@ -107,6 +96,9 @@
       <itemPath>../uart.c</itemPath>
       <itemPath>../openocd.c</itemPath>
       <itemPath>../openocd_asm.s</itemPath>
+      <itemPath>../messages_v3.s</itemPath>
+      <itemPath>../messages_v4.s</itemPath>
+      <itemPath>../messages.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -224,6 +216,10 @@
         <C30Global>
         </C30Global>
       </item>
+      <item path="../messages_v4.h" ex="true" overriding="false">
+      </item>
+      <item path="../messages_v4.s" ex="true" overriding="false">
+      </item>
       <item path="../onboard_eeprom.c" ex="true" overriding="false">
         <C30>
         </C30>
@@ -249,30 +245,6 @@
         </C30Global>
       </item>
       <item path="../p24FJ256GB106.gld" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="../translations/BPv4_en_US.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="../translations/BPv4_en_US.s" ex="true" overriding="false">
         <C30>
         </C30>
         <C30-AR>
@@ -812,6 +784,10 @@
         <C30Global>
         </C30Global>
       </item>
+      <item path="../messages_v3.h" ex="true" overriding="false">
+      </item>
+      <item path="../messages_v3.s" ex="true" overriding="false">
+      </item>
       <item path="../openocd_asm.s" ex="true" overriding="false">
         <C30>
         </C30>
@@ -825,30 +801,6 @@
         </C30Global>
       </item>
       <item path="../p24FJ64GA002.gld" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="../translations/BPv3_en_US.h" ex="true" overriding="false">
-        <C30>
-        </C30>
-        <C30-AR>
-        </C30-AR>
-        <C30-AS>
-        </C30-AS>
-        <C30-LD>
-        </C30-LD>
-        <C30Global>
-        </C30Global>
-      </item>
-      <item path="../translations/BPv3_en_US.s" ex="true" overriding="false">
         <C30>
         </C30>
         <C30-AR>
