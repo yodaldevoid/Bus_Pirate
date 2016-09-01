@@ -119,7 +119,7 @@ void bpADCCprobe(void)
 	{	AD1CON1bits.ADON = 1;			// turn ADC ON
 		temp=bp_read_adc(BP_ADC_PROBE);
 		AD1CON1bits.ADON = 0;			// turn ADC OFF
-		bpWstring("\x08\x08\x08\x08\x08");	// 5x backspace ( e.g. 5.00V )
+		bp_write_string("\x08\x08\x08\x08\x08");	// 5x backspace ( e.g. 5.00V )
 		//BPMSG1046;
 		bpWvolts(temp);					// print measurement
 		//bpWstring(OUMSG_PS_ADC_VOLTS);
@@ -128,7 +128,7 @@ void bpADCCprobe(void)
 		// CvD: wait xx ms??
 	}
 	UART1RX();
-	bpWline("");							// need a linefeed :D
+	bp_write_line("");							// need a linefeed :D
 }
 
 

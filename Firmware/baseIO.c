@@ -14,8 +14,18 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "base.h"
-#include "busPirateCore.h"//need access to bpConfig
-extern bus_pirate_configuration_t bpConfig; //holds persistant bus pirate settings (see base.h) need hardware version info
+#include "busPirateCore.h"
+
+static const uint8_t HEX_PREFIX[] = {
+    '0', 'x'
+};
+
+static const unsigned char HEXASCII[] = {
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+};
+
+extern bus_pirate_configuration_t bpConfig;
 
 #if defined (BUSPIRATEV4)
 extern BYTE cdc_In_len;
@@ -35,7 +45,7 @@ void bpEchoState(unsigned int c) {
 //
 //
 
-void bpWriteBuffer(const uint8_t *buffer, size_t length) {
+void bp_write_buffer(const uint8_t *buffer, size_t length) {
     size_t offset;
     
     for (offset = 0; offset < length; offset++) {
@@ -45,19 +55,23 @@ void bpWriteBuffer(const uint8_t *buffer, size_t length) {
 
 //Write a string to the user terminal
 
-void bpWstring(const char *s) {
-    char c;
-    while ((c = *s++)) UART1TX(c);
+void bp_write_string(const char *string) {
+    char character;
+    while ((character = *string++)) {
+        UART1TX(character);
+    }
 }
 
 //write a string to the user terminal, finish with a line break
 
-void bpWline(const char *s) {
-    char c;
-    while ((c = *s++)) UART1TX(c);
+void bp_write_line(const char *string) {
+    char character;
+    while ((character = *string++)) {
+        UART1TX(character);
+    }
+    
     UART1TX(0x0d);
     UART1TX(0x0a);
-
 }
 
 //output an 8bit/byte binary value to the user terminal
@@ -66,7 +80,7 @@ void bpWbin(unsigned char c) {
     unsigned char i, j;
     j = 0b10000000;
 
-    bpWstring("0b");
+    bp_write_string("0b");
 
     for (i = 0; i < 8; i++) {
         if (c & j) {
@@ -114,7 +128,7 @@ void bpWlongdecf(unsigned long l) {
         bpWintdec(temp);
         UART1TX(',');
         l %= 1000000;
-        if (l < 1000) bpWstring("000,");
+        if (l < 1000) bp_write_string("000,");
         mld = 1;
         mil = 1;
     }
@@ -126,7 +140,7 @@ void bpWlongdecf(unsigned long l) {
             if (temp >= 10) {
                 UART1TX('0'); // 1 leading zero
             } else {
-                bpWstring("00");
+                bp_write_string("00");
             }
             bpWintdec(temp);
         } else bpWintdec(temp);
@@ -140,7 +154,7 @@ void bpWlongdecf(unsigned long l) {
         if (l >= 10) {
             UART1TX('0'); // 1 leading zero
         } else {
-            bpWstring("00");
+            bp_write_string("00");
         }
         bpWintdec(l);
     } else bpWintdec(l);
@@ -184,13 +198,10 @@ void bpWdec(unsigned char c) {
     UART1TX(c + '0');
 }
 
-//output an 8bit/byte hex value to the user terminal
-static const unsigned char HEXASCII[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
 void bpWhex(unsigned int c) {
     unsigned int b;
 
-    bpWstring("0x");
+    bp_write_buffer(&HEX_PREFIX[0], sizeof(HEX_PREFIX));
     b = (c >> 4) & 0x0F;
     UART1TX(HEXASCII[b]);
     b = c & 0x0F;
@@ -215,7 +226,7 @@ void bpWhexBuf(unsigned int c) {
 void bpWinthex(unsigned int c) {
     unsigned int b;
 
-    bpWstring("0x");
+    bp_write_buffer(&HEX_PREFIX[0], sizeof(HEX_PREFIX));
     b = (c >> 12) & 0x0F;
     UART1TX(HEXASCII[b]);
     b = (c >> 8) & 0x0F;

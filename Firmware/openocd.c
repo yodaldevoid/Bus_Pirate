@@ -82,7 +82,7 @@ enum {
 
 static unsigned int OpenOCDJtagDelay;
 
-static void binOpenOCDString(void){bpWstring("OCD1");}
+static void binOpenOCDString(void){bp_write_string("OCD1");}
 
 void binOpenOCD(void){
 	unsigned char *buf = bpConfig.terminalInput; // for simplicity :)

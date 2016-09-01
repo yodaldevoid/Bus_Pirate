@@ -81,7 +81,7 @@ void picinit(void)
 		BPMSG1074;
 		bpWdec(picmode); bpSP;
 		bpWdec(piccmddelay);
-		bpWline(")");
+		bp_write_line(")");
 	}
 
 	modeConfig.HiZ=1;				// to allow different Vcc 
@@ -149,7 +149,7 @@ unsigned int picread(void)
 						bbL(CLK, PICSPEED/2);
 						bbL(MOSI, PICSPEED/5);
 						break;
-		default:		bpWline("unknown mode");
+		default:		bp_write_line("unknown mode");
 					BPMSG1078;
 						return 0;
 	}
@@ -316,7 +316,7 @@ void binpic(void)
 	int ok;
 	unsigned int temp;
 
-	bpWstring("PIC1");
+	bp_write_string("PIC1");
 	modeConfig.HiZ=1;				// to allow different Vcc 
 	bbL(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 	picmode=PICMODE6;
@@ -330,7 +330,7 @@ void binpic(void)
 						switch(cmd&0xF0)
 						{	case 0x00:	switch(cmd)
 										{	case 0x00:	return;
-											case 0x01:	bpWstring("PIC1");
+											case 0x01:	bp_write_string("PIC1");
 														break;
 											case 0x02:	picmode=PICMODE6;
 														break;

@@ -96,7 +96,7 @@ Commands:
 010xxxxx //set input(1)/output(0) pin state (returns pin read)
  */
 void binBBversion(void) {
-    bpWstring("BBIO1");
+    bp_write_string("BBIO1");
 }
 
 void binBB(void) {
@@ -243,7 +243,7 @@ void binBB(void) {
 #ifdef BUSPIRATEV4			
             } else if (inByte == 0b11000) {  //XSVF Player to program CPLD
                 BP_VREGEN = 1;
-                bpWstring("XSV1");
+                bp_write_string("XSV1");
 		jtag();
 #endif
 //--- End added JM

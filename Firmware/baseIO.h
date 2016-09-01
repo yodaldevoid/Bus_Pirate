@@ -48,13 +48,22 @@ void bpEchoState(unsigned int c);
  * @param[in] buffer the data to write.
  * @param[in] length how many bytes to write.
  */
-void bpWriteBuffer(const uint8_t *buffer, size_t length);
+void bp_write_buffer(const uint8_t *buffer, size_t length);
 
-//Write a string to the user terminal
-void bpWstring(const char *s);
+/**
+ * Writes the given NULL-terminated string to the serial port.
+ *
+ * @param[in] string the string to write.
+ */
+void bp_write_string(const char *string);
 
-//write a string and line break to the user terminal
-void bpWline(const char *s); 
+/**
+ * Writes the given NULL-terminated string to the serial port, followed by a
+ * line break.
+ *
+ * @param[in] string the string to write.
+ */
+void bp_write_line(const char *string); 
 
 //output an 8bit/byte hex value to the user terminal
 void bpWhex(unsigned int c);
@@ -80,10 +89,9 @@ void bpWlongdecf(unsigned long l);
 void bpWvolts(unsigned int adc);
 
 //pseudofuncion break sequences
-#define bpBR bpWline("")
+#define bpBR bp_write_line("")
 
 #define bpSP UART1TX(' ') //macro for space
-#define bpWchar(x) UART1TX(x)
 
 //
 //

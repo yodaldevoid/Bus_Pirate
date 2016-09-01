@@ -62,7 +62,7 @@ void PIC424Read(void);
  */
 
 void binrawversionString(void) {
-    bpWstring("RAW1");
+    bp_write_string("RAW1");
 }
 
 enum {

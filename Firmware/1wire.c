@@ -138,7 +138,7 @@ void OWmacro(unsigned int macro)
                 //bpWstring(OUMSG_1W_MACRO_ADDRESS);//xxx WRITE BUS #X ID:
                 BPMSG1005;
                 bpWdec(macro+1);
-                bpWstring(": ");
+                bp_write_string(": ");
                 for(j=0;j<8;j++){
                         bpWbyte(OWroster.dev[macro].id[j]); 
                         bpSP; 
@@ -161,7 +161,7 @@ void OWmacro(unsigned int macro)
                                 for(c=0;c<OWroster.num; c++){
                                         bpSP;//space
                                         bpWdec(c+1);
-                                        bpWstring(".");
+                                        bp_write_string(".");
                                         for(j=0;j<8;j++){bpWbyte(OWroster.dev[c].id[j]); bpSP;}
                                         //bpWstring("\x0D\x0A   *");
                                         BPMSG1008;
@@ -193,7 +193,7 @@ void OWmacro(unsigned int macro)
                                 //the roster number is the shortcut macro
                                 bpSP;
                                 bpWdec(j+1);
-                                bpWstring(".");
+                                bp_write_string(".");
                 
                                 // print address
                                 for (i = 0; i <8; i++){
@@ -565,7 +565,7 @@ binary1WIRE mode:
 */
 void bin1WIREversionString(void);
 
-void bin1WIREversionString(void){bpWstring("1W01");}
+void bin1WIREversionString(void){bp_write_string("1W01");}
 
 void bin1WIRE(void){
         static unsigned char inByte, rawCommand, i,c;

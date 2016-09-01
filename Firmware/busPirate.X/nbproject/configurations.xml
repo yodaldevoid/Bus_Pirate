@@ -217,8 +217,28 @@
         </C30Global>
       </item>
       <item path="../messages_v4.h" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../messages_v4.s" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../onboard_eeprom.c" ex="true" overriding="false">
         <C30>
@@ -785,8 +805,28 @@
         </C30Global>
       </item>
       <item path="../messages_v3.h" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../messages_v3.s" ex="true" overriding="false">
+        <C30>
+        </C30>
+        <C30-AR>
+        </C30-AR>
+        <C30-AS>
+        </C30-AS>
+        <C30-LD>
+        </C30-LD>
+        <C30Global>
+        </C30Global>
       </item>
       <item path="../openocd_asm.s" ex="true" overriding="false">
         <C30>

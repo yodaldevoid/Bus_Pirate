@@ -221,7 +221,7 @@ void I2Csettings(void) { //bpWstring("I2C (mod spd)=( ");
 #endif /* BP_I2C_USE_HW_BUS */
     bpWdec(modeConfig.speed);
     bpSP;
-    bpWline(")");
+    bp_write_line(")");
 }
 
 void I2Csetup(void) {
@@ -363,10 +363,10 @@ void I2Cmacro(unsigned int c) {
                 if (c == 0) {//0 is ACK
 
                     bpWbyte(i);
-                    bpWchar('('); //bpWstring("(");
+                    UART1TX('('); //bpWstring("(");
                     bpWbyte((i >> 1));
                     if ((i & 0b1) == 0) {//if the first bit is set it's a read address, send a byte plus nack to clean up
-                        bpWstring(" W");
+                        bp_write_string(" W");
                     } else {
                         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
                             bbReadByte();
@@ -378,9 +378,9 @@ void I2Cmacro(unsigned int c) {
                             hwi2csendack(1); //high bit is NACK
                         }
 #endif /* BP_I2C_USE_HW_BUS */
-                        bpWstring(" R");
+                        bp_write_string(" R");
                     }
-                    bpWstring(")");
+                    bp_write_string(")");
                     bpSP;
                 }
                 if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) bbI2Cstop();
@@ -405,7 +405,7 @@ void I2Cmacro(unsigned int c) {
             break;
 #if defined (BUSPIRATEV4)
         case 3: //in hardware mode (or software, I guess) we can edit the on-board EEPROM -software mode unimplemented...
-            bpWline("Now using on-board EEPROM I2C interface");
+            bp_write_line("Now using on-board EEPROM I2C interface");
             i2c_state.i2c_internal = 1;
             I2C1CONbits.A10M = 0;
             I2C1CONbits.SCLREL = 0;
@@ -427,7 +427,7 @@ void I2Cmacro(unsigned int c) {
             break;
         case 4:
             if (i2c_state.i2c_internal == 1) {
-                bpWline("On-board EEPROM write protect disabled");
+                bp_write_line("On-board EEPROM write protect disabled");
                 BP_EE_WP = 0;
             }
             break;
@@ -816,7 +816,7 @@ rawI2C mode:
 # (0101)wxyz � read peripherals (planned, not implemented)
  */
 void binI2CversionString(void) {
-    bpWstring("I2C1");
+    bp_write_string("I2C1");
 }
 
 void binI2C(void) {

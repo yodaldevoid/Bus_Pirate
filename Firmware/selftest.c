@@ -106,7 +106,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	//enable 5v0 pullup and test
 	BP_5VPU_ON();
 	BPMSG1171; //bpWstring("5V0 VPU");
-	bpWstring(" ");
+	bp_write_string(" ");
 	BPMSG1172; //VPU 
 	
 	bp_delay_ms(2);
@@ -128,7 +128,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	//enable 3v3 pullup and test
 	BP_3V3PU_ON();
 	BPMSG1173; //bpWstring("3V3 VPU");
-	bpWstring(" ");
+	bp_write_string(" ");
 	BPMSG1172; //VPU 
 	
 	bp_delay_ms(2);

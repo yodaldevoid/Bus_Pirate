@@ -722,7 +722,7 @@ void interpreter(void)
 							//bpBR;
 
 							break;
-			case TOK_RETURN:	bpWstring(STAT_RETURN);
+			case TOK_RETURN:	bp_write_string(STAT_RETURN);
 						
 							pcupdated=1;
 							if(gosubs)
@@ -1141,7 +1141,7 @@ void interpreter(void)
 
 void printstat(char *s)
 {	bpSP;
-	bpWstring(s);
+	bp_write_string(s);
 	bpSP;
 }
 
@@ -1166,7 +1166,7 @@ void list(void)
 		}
 		else
 		{	bpSP;
-			bpWstring(tokens[c-TOKENS]);
+			bp_write_string(tokens[c-TOKENS]);
 			bpSP;
 		}
 		pc++;
@@ -1525,7 +1525,7 @@ int checkeeprom(void)
 	basi2cwrite(0x00);
 	basi2cstart();
 	if(basi2cread(1)==0x00)					// check for any data
-	{	bpWline("No EEPROM");			// if 0 prolly no pullup and eeprom (PROLLY!) 
+	{	bp_write_line("No EEPROM");			// if 0 prolly no pullup and eeprom (PROLLY!) 
 		BPMSG1053;
 		return 0;
 	}

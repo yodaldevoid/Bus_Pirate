@@ -119,7 +119,7 @@ void R3Wsettings(void)
 	bpWdec(modeConfig.speed); bpSP;
 	bpWdec(r3wSettings.csl); bpSP;
 	bpWdec(modeConfig.HiZ); bpSP;
-	bpWline(")");
+	bp_write_line(")");
 }
 
 

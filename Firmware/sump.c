@@ -525,7 +525,7 @@ bool sump_handle_command_byte(unsigned char input_byte) {
 
                 /* Send the device identification buffer. */
                 case SUMP_ID:
-                    bpWriteBuffer(SUMP_DEVICE_ID, sizeof(SUMP_DEVICE_ID));
+                    bp_write_buffer(SUMP_DEVICE_ID, sizeof(SUMP_DEVICE_ID));
                     break;
 
                 /* Arm the sampler. */
@@ -560,7 +560,7 @@ bool sump_handle_command_byte(unsigned char input_byte) {
 
                 /* Send device description. */
                 case SUMP_DESC:
-                    bpWriteBuffer(SUMP_METADATA, sizeof(SUMP_METADATA));
+                    bp_write_buffer(SUMP_METADATA, sizeof(SUMP_METADATA));
                     break;
 
                 /* Start/Stop data flow. */

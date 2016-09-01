@@ -171,7 +171,7 @@ void UARTsetup(void)
 			modeConfig.speed=8; //Set to 115200 for now
 			abd=1;				//trigger to run baud detection
 			uartSettings.autoBaudF = 1;
-			bpWline("Baud detection selected..");
+			bp_write_line("Baud detection selected..");
 		}
 		
 		if(modeConfig.speed==9)
@@ -263,9 +263,9 @@ void UARTsetup_exc(void)
 	if(uartSettings.autoBaudF == 1)
 	{
 		UART2Disable();
-		bpWline(" ");
+		bp_write_line(" ");
 		abd = UARTgetbaud_EstimatedBaud(UARTgetbaud(0));
-		bpWline(" ");
+		bp_write_line(" ");
 
 		if(abd == 0)
 		{
@@ -672,7 +672,7 @@ peripheral settings
 */
 static const unsigned int binUARTspeed[]={13332,3332,1666,832,416,207,127,103,68,34,};//BRG:300,1200,2400,4800,9600,19200,31250,38400,57600,115200
 
-void binUARTversionString(void){bpWstring("ART1");}
+void binUARTversionString(void){bp_write_string("ART1");}
 
 void binUART(void){
 	static unsigned char inByte, rawCommand,i;
