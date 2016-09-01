@@ -80,11 +80,8 @@ void bpWlongdecf(unsigned long l);
 void bpWvolts(unsigned int adc);
 
 //pseudofuncion break sequences
-//#define bpBR UART1TX('\x0D');UART1TX('\x0A') //macro for line break
+#define bpBR bpWline("")
 
-#define bpBR bpWline("");		// saves 258 bytes..  \\o \o/ o//
-
-#define bpWBR bpBR
 #define bpSP UART1TX(' ') //macro for space
 #define bpWchar(x) UART1TX(x)
 

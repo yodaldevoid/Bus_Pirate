@@ -229,7 +229,7 @@ void OWmacro(unsigned int macro)
                                 bpWbyte(devID[i]);
                                 bpSP;   
                         }
-                        bpWBR;  
+                        bpBR;  
                         DS1wireID(devID[0]);
                         break;
                 case 0x55://MATCH ROM

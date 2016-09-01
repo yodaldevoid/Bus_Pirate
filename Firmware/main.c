@@ -225,7 +225,7 @@ void Initialize(void) {
     TBLPAG = 0; // we need to be in page 0 (somehow this isn't set)
 
 #ifndef BUSPIRATEV4
-    bpWBR; //send a line feed
+    bpBR; //send a line feed
     versionInfo(); //prints hardware and firmware version info (base.c)
 #endif /* !BUSPIRATEV4 */
 }

@@ -388,7 +388,7 @@ void I2Cmacro(unsigned int c) {
                 else hwi2cstop();
 #endif /* BP_I2C_USE_HW_BUS */
             }
-            bpWBR;
+            bpBR;
 
             break;
         case 2:

@@ -14,9 +14,8 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-//print text in UImessages[s] array (member s) to the user terminal
-//message text defined in /translations/*-*.h
-void bpWmessage(unsigned char s);
+#ifndef BP_BASEUI_H
+#define BP_BASEUI_H
 
 //print the help info in help[] to the user terminal
 //message text defined in /translations/*-*.h
@@ -27,4 +26,4 @@ void bpMsgBR(int offset, int length);
 
 int agree(void); //are you sure?
 
-
+#endif /* BP_BASEUI_H */

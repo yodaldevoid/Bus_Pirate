@@ -741,7 +741,7 @@ servoset:   T2CONbits.TCKPS1 = 1;
 		if(entryloop==1){
 	       PWM_pd = getnumber(-1, 0, 180, 1);
 			if(PWM_pd<0){
-				bpWBR;
+				bpBR;
 				return;
 			}
 			goto servoset;

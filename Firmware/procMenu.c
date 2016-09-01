@@ -698,7 +698,7 @@ bpv4reset:
                     while (--repeat) { //bpWstring(OUMSG_AUX_INPUT_READ);
                         BPMSG1095;
                         bpEchoState(bpAuxRead());
-                        bpWBR;
+                        bpBR;
                     }
                     break;
                 case 'W': //bpWline("-PSU on");	//enable any active power supplies

@@ -440,7 +440,7 @@ unsigned int UARTperiodic(void)
 	temp=0;
 	while(UART2RXRdy())			//data ready
 	{	if(uartSettings.eu==1)
-		{	bpWBR;
+		{	bpBR;
 			//bpWmessage(MSG_READ); //bpWstring(OUMSG_UART_READ);
 			BPMSG1102;
 			if(U2STAbits.PERR) BPMSG1194;	//bpWstring("-p "); //show any errors
@@ -451,7 +451,7 @@ unsigned int UARTperiodic(void)
 				BPMSG1196;
 	 			U2STA &= (~0b10); //clear overrun error if exists
 			}	
-			bpWBR;
+			bpBR;
 		}else
 		{	UART2RX();//clear the buffer....
 		}

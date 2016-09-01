@@ -229,7 +229,7 @@ void r2wMacro_78133Read(void){
 		bpWhex(m[i]);
 		bpSP;
 	}
-	bpWBR;
+	bpBR;
 
 	//modeConfig.lsbEN=c;//return to previous LSB setting
 
