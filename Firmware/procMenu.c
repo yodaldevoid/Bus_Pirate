@@ -18,7 +18,7 @@
 
 #include "base.h"
 #include "AUXpin.h"
-#include "busPirateCore.h"
+#include "bus_pirate_core.h"
 #include "procMenu.h" //need our public versionInfo() function
 #include "selftest.h"
 #include "binIO.h"
@@ -28,7 +28,7 @@
 extern bus_pirate_configuration_t bpConfig;
 extern mode_configuration_t modeConfig;
 extern command_t bpCommand;
-extern proto protos[MAXPROTO];
+extern bus_pirate_protocol_t protos[MAXPROTO];
 
 #ifdef BUSPIRATEV4
 extern volatile BYTE cdc_Out_len;
@@ -42,7 +42,7 @@ void setPullups(void); //pullup resistor dialog
 void measureSupplyVoltages(void); //display supply voltage measurements for 3.3, 5, and vpullup
 void setBitOrder(void); //LSB/MSB menu for modes that allow it
 void setAltAuxPin(void); //configure AUX syntax to control AUX or CS pin
-void setBaudRate(void); //configure user terminal side UART baud rate
+void set_baud_rate(void); //configure user terminal side UART baud rate
 void statusInfo(void); //display properties of the current bus mode (pullups, vreg, lsb, output type, etc)
 void convert(void); //convert input to HEX/DEC/BIN
 void pinDirection(unsigned int pin);
@@ -85,7 +85,7 @@ void serviceuser(void) {
     tmpcmdend = cmdend;
     histcnt = 0;
     tmphistcnt = 0;
-    bpConfig.busMode = BP_HIZ;
+    bpConfig.bus_mode = BP_HIZ;
     temp2 = 0;
     cmderror = 0; // we don't want to start with error do we?
     binmodecnt = 0;
@@ -98,7 +98,7 @@ void serviceuser(void) {
     usrmacro = 0;
 
     while (1) {
-        bp_write_string(protos[bpConfig.busMode].protocol_name);
+        bp_write_string(protos[bpConfig.bus_mode].name);
 #ifdef BP_ENABLE_BASIC_SUPPORT
         if (bpConfig.basic) {
             //bpWstring("(BASIC)");
@@ -123,9 +123,9 @@ void serviceuser(void) {
             while (!UART1RXRdy()) // as long as there is no user input poll periodicservice
             {
                 if (modeConfig.periodicService == 1) {
-                    if (protos[bpConfig.busMode].protocol_periodic()) // did we print something?
+                    if (protos[bpConfig.bus_mode].protocol_periodic_update()) // did we print something?
                     {
-                        bp_write_string(protos[bpConfig.busMode].protocol_name);
+                        bp_write_string(protos[bpConfig.bus_mode].name);
                         bp_write_string(">");
                         if (cmdstart != cmdend) {
                             for (temp = cmdstart; temp != cmdend; temp++) {
@@ -284,7 +284,7 @@ up:
                                     repeat = (repeat - 1) & CMDLENMSK;
                                 }
                                 bp_write_string("\x1B[2K\x0D"); // clear line, CR
-                                bp_write_string(protos[bpConfig.busMode].protocol_name);
+                                bp_write_string(protos[bpConfig.bus_mode].name);
 #ifdef BP_ENABLE_BASIC_SUPPORT
                                 if (bpConfig.basic) {
                                     BPMSG1084;
@@ -329,7 +329,7 @@ down:
                                     repeat = (repeat - 1) & CMDLENMSK;
                                 }
                                 bp_write_string("\x1B[2K\x0D"); // clear line, CR
-                                bp_write_string(protos[bpConfig.busMode].protocol_name);
+                                bp_write_string(protos[bpConfig.bus_mode].name);
 #ifdef BP_ENABLE_BASIC_SUPPORT
                                 if (bpConfig.basic) {
                                     BPMSG1084;
@@ -350,7 +350,7 @@ down:
                     if (temp == cmdend) {
                         if (histcnt == 1) {
                             bp_write_string("\x1B[2K\x0D"); // clear line, CR
-                            bp_write_string(protos[bpConfig.busMode].protocol_name);
+                            bp_write_string(protos[bpConfig.bus_mode].name);
 #ifdef BP_ENABLE_BASIC_SUPPORT
                             if (bpConfig.basic) {
                                 BPMSG1084;
@@ -508,7 +508,7 @@ end:
                     break;
                 case 'i': //bpWline("-Status info");
                     versionInfo(); //display hardware and firmware version string
-                    if (bpConfig.busMode != BP_HIZ) {
+                    if (bpConfig.bus_mode != BP_HIZ) {
                         statusInfo();
                     }
                     break;
@@ -516,7 +516,7 @@ end:
                     changemode();
                     break;
                 case 'b': //bpWline("-terminal speed set");
-                    setBaudRate();
+                    set_baud_rate();
                     break;
                 case 'o': //bpWline("-data output set");
                     setDisplayMode();
@@ -536,7 +536,7 @@ end:
                             break;
                     }
                     else*/
-                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         bpPWM();
@@ -590,7 +590,7 @@ end:
 
 
                     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
-                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         BP_PULLUP_OFF(); //pseudofunction in hardwarevx.h
@@ -602,7 +602,7 @@ end:
                     break;
                 case 'P': //bpWline("-pullup resistors on");
                     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
-                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         if (modeConfig.HiZ == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
@@ -649,7 +649,7 @@ end:
                     bpBR;
                     break;
                 case '~': //bpWline("-selftest");
-                    if (bpConfig.busMode == BP_HIZ) {
+                    if (bpConfig.bus_mode == BP_HIZ) {
                         selfTest(1, 1); //self test, showprogress in terminal
                     } else {
                         //bpWline(OUMSG_PM_SELFTEST_HIZ);
@@ -702,7 +702,7 @@ bpv4reset:
                     }
                     break;
                 case 'W': //bpWline("-PSU on");	//enable any active power supplies
-                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         BP_VREG_ON();
@@ -717,7 +717,7 @@ bpv4reset:
                             
                             //Engaging Clutch
                             //finishes the settup and conects the pins...
-                            protos[bpConfig.busMode].protocol_setup_exc();
+                            protos[bpConfig.bus_mode].protocol_get_ready();
                             bp_write_line("Clutch engaged!!!");
                         } else {
                             BP_VREG_OFF();
@@ -729,12 +729,12 @@ bpv4reset:
                     }
                     break;
                 case 'w': //bpWline("-PSU off");	//disable the power supplies
-                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         //disengaging Clutch
                         //cleansup the protocol and HiZs the pins
-                        protos[bpConfig.busMode].protocol_cleanup();
+                        protos[bpConfig.bus_mode].protocol_cleanup();
                         bp_write_line("Clutch disengaged!!!");
                         
                         BP_VREG_OFF();
@@ -776,7 +776,7 @@ bpv4reset:
                     break;
 #endif /* BP_ENABLE_BASIC_SUPPORT */
                 case 'S': //servo control
-                    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
+                    if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
                         bpServo();
@@ -837,7 +837,7 @@ bpv4reset:
                     if (cmdbuf[((cmdstart) & CMDLENMSK)] == ')') { //cmdstart++;				// skip )
                         //cmdstart&=CMDLENMSK;
                         //bpWdec(sendw);
-                        protos[bpConfig.busMode].protocol_macro(sendw);
+                        protos[bpConfig.bus_mode].protocol_run_macro(sendw);
                         bpBR;
                     } else {
                         cmderror = 1;
@@ -863,7 +863,7 @@ bpv4reset:
                             {
                                 sendw = bpRevByte(sendw);
                             }
-                            protos[bpConfig.busMode].protocol_send(sendw);
+                            protos[bpConfig.bus_mode].protocol_send(sendw);
                         }
                         cmdstart &= CMDLENMSK;
                         UART1TX(0x22);
@@ -871,16 +871,16 @@ bpv4reset:
                     }
                     break;
                 case '[': //bpWline("-Start");
-                    protos[bpConfig.busMode].protocol_start();
+                    protos[bpConfig.bus_mode].protocol_start();
                     break;
                 case '{': //bpWline("-StartR");
-                    protos[bpConfig.busMode].protocol_startR();
+                    protos[bpConfig.bus_mode].protocol_start_with_read();
                     break;
                 case ']': //bpWline("-Stop");
-                    protos[bpConfig.busMode].protocol_stop();
+                    protos[bpConfig.bus_mode].protocol_stop();
                     break;
                 case '}': //bpWline("-StopR");
-                    protos[bpConfig.busMode].protocol_stopR();
+                    protos[bpConfig.bus_mode].protocol_stop_from_read();
                     break;
                 case '0':
                 case '1':
@@ -913,7 +913,7 @@ bpv4reset:
                         if (modeConfig.lsbEN == 1) {//adjust bitorder
                             sendw = bpRevByte(sendw);
                         }
-                        received = protos[bpConfig.busMode].protocol_send(sendw);
+                        received = protos[bpConfig.bus_mode].protocol_send(sendw);
                         bpSP;
                         if (modeConfig.wwr) { //bpWmessage(MSG_READ);
                             BPMSG1102;
@@ -940,11 +940,11 @@ bpv4reset:
                     }
 						  if(newDmode)
 						  {
-						  		oldDmode = bpConfig.displayMode;
-								bpConfig.displayMode = newDmode-1;
+						  		oldDmode = bpConfig.display_mode;
+								bpConfig.display_mode = newDmode-1;
 						  }
                     while (--repeat) {
-                        received = protos[bpConfig.busMode].protocol_read();
+                        received = protos[bpConfig.bus_mode].protocol_read();
                         if (modeConfig.lsbEN == 1) {//adjust bitorder
                             received = bpRevByte(received);
                         }
@@ -957,7 +957,7 @@ bpv4reset:
                     }
 						  if(newDmode)
 						  {
-								bpConfig.displayMode = oldDmode;
+								bpConfig.display_mode = oldDmode;
 								newDmode=0;
 						  }
                     bpBR;
@@ -967,7 +967,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_CLKH);
                     BPMSG1103;
-                    protos[bpConfig.busMode].protocol_clkh();
+                    protos[bpConfig.bus_mode].protocol_clock_high();
                     //}
                     break;
                 case '\\': //bpWline("-CLK lo");
@@ -975,7 +975,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_CLKL);
                     BPMSG1104;
-                    protos[bpConfig.busMode].protocol_clkl();
+                    protos[bpConfig.bus_mode].protocol_clock_low();
                     //}
                     break;
                 case '-': //bpWline("-DAT hi");
@@ -983,7 +983,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_DATH);
                     BPMSG1105;
-                    protos[bpConfig.busMode].protocol_dath();
+                    protos[bpConfig.bus_mode].protocol_data_high();
                     //}
                     break;
                 case '_': //bpWline("-DAT lo");
@@ -991,7 +991,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_DATL);
                     BPMSG1106;
-                    protos[bpConfig.busMode].protocol_datl();
+                    protos[bpConfig.bus_mode].protocol_data_low();
                     //}
                     break;
                 case '.': //bpWline("-DAT state read");
@@ -999,7 +999,7 @@ bpv4reset:
                     BPMSG1098;
                     //while(--repeat)
                 {
-                    bpEchoState(protos[bpConfig.busMode].protocol_dats());
+                    bpEchoState(protos[bpConfig.bus_mode].protocol_data_state());
                     //bpWmessage(MSG_BIT_NOWINPUT);
                     //BPMSG1107;
                 }
@@ -1010,7 +1010,7 @@ bpv4reset:
                     bpWbyte(repeat);
                     repeat++;
                     while (--repeat) { //bpWmessage(MSG_BIT_CLK);
-                        protos[bpConfig.busMode].protocol_clk();
+                        protos[bpConfig.bus_mode].protocol_clock_pulse();
                     }
                     bpBR;
                     break;
@@ -1018,7 +1018,7 @@ bpv4reset:
                     repeat = getrepeat() + 1;
                     BPMSG1109;
                     while (--repeat) { //bpWmessage(MSG_BIT_READ);
-                        bpEchoState(protos[bpConfig.busMode].protocol_bitr());
+                        bpEchoState(protos[bpConfig.bus_mode].protocol_read_bit());
                         bpSP;
                     }
                     //bpWmessage(MSG_BIT_NOWINPUT);
@@ -1207,7 +1207,7 @@ void changemode(void) {
         for (i = 0; i < MAXPROTO; i++) {
             bpWdec(i + 1);
             bp_write_string(". ");
-            bp_write_line(protos[i].protocol_name);
+            bp_write_line(protos[i].name);
         }
         //bpWline("x. exit(without change)");
         BPMSG1111;
@@ -1218,10 +1218,10 @@ void changemode(void) {
         if ((busmode == -2) || (busmode == -1)) { //bpWline("no mode change");
             BPMSG1112;
         } else {
-            protos[bpConfig.busMode].protocol_cleanup();
+            protos[bpConfig.bus_mode].protocol_cleanup();
             bpInit();
-            bpConfig.busMode = busmode;
-            protos[bpConfig.busMode].protocol_setup();
+            bpConfig.bus_mode = busmode;
+            protos[bpConfig.bus_mode].protocol_setup();
             bp_write_line("Clutch disengaged!!!");
             if (busmode) {
                BP_LEDMODE = 1; // mode led is on when proto >0
@@ -1234,10 +1234,10 @@ void changemode(void) {
     {
         busmode--; // save a couple of programwords to do it here :D
         if (busmode < MAXPROTO) {
-            protos[bpConfig.busMode].protocol_cleanup();
+            protos[bpConfig.bus_mode].protocol_cleanup();
             bpInit();
-            bpConfig.busMode = busmode;
-            protos[bpConfig.busMode].protocol_setup();
+            bpConfig.bus_mode = busmode;
+            protos[bpConfig.bus_mode].protocol_setup();
             if (busmode) BP_LEDMODE = 1; // mode led is on when proto >0
             //bpWmessage(MSG_READY);
             BPMSG1085;
@@ -1519,8 +1519,8 @@ void versionInfo(void) {
 #if defined (BUSPIRATEV3) //we can tell if it's v3a or v3b, show it here
     bp_write_string(BP_VERSION_STRING);
     UART1TX('.');
-    UART1TX(bpConfig.HWversion);
-    if (bpConfig.dev_type == 0x44F) {//sandbox electronics clone with 44pin PIC24FJ64GA004
+    UART1TX(bpConfig.hardware_version);
+    if (bpConfig.device_type == 0x44F) {//sandbox electronics clone with 44pin PIC24FJ64GA004
         bp_write_string(" clone w/different PIC");
     }
     bpBR;
@@ -1533,7 +1533,7 @@ void versionInfo(void) {
     UART1TX('[');
     for (i = 0; i < MAXPROTO; i++) {
         if (i) bpSP;
-        bp_write_string(protos[i].protocol_name);
+        bp_write_string(protos[i].name);
     }
     UART1TX(']');
 
@@ -1549,14 +1549,14 @@ void versionInfo(void) {
 
     //bpWstring("DEVID:");
     BPMSG1117;
-    bpWinthex(bpConfig.dev_type);
+    bpWinthex(bpConfig.device_type);
 
     //bpWstring(" REVID:");
     BPMSG1210;
-    bpWinthex(bpConfig.dev_rev);
+    bpWinthex(bpConfig.device_revision);
 #ifdef BUSPIRATEV4
     bp_write_string(" (24FJ256GB106 ");
-    switch (bpConfig.dev_rev) {
+    switch (bpConfig.device_revision) {
         case PIC_REV_A3:
             bp_write_string("A3");
             break;
@@ -1569,13 +1569,13 @@ void versionInfo(void) {
     }
 #else
     bp_write_string(" (24FJ64GA00");
-    if (bpConfig.dev_type == 0x44F) {//sandbox electronics clone with 44pin PIC24FJ64GA004
+    if (bpConfig.device_type == 0x44F) {//sandbox electronics clone with 44pin PIC24FJ64GA004
         bp_write_string("4 ");
     } else {
         bp_write_string("2 ");
     }
 
-    switch (bpConfig.dev_rev) {
+    switch (bpConfig.device_revision) {
         case PIC_REV_A3:
             bp_write_string("A3"); //also A4, but that's not in the wild and makes it confusing to users
             break;
@@ -1680,7 +1680,7 @@ void statusInfo(void) {
     }
 #endif
 
-    protos[bpConfig.busMode].protocol_settings();
+    protos[bpConfig.bus_mode].protocol_print_settings();
 
     //bpWline("*----------*");
     BPMSG1119;
@@ -1698,7 +1698,7 @@ void pinStates(void) { //bpWline("Pinstates:");
 #else
     BPMSG1227; //bpWstring("GND\t3.3V\t5.0V\tADC\tVPU\tAUX\t");
 #endif
-    protos[bpConfig.busMode].protocol_pins();
+    protos[bpConfig.bus_mode].protocol_print_pins_state();
     BPMSG1228; //bpWstring("P\tP\tP\tI\tI\t");
 #if defined(BUSPIRATEV4)    
     pinDirection(AUX2);
@@ -1809,13 +1809,13 @@ void setDisplayMode(void) {
     mode = getint();
 
     if ((mode > 0) && (mode <= 4)) {
-        bpConfig.displayMode = mode - 1;
+        bpConfig.display_mode = mode - 1;
     } else {
         cmderror = 0;
         //bpWmessage(MSG_OPT_DISPLAYMODE); //show the display mode options message
         BPMSG1127;
         //	bpConfig.displayMode=(bpUserNumberPrompt(1, 4, 1)-1); //get, store user reply
-        bpConfig.displayMode = getnumber(1, 1, 4, 0) - 1; //get, store user reply
+        bpConfig.display_mode = getnumber(1, 1, 4, 0) - 1; //get, store user reply
     }
     //bpWmessage(MSG_OPT_DISPLAYMODESET);//show display mode update text
     BPMSG1128;
@@ -1823,7 +1823,7 @@ void setDisplayMode(void) {
 
 //configure user terminal side UART baud rate
 
-void setBaudRate(void) {
+void set_baud_rate(void) {
     unsigned char speed;
     unsigned char brg = 0;
 
@@ -1833,16 +1833,16 @@ void setBaudRate(void) {
     speed = getint();
 
     if ((speed > 0) && (speed <= 10)) {
-        bpConfig.termSpeed = speed - 1;
+        bpConfig.terminal_speed = speed - 1;
     } else {
         cmderror = 0;
         //bpWmessage(MSG_OPT_UART_BAUD); //show stored dialog
         BPMSG1133;
         //	bpConfig.termSpeed=(bpUserNumberPrompt(1, 9, 9)-1);
-        bpConfig.termSpeed = getnumber(9, 1, 10, 0) - 1;
+        bpConfig.terminal_speed = getnumber(9, 1, 10, 0) - 1;
     }
 
-    if (bpConfig.termSpeed == 9) {
+    if (bpConfig.terminal_speed == 9) {
         consumewhitechars();
         brg = getint();
 
@@ -1858,15 +1858,18 @@ void setBaudRate(void) {
     BPMSG1251;
     while (0 == UART1TXEmpty()); //wait for TX to finish or reinit flushes part of prompt string from buffer
 
-    if (bpConfig.termSpeed == 9) {
+    if (bpConfig.terminal_speed == 9) {
         UART1Speed(brg);
     }
     InitializeUART1();
-    while (1) { //wait for space to prove valid baud rate switch
-        //JTR Not required while (!UART1RXRdy());
-        if (UART1RX() == ' ')break;
+    
+    //wait for space to prove valid baud rate switch
+    for (;;) {
+        if (UART1RX() == ' ') {
+            break;
+        }
     }
-} //
+}
 
 #ifdef BUSPIRATEV4
 
@@ -1875,7 +1878,7 @@ void setPullupVoltage(void) {
 
 
     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
-    if (bpConfig.busMode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
+    if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
         BPMSG1088;
         cmderror = 1; // raise error
         return;
@@ -1937,7 +1940,4 @@ void setPullupVoltage(void) {
     }
 }
 
-#endif
-
-
-
+#endif /* BUSPIRATEV4 */

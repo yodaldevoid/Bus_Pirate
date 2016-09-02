@@ -24,7 +24,7 @@
 
 #include "base.h"
 #include "uart.h"
-#include "busPirateCore.h"
+#include "bus_pirate_core.h"
 #include "baseIO.h"
 
 /*
@@ -268,7 +268,7 @@
 /**
  * How much memory is allocated for samples, in bytes.
  */
-#define BP_SUMP_SAMPLE_MEMORY_SIZE TERMINAL_BUFFER_SIZE
+#define BP_SUMP_SAMPLE_MEMORY_SIZE BP_TERMINAL_BUFFER_SIZE
 
 /**
  * The highest sample rate for the Bus Pirate to sample data at, in Hz.
@@ -705,7 +705,7 @@ bool sump_acquire_samples(void) {
 
             /* Capture samples into the terminal buffer. */
             for (offset = 0; offset < samples_to_acquire; offset++) {
-                bpConfig.terminalInput[offset] = PORTB >> 6;
+                bpConfig.terminal_input[offset] = PORTB >> 6;
 
                 /* Wait for timer4 interrupt to trigger. */
                 while (IFS1bits.T5IF == OFF) {
@@ -723,7 +723,7 @@ bool sump_acquire_samples(void) {
 
             /* Write captured samples out. */
             for (offset = samples_to_acquire; offset > 0; offset--) {
-                UART1TX(bpConfig.terminalInput[offset - 1]);
+                UART1TX(bpConfig.terminal_input[offset - 1]);
             }
 
             /* Reset the analyzer state. */

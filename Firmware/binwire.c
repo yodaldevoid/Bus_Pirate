@@ -1,6 +1,6 @@
 #include "base.h"
 #include "bitbang.h"
-#include "busPirateCore.h"
+#include "bus_pirate_core.h"
 #include "binIOhelpers.h"
 #ifdef BUSPIRATEV4
 #include "smps.h"
@@ -240,11 +240,11 @@ void binwire(void) {
                                 //get command byte, two data bytes
                                 for (j = 0; j < cmds; j++) {
 
-                                    bpConfig.terminalInput[j] = UART1RX(); // /* JTR usb port; */;
+                                    bpConfig.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
                                 }
 
                                 for (j = 0; j < cmds; j = j + 3) {
-                                    PIC416Write(bpConfig.terminalInput[j], bpConfig.terminalInput[j + 1], bpConfig.terminalInput[j + 2]);
+                                    PIC416Write(bpConfig.terminal_input[j], bpConfig.terminal_input[j + 1], bpConfig.terminal_input[j + 2]);
                                 }
 
                                 UART1TX(1); //send 1/OK
@@ -256,7 +256,7 @@ void binwire(void) {
                                 //get three byte command, 1 byte pre-post NOP
                                 for (j = 0; j < cmds; j++) {
 
-                                    bpConfig.terminalInput[j] = UART1RX(); // /* JTR usb port; */;
+                                    bpConfig.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
                                 }
 
                                 for (j = 0; j < cmds; j = j + 4) {
@@ -269,13 +269,13 @@ void binwire(void) {
                                     bbWriteBit(0); //send bit
 
                                     //send data payload
-                                    bbWriteByte(bpConfig.terminalInput[j]); //send byte
-                                    bbWriteByte(bpConfig.terminalInput[j + 1]); //send byte
-                                    bbWriteByte(bpConfig.terminalInput[j + 2]); //send byte
+                                    bbWriteByte(bpConfig.terminal_input[j]); //send byte
+                                    bbWriteByte(bpConfig.terminal_input[j + 1]); //send byte
+                                    bbWriteByte(bpConfig.terminal_input[j + 2]); //send byte
 
                                     //do any post instruction NOPs
-                                    bpConfig.terminalInput[j + 3] &= 0x0F;
-                                    for (i = 0; i < bpConfig.terminalInput[j + 3]; i++) {
+                                    bpConfig.terminal_input[j + 3] &= 0x0F;
+                                    for (i = 0; i < bpConfig.terminal_input[j + 3]; i++) {
                                         PIC24NOP();
                                     }
                                 }
@@ -349,7 +349,7 @@ void binwire(void) {
                         }
 
                         for (j = 0; j < cmds; j++) {
-                            bpConfig.terminalInput[j] = UART1RX();
+                            bpConfig.terminal_input[j] = UART1RX();
                         }
 
                         if (cmdr != 0)
@@ -357,23 +357,23 @@ void binwire(void) {
 
                         j=0;
                         while (j < cmds) {
-                            if (bpConfig.terminalInput[j] == 1) { // write command
+                            if (bpConfig.terminal_input[j] == 1) { // write command
                                 if (picMode == PIC614) {
-                                    PIC614Write(bpConfig.terminalInput[j+1], bpConfig.terminalInput[j + 2], bpConfig.terminalInput[j + 3]);
+                                    PIC614Write(bpConfig.terminal_input[j+1], bpConfig.terminal_input[j + 2], bpConfig.terminal_input[j + 3]);
                                     j += 4;
                                 } else if (picMode == PIC416) {
-                                    PIC416Write(bpConfig.terminalInput[j+1], bpConfig.terminalInput[j + 2], bpConfig.terminalInput[j + 3]);
+                                    PIC416Write(bpConfig.terminal_input[j+1], bpConfig.terminal_input[j + 2], bpConfig.terminal_input[j + 3]);
                                     j += 4;
                                 } else if (picMode == PIC424) {
-                                    PIC424Write(&bpConfig.terminalInput[j + 1], bpConfig.terminalInput[j + 4]);
+                                    PIC424Write(&bpConfig.terminal_input[j + 1], bpConfig.terminal_input[j + 4]);
                                     j += 5;
                                 }
-                            } else if (bpConfig.terminalInput[j] == 2) { // read command
+                            } else if (bpConfig.terminal_input[j] == 2) { // read command
                                 if (picMode == PIC614) {
-                                    PIC614Read(bpConfig.terminalInput[j+1]);
+                                    PIC614Read(bpConfig.terminal_input[j+1]);
                                     j += 2;
                                 } else if (picMode == PIC416) {
-                                    PIC416Read(bpConfig.terminalInput[j+1]);
+                                    PIC416Read(bpConfig.terminal_input[j+1]);
                                     j += 2;
                                 } else if (picMode == PIC424) {
                                     PIC424Read();

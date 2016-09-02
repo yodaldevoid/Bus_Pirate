@@ -21,13 +21,15 @@
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
 
+#include <stdbool.h>
+
 void DS1wireProcess(void);
 unsigned char PROBE_CHECKSUM (unsigned char *BYTE, int size_of_BYTE);
 void bin1WIRE(void);
 
 unsigned int OWread(void);
 unsigned int OWwrite(unsigned int c);
-unsigned int OWbitr(void);
+bool OWbitr(void);
 void OWbitclk(void);
 void OWdatl(void);
 void OWdath(void);

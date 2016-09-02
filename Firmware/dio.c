@@ -26,12 +26,6 @@
  */
 #define DIO_PIN_SET_STATE_FLAG_MASK 0b0000000010000000
 
-void dio_setup(void) {
-}
-
-void dio_setup_execute(void) {
-}
-
 unsigned int dio_read(void) {
 	return PORTB;
 }

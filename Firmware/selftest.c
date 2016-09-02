@@ -18,7 +18,7 @@
 
 #include "base.h"
 #include "selftest.h"
-#include "busPirateCore.h"
+#include "bus_pirate_core.h"
 
 void bpTest(unsigned char p, unsigned char d);
 void bpBusPinsTest(unsigned char d);

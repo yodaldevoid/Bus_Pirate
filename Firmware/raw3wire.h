@@ -21,6 +21,8 @@
 
 #ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
 
+#include <stdbool.h>
+
 void r3wProcess(void);
 
 unsigned int R3Wread(void);
@@ -28,7 +30,7 @@ unsigned int R3Wwrite(unsigned int c);
 void R3Wstartr(void);
 void R3Wstart(void);
 void R3Wstop(void);
-unsigned int R3Wbitr(void);
+bool R3Wbitr(void);
 unsigned int R3Wbitp(void);
 void R3Wclk(void);
 void R3Wclkh(void);

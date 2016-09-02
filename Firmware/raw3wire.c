@@ -91,7 +91,7 @@ void R3Wstop(void)
 	if(r3wSettings.csl) UART1TX('/');
 	BPMSG1160;
 }
-unsigned int R3Wbitr(void)
+bool R3Wbitr(void)
 {	return (bbReadBit());
 }
 unsigned int R3Wbitp(void)
@@ -113,8 +113,8 @@ void R3Wdatl(void)
 {	bbMOSI(0);				// same as r2wire?
 }
 
-void R3Wsettings(void)
-{	//bpWstring("R3W (spd hiz)=( ");
+void R3Wsettings(void) {
+    //bpWstring("R3W (spd hiz)=( ");
 	BPMSG1161;
 	bpWdec(modeConfig.speed); bpSP;
 	bpWdec(r3wSettings.csl); bpSP;

@@ -15,7 +15,7 @@
  */
 
 #include "base.h"
-#include "busPirateCore.h"
+#include "bus_pirate_core.h"
 
 extern bus_pirate_configuration_t bpConfig; //global config variables
 extern mode_configuration_t modeConfig; //mode config variables
@@ -56,7 +56,7 @@ void bpInit(void){
 
 	BP_AUX_RPOUT = 0;    //remove output from AUX pin (PWM/servo modes)
 
-	bpConfig.busMode=BP_HIZ;
+	bpConfig.bus_mode=BP_HIZ;
 
 	clearModeConfig(); //reset the mode settings structure
 	
@@ -138,7 +138,7 @@ void bpWbyte(unsigned int c)
 {	if(modeConfig.numbits<16)
 	{	c&=(0x7FFF>>((16-modeConfig.numbits)-1));
 	}
-	switch(bpConfig.displayMode){
+	switch(bpConfig.display_mode){
 		case HEX:
 			if(modeConfig.int16) bpWinthex(c); else bpWhex(c);
 			break;

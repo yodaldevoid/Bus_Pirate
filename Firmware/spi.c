@@ -19,7 +19,7 @@
 #ifdef BP_ENABLE_SPI_SUPPORT
 
 #include "base.h"
-#include "busPirateCore.h"
+#include "bus_pirate_core.h"
 #include "binIOhelpers.h"
 
 #include "procMenu.h"		// for the userinteraction subs
@@ -63,16 +63,12 @@ struct _SPI {
     unsigned char csl : 1; // to /CS or  not to CS
 } spiSettings;
 
-static const unsigned char SPIspeed[] = {0b00000, 0b11000, 0b11100, 0b11101}; //30,125,250,1000khz; datasheet pg 142
-
-/*
-// move into a .h or other .c??? 
-int getnumber(int def, int max); // everything to make the compiler happy *dubbelzucht*
-int getint(void);
-int getrepeat(void);
-void consumewhitechars(void);
-extern int cmderror;
- */
+static const uint8_t spi_bus_speed[] = {
+    0b00000000, /*  31 kHz - Primary prescaler 64:1 / Secondary prescaler 8:1 */
+    0b00011000, /* 125 kHz - Primary prescaler 64:1 / Secondary prescaler 2:1 */
+    0b00011100, /* 250 kHz - Primary prescaler 64:1 / Secondary prescaler 1:1 */
+    0b00011101, /*   1 MHz - Primary prescaler 16:1 / Secondary prescaler 1:1 */
+};
 
 void SPIstartr(void) {
     modeConfig.wwr = 1;
@@ -125,7 +121,8 @@ unsigned int SPIwrite(unsigned int c) {
     return 0; //JTR just to get rid of the warning msg
 }
 
-void SPIsettings(void) { //bpWstring("SPI (spd ckp ske smp hiz)=( ");
+void SPIsettings(void) {
+    //bpWstring("SPI (spd ckp ske smp hiz)=( ");
     BPMSG1191;
     bpWdec((modeConfig.speed + 1));
     bpSP;
@@ -249,7 +246,7 @@ void SPIsetup(void) {
 void SPIsetup_exc(void)
 {
     //do SPI peripheral setup
-    spiSetup(SPIspeed[modeConfig.speed]);
+    spiSetup(spi_bus_speed[modeConfig.speed]);
 
     // set cs the way the user wants
     SPICS = spiSettings.csl; 
@@ -467,7 +464,7 @@ spiSnifferStart:
     }
     spiSlaveDisable();
 
-    spiSetup(SPIspeed[modeConfig.speed]);
+    spiSetup(spi_bus_speed[modeConfig.speed]);
 }
 
 //configure both SPI units for slave mode on different pins
@@ -492,14 +489,14 @@ void spiSlaveSetup(void) {
     RPINR22bits.SCK2R = BP_CLK_RPIN; //SPICLK_RPIN; //assign SPI2 CLK input to bus pirate CLK pin
 
     //clear old SPI settings first
-    SPI1CON1 = (SPIspeed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
+    SPI1CON1 = (spi_bus_speed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
     SPI1CON1bits.CKP = spiSettings.ckp;
     SPI1CON1bits.CKE = spiSettings.cke;
     //SPI1CON1bits.SMP=spiSettings.smp;
     SPI1CON2 = 0;
     SPI1STAT = 0; // clear SPI
 
-    SPI2CON1 = (SPIspeed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
+    SPI2CON1 = (spi_bus_speed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
     SPI2CON1bits.CKP = spiSettings.ckp;
     SPI2CON1bits.CKE = spiSettings.cke;
     SPI2CON2 = 0;
@@ -642,31 +639,31 @@ void binSPI(void) {
 
 
                         //check length and report error
-                        if (fw > TERMINAL_BUFFER_SIZE || fr > TERMINAL_BUFFER_SIZE) {
+                        if (fw > BP_TERMINAL_BUFFER_SIZE || fr > BP_TERMINAL_BUFFER_SIZE) {
                             UART1TX(0);
                             break;
                         }
 
                         //get bytes
                         for (j = 0; j < fw; j++) {
-                            bpConfig.terminalInput[j] = UART1RX();
+                            bpConfig.terminal_input[j] = UART1RX();
                             /* JTR usb port; */;
                         }
 
                         if (inByte == 4) SPICS = 0;
                         for (j = 0; j < fw; j++) {
-                            spiWriteByte(bpConfig.terminalInput[j]);
+                            spiWriteByte(bpConfig.terminal_input[j]);
                         }
                         bp_delay_us(1);
                         for (j = 0; j < fr; j++) { //read bulk bytes from SPI
-                            bpConfig.terminalInput[j] = spiWriteByte(0xff);
+                            bpConfig.terminal_input[j] = spiWriteByte(0xff);
                         }
                         if (inByte == 4) SPICS = 1;
 
                         UART1TX(1); //send 1/OK
 
                         for (j = 0; j < fr; j++) { //send the read buffer contents over serial
-                            UART1TX(bpConfig.terminalInput[j]);
+                            UART1TX(bpConfig.terminal_input[j]);
                         }
 
                         break;

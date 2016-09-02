@@ -25,14 +25,14 @@
 
 #include "base.h"
 #include "AUXpin.h"
-#include "busPirateCore.h"
+#include "bus_pirate_core.h"
 #include "procMenu.h"
 #include "bitbang.h"
 
 extern bus_pirate_configuration_t bpConfig;
 extern mode_configuration_t modeConfig;
 extern command_t bpCommand;
-extern proto protos[MAXPROTO];
+extern bus_pirate_protocol_t protos[MAXPROTO];
 
 int vars[26];					// var a-z
 int stack_[GOSUBMAX];				// max 5 gosubs
@@ -387,19 +387,19 @@ int getnumvar(void)
 	else if(pgmspace[pc]>TOKENS)			// looks for tokens like aux, clk and dat
 	{	switch(pgmspace[pc++])					// increment pc
 		{	case TOK_RECEIVE:	//temp=protoread();
-							temp=protos[bpConfig.busMode].protocol_read();
+							temp=protos[bpConfig.bus_mode].protocol_read();
 							break;
 			case TOK_SEND:	//temp=protoread();
-							temp=protos[bpConfig.busMode].protocol_send(assign());
+							temp=protos[bpConfig.bus_mode].protocol_send(assign());
 							break;
 			case TOK_AUX:	//temp=protogetaux();
 							temp=bpAuxRead();
 							break;
 			case TOK_DAT:	//temp=protogetdat();
-							temp=protos[bpConfig.busMode].protocol_dats();
+							temp=protos[bpConfig.bus_mode].protocol_data_state();
 							break;
 			case TOK_BITREAD:	//temp=protobitr();
-							temp=protos[bpConfig.busMode].protocol_bitr();
+							temp=protos[bpConfig.bus_mode].protocol_read_bit();
 							break;
 			case TOK_PSU:	temp=BP_VREGEN; //modeConfig.vregEN;
 							break;
@@ -941,35 +941,35 @@ void interpreter(void)
 			case TOK_START:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.busMode].protocol_start();
+							protos[bpConfig.bus_mode].protocol_start();
 							handleelse();
 							//protostart();
 							break;
 			case TOK_STARTR:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.busMode].protocol_startR();
+							protos[bpConfig.bus_mode].protocol_start_with_read();
 							//protostartr();
 							handleelse();
 							break;
 			case TOK_STOP:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.busMode].protocol_stop();
+							protos[bpConfig.bus_mode].protocol_stop();
 							//protostop();
 							handleelse();
 							break;
 			case TOK_STOPR:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.busMode].protocol_stopR();
+							protos[bpConfig.bus_mode].protocol_stop_from_read();
 							//protostopr();
 							handleelse();
 							break;
 			case TOK_SEND:	pcupdated=1;
 							pc+=4;
 							//protowrite(getnumvar());
-							protos[bpConfig.busMode].protocol_send((int)assign());
+							protos[bpConfig.bus_mode].protocol_send((int)assign());
 							handleelse();
 							break;
 			case TOK_AUX:	pcupdated=1;
@@ -1048,11 +1048,11 @@ void interpreter(void)
 
 							if(assign())
 							{	//protodath();
-								protos[bpConfig.busMode].protocol_dath();
+								protos[bpConfig.bus_mode].protocol_data_high();
 							}
 							else
 							{	//protodatl();
-								protos[bpConfig.busMode].protocol_datl();
+								protos[bpConfig.bus_mode].protocol_data_low();
 							}
 							handleelse();
 						
@@ -1062,13 +1062,13 @@ void interpreter(void)
 
 							switch(assign())
 							{	case 0:	//protoclkl();
-										protos[bpConfig.busMode].protocol_clkl();
+										protos[bpConfig.bus_mode].protocol_clock_low();
 										break;
 								case 1:	//protoclkh();
-										protos[bpConfig.busMode].protocol_clkh();
+										protos[bpConfig.bus_mode].protocol_clock_high();
 										break;
 								case 2: //protoclk();
-										protos[bpConfig.busMode].protocol_clk();
+										protos[bpConfig.bus_mode].protocol_clock_pulse();
 										break;
 							}
 							handleelse();
@@ -1101,7 +1101,7 @@ void interpreter(void)
 			case TOK_MACRO:	pcupdated=1;
 							pc+=4;
 							temp=assign();
-							protos[bpConfig.busMode].protocol_macro(temp);
+							protos[bpConfig.bus_mode].protocol_run_macro(temp);
 							handleelse();
 							break;
 			case TOK_END:	//bpWstring(STAT_END);

@@ -20,7 +20,7 @@
 
 #include "base.h"
 #include "bitbang.h"
-#include "busPirateCore.h"//need access to bpConfig
+#include "bus_pirate_core.h"//need access to bpConfig
 #include "binIOhelpers.h"
 #include "AUXpin.h"
 
@@ -30,16 +30,22 @@
 #error "Bus Pirate v4 must be able to use the hardware I2C interface!"
 #endif /* BUSPIRATEV4 && !BP_I2C_USE_HW_BUS */
 
-//software or hardware I2C mode defines
+/**
+ * Use a software I2C communication implementation
+ */
 #define I2C_TYPE_SOFTWARE 0
+
+/**
+ * Use the built-in hardware I2C communication implementation
+ */
 #define I2C_TYPE_HARDWARE 1
 
 typedef struct {
+    uint8_t i2c_mode : 1;
+    uint8_t i2c_acknowledgment_pending : 1;
 #ifdef BUSPIRATEV4
     uint8_t i2c_internal : 1;
 #endif /* BUSPIRATEV4 */
-    uint8_t i2c_mode : 1;
-    uint8_t i2c_acknowledgment_pending : 1;
 } i2c_state_t;
 
 i2c_state_t i2c_state = { 0 };
@@ -49,21 +55,10 @@ i2c_state_t i2c_state = { 0 };
 #define SDA 		BP_MOSI        //-- The SDA output pin
 #define SDA_TRIS 	BP_MOSI_DIR    //-- The SDA Direction Register Bit
 
-extern bus_pirate_configuration_t bpConfig; //holds persistant bus pirate settings (see base.h) need hardware version info
+extern bus_pirate_configuration_t bpConfig;
 extern mode_configuration_t modeConfig;
 extern command_t bpCommand;
 
-/*
-static struct _i2csniff {
-        unsigned char bits;
-        unsigned char data;
-        unsigned char ACK:1;
-        unsigned char datastate:1; //are we collecting data yet?
-        unsigned char I2CD:2;
-        unsigned char I2CC:2; //prevous and current clock pin state
-} I2Csniff;
- */
-//hardware functions
 void hwi2cSetup(void);
 void hwi2cstart(void);
 void hwi2cstop(void);
@@ -210,7 +205,8 @@ void I2Cstop(void) {
     BPMSG1063;
 }
 
-void I2Csettings(void) { //bpWstring("I2C (mod spd)=( ");
+void I2Csettings(void) {
+    //bpWstring("I2C (mod spd)=( ");
     BPMSG1068;
 #ifdef BP_I2C_USE_HW_BUS
     bpWdec(i2c_state.i2c_mode);
@@ -272,7 +268,7 @@ void I2Csetup(void) {
 #ifdef BUSPIRATEV3
             // There is a hardware incompatibility with <B4
             // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
-            if (bpConfig.dev_rev <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
+            if (bpConfig.device_revision <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
 #endif /* BUSPIRATEV3 */
             //bpWline(OUMSG_I2C_HWSPEED);
             BPMSG1067;
@@ -282,7 +278,7 @@ void I2Csetup(void) {
 #ifdef BUSPIRATEV3
         // There is a hardware incompatibility with <B4
         // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
-        if (bpConfig.dev_rev <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
+        if (bpConfig.device_revision <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
 #endif /* BUSPIRATEV3 */
         I2Csettings();
 
@@ -893,7 +889,7 @@ void binI2C(void) {
 
 
                         //check length and report error
-                        if (fw > TERMINAL_BUFFER_SIZE || fr > TERMINAL_BUFFER_SIZE) {
+                        if (fw > BP_TERMINAL_BUFFER_SIZE || fr > BP_TERMINAL_BUFFER_SIZE) {
 I2C_write_read_error: //use this for the read error too
                             UART1TX(0);
                             break;
@@ -902,7 +898,7 @@ I2C_write_read_error: //use this for the read error too
                         //get bytes
                         for (j = 0; j < fw; j++) {
                             //JTR Not required while (!UART1RXRdy()); //wait for a byte
-                            bpConfig.terminalInput[j] = UART1RX();
+                            bpConfig.terminal_input[j] = UART1RX();
                             /* JTR usb port; */;
                         }
 
@@ -912,7 +908,7 @@ I2C_write_read_error: //use this for the read error too
                         for (j = 0; j < fw; j++) {
                             //get ACK
                             //if no ack, goto error
-                            bbWriteByte(bpConfig.terminalInput[j]); //send byte
+                            bbWriteByte(bpConfig.terminal_input[j]); //send byte
                             if (bbReadBit() == 1) goto I2C_write_read_error;
                         }
 
@@ -920,7 +916,7 @@ I2C_write_read_error: //use this for the read error too
                         for (j = 0; j < fr; j++) { //read bulk bytes from SPI
                             //send ack
                             //i flast byte, send NACK
-                            bpConfig.terminalInput[j] = bbReadByte();
+                            bpConfig.terminal_input[j] = bbReadByte();
 
                             if (j < fw) {
                                 bbI2Cack();
@@ -934,7 +930,7 @@ I2C_write_read_error: //use this for the read error too
                         UART1TX(1); //send 1/OK
 
                         for (j = 0; j < fr; j++) { //send the read buffer contents over serial
-                            UART1TX(bpConfig.terminalInput[j]);
+                            UART1TX(bpConfig.terminal_input[j]);
                         }
 
                         break;//00001001 xxxxxxxx

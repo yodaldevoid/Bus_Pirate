@@ -75,7 +75,7 @@ unsigned int OWwrite(unsigned int c)
         return 0x100;
 }
 
-unsigned int OWbitr(void)
+bool OWbitr(void)
 {       return(OWReadBit());
 }
 

@@ -14,11 +14,11 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include "base.h"
+#include "onboard_eeprom.h"
 
 #ifdef BUSPIRATEV4
 
-#include "onboard_eeprom.h"
+#include "base.h"
 
 /**
  * On-board EEPROM I2C address for write operations.

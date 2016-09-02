@@ -75,7 +75,7 @@ void R2Wstop(void)
 	BPMSG1063;
 }
 
-unsigned int R2Wbitr(void)
+bool R2Wbitr(void)
 {	return (bbReadBit());
 	//bpWmessage(MSG_BIT_NOWINPUT);
 }
@@ -105,8 +105,8 @@ void R2Wdath(void)
 {	bbMOSI(1);
 }
 
-void R2Wsettings(void)
-{	//bpWstring("R2W (spd hiz)=( ");
+void R2Wsettings(void) {
+    //bpWstring("R2W (spd hiz)=( ");
 	BPMSG1143;
 	bpWdec(modeConfig.speed); bpSP;
 	bpWdec(modeConfig.HiZ); bpSP;

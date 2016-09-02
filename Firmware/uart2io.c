@@ -13,8 +13,10 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#include "uart2io.h"
+
 #include "base.h"
-//#include "uart2io.h"
 
 //PPS Settings - Adjust in the correct hardware file.
 #define UARTRX_PIN BP_MISO_RPIN
@@ -31,7 +33,8 @@
 
 #define UARTTX_ODC BP_MOSI_ODC
 
-void UART2Setup(unsigned int brg, unsigned char ODCoutput, unsigned char rxp, unsigned char dbp, unsigned char sb ){
+void UART2Setup(unsigned int brg, unsigned char ODCoutput,
+        unsigned char rxp, unsigned char dbp, unsigned char sb ){
 	//use open drain control register to 
 	//enable Hi-Z mode on hardware module outputs
 	//inputs are already HiZ

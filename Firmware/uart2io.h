@@ -13,9 +13,18 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-void UART2Setup(unsigned int brg, unsigned char ODCoutput, unsigned char rxp, unsigned char dbpl, unsigned char sb );
+
+#ifndef BP_UART2IO_H
+#define BP_UART2IO_H
+
+#include "configuration.h"
+
+void UART2Setup(unsigned int brg, unsigned char ODCoutput, unsigned char rxp,
+        unsigned char dbpl, unsigned char sb );
 void UART2Enable(void);
 void UART2Disable(void);
 void UART2TX(unsigned int c);
 unsigned char UART2RXRdy(void);
 unsigned int UART2RX(void);
+
+#endif /* BP_UART2IO_H */

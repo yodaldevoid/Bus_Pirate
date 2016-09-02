@@ -426,4 +426,11 @@
 #define BP_COMMAND_BUFFER_SIZE 256
 #endif /* BUSPIRATEV3 */
 
+/**
+ * How big the serial terminal buffer can be, in bytes.
+ * 
+ * @todo Make sure that no hardcoded buffer sizes are present.
+ */
+#define BP_TERMINAL_BUFFER_SIZE 4096
+
 #endif /* !BP_CONFIGURATION_H */

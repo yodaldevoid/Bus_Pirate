@@ -17,6 +17,10 @@
 #ifndef BP_ONBOARD_EEPROM_H
 #define BP_ONBOARD_EEPROM_H
 
+#include "configuration.h"
+
+#ifdef BUSPIRATEV4
+
 #include <stdbool.h>
 
 /**
@@ -33,5 +37,7 @@ void inline __attribute__ ((always_inline)) eeprom_initialize(void);
  * @return true if the test passed, false otherwise.
  */
 bool eeprom_test(void);
+
+#endif /* BUSPIRATEV4 */
 
 #endif /* BP_ONBOARD_EEPROM_H */

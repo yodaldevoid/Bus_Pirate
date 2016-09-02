@@ -21,6 +21,8 @@
 
 #ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
 
+#include <stdbool.h>
+
 void r2wProcess(void);
 
 //these need to be visible to the MACROs, add as needed.
@@ -38,7 +40,7 @@ void R2Wdath(void);
 void R2Wdatl(void);
 unsigned int R2Wbitp(void);
 void R2Wclk(void);
-unsigned int R2Wbitr(void);
+bool R2Wbitr(void);
 void R2Wmacro(unsigned int c);
 void R2Wsetup(void);
 void R2Wsetup_exc(void);

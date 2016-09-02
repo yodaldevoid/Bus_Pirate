@@ -337,7 +337,7 @@ void UARTmacro(unsigned int macro)
 			while(1){//never ending loop, reset Bus Pirate to get out
 				#if defined(BUSPIRATEV4)
 				// Why is there no other real reference to the BP_BUTTON or RC14??
-				if BP_BUTTON_ISDOWN() { 
+				if (BP_BUTTON_ISDOWN()) { 
 					break; // get out if NORMAL button is pressed on BP v4 hardware
 				}
 				// This fix suggested by TES on http://dangerousprototypes.com/forum/viewtopic.php?f=28&t=3441 
@@ -385,7 +385,7 @@ void UARTmacro(unsigned int macro)
 			while(1){//never ending loop, reset Bus Pirate to get out
 				#if defined(BUSPIRATEV4)
 				// Why is there no other real reference to the BP_BUTTON or RC14??
-				if BP_BUTTON_ISDOWN() { //JTR July 2012 copied this from above, may so well have button to break on send too.
+				if (BP_BUTTON_ISDOWN()) { //JTR July 2012 copied this from above, may so well have button to break on send too.
 					break; // get out if NORMAL button is pressed on BP v4 hardware
 				}				
 				if (UART2RXRdy())
@@ -434,7 +434,7 @@ void UARTstop(void)
 	BPMSG1208;
 }
 
-unsigned int UARTperiodic(void)
+bool UARTperiodic(void)
 {	unsigned int temp;
 
 	temp=0;

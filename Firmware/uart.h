@@ -21,6 +21,8 @@
 
 #ifdef BP_ENABLE_UART_SUPPORT
 
+#include <stdbool.h>
+
 void uartProcess(void);
 void binUART(void);
 
@@ -32,7 +34,7 @@ void UARTcleanup(void);
 void UARTmacro(unsigned int c);
 void UARTstart(void);
 void UARTstop(void);
-unsigned int UARTperiodic(void);
+bool UARTperiodic(void);
 void UARTpins(void);
 void UARTsettings(void);
 

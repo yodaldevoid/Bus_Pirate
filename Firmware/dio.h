@@ -22,16 +22,6 @@
 #ifdef BP_ENABLE_DIO_SUPPORT
 
 /**
- * Prepares the device for Direct I/O (DIO) mode.
- */
-void dio_setup(void);
-
-/**
- * Enters Direct I/O (DIO) mode.
- */
-void dio_setup_execute(void);
-
-/**
  * Reads a value from the device.
  * 
  * @return the value being read.
