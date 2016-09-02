@@ -32,7 +32,7 @@ extern bus_pirate_protocol_t protos[MAXPROTO];
 
 #ifdef BUSPIRATEV4
 extern volatile BYTE cdc_Out_len;
-#endif
+#endif /* BUSPIRATEV4 */
 
 void walkdungeon(void);
 
@@ -51,16 +51,13 @@ void pinStates(void);
 
 #ifdef BUSPIRATEV4
 void setPullupVoltage(void); // onboard Vpu selection
-#endif
+#endif /* BUSPIRATEV4 */
 
 //global vars    move to bpconfig structure?
 char cmdbuf[BP_COMMAND_BUFFER_SIZE];
 unsigned int cmdend;
 unsigned int cmdstart;
 int cmderror;
-
-//int currentproto;	// port to the other way :)
-
 
 static char usrmacros[BP_USER_MACROS_COUNT][BP_USER_MACRO_MAX_LENGTH];
 static int usrmacro;
@@ -135,11 +132,12 @@ void serviceuser(void) {
                         }
                     }
                 }
+
 #ifdef BUSPIRATEV4
                 if (!BP_BUTTON) { // button pressed
                 } else { // button not pressed
                 }
-#endif
+#endif /* BUSPIRATEV4 */
             }
 
             if (CheckCommsError()) { //check for user terminal buffer overflow error
@@ -404,10 +402,10 @@ end:
                     binmodecnt++;
                     if (binmodecnt == 20) {
                         binBB();
-#if defined (BUSPIRATEV4)
+#ifdef BUSPIRATEV4
                         binmodecnt = 0; //no reset, cleanup manually 
                         goto bpv4reset; //versionInfo(); //and simulate reset for dependent apps (looking at you AVR dude!)
-#endif
+#endif /* BUSPIRATEV4 */
                     }
                     break;
                 default:
@@ -450,21 +448,6 @@ end:
         oldstart = cmdstart;
         cmd = 0;
 
-        //		bpWline("\x0a\x0dreceived enter, processing input");
-        //		bpWline("cmdbuf[]=");
-
-        //		for(i=0; i<CMDBUFLEN; i++)						// print ringbuffer
-        //		{	if(cmdbuf[i]) UART1TX(cmdbuf[i]);
-        //				else UART1TX('.');
-        //		}
-
-        //		bpWline("");
-        //		bpWstring("cmdstart = ");
-        //		bpWinthex(cmdstart);
-        //		bpWstring(" cmdend = ");
-        //		bpWinthex(cmdend);
-        //		bpWline("");
-
         stop = 0;
         cmderror = 0;
 
@@ -477,17 +460,6 @@ end:
         }
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 
-        //		for(i=0; i<CMDBUFLEN; i++)						// print ringbuffer
-        //		{	if(cmdbuf[i]) UART1TX(cmdbuf[i]);
-        //				else UART1TX('.');
-        //		}
-
-        //		bpWline("");
-        //		bpWstring("cmdstart = ");
-        //		bpWinthex(cmdstart);
-        //		bpWstring(" cmdend = ");
-        //		bpWinthex(cmdend);
-        //		bpWline("");
         unsigned char oldDmode=0;//temperarly holds the defaout display mode, while a differend display read is preformed
         unsigned char newDmode=0;
         while (!stop) {
@@ -495,12 +467,12 @@ end:
 
             switch (c) { // generic commands (not bus specific)
                 case 'h': //bpWline("-command history");
-#if defined(BP_ENABLE_COMMAND_HISTORY)
+#ifdef BP_ENABLE_COMMAND_HISTORY
                     if (!cmdhistory()) {
                         oldstart = cmdstart;
                         newstart = cmdend;
                     }
-#endif
+#endif /* BP_ENABLE_COMMAND_HISTORY */
                     break;
 
                 case '?': //bpWline("-HELP");
@@ -528,14 +500,7 @@ end:
                 case 'f': //bpWline("-frequency count on AUX");
                     bpFreq();
                     break;
-                case 'g': //bpWline("-frequency generate on AUX");
-                    /*if((cmdbuf[(cmdstart+1)&CMDLENMSK])=='o')
-                    {	cmdstart+=2;
-                            cmdstart&=CMDLENMSK;
-                            walkdungeon();
-                            break;
-                    }
-                    else*/
+                case 'g':
                     if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
@@ -561,30 +526,16 @@ end:
                     //bpWline("AUX2 selected");
                     BPMSG1264;
                     break;
-#endif
-                case 'L': //bpWline("-bit order set (MSB)");
-                    //if(bpConfig.busMode==HIZ)
-                    //{	//bpWmessage(MSG_ERROR_MODE);
-                    //	BPMSG1088;
-                    //}
-                    //else
-                    //{
+#endif /* BUSPIRATEV4 */
+                case 'L':
                     modeConfig.lsbEN = 1;
                     BPMSG1124;
                     bpBR;
-                    //}
                     break;
-                case 'l': //bpWline("-bit order set (LSB)");
-                    //if(bpConfig.busMode==HIZ)
-                    //{	//bpWmessage(MSG_ERROR_MODE);`
-                    //	BPMSG1088;
-                    //}
-                    //else
-                    //{
+                case 'l': 
                     modeConfig.lsbEN = 0;
                     BPMSG1123;
                     bpBR;
-                    //}
                     break;
                 case 'p': //bpWline("-pullup resistors off");
 
@@ -624,7 +575,7 @@ end:
 #ifdef BUSPIRATEV4
                 case 'e': setPullupVoltage();
                     break;
-#endif
+#endif /* BUSPIRATEV4 */
                 case '=': //bpWline("-HEX/BIN/DEC convertor");
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
@@ -657,23 +608,15 @@ end:
                     }
                     break;
                 case '#': //bpWline("-reset BP");
-                    //removed confirmation in v5.9
-                    //ruined AVRdude compatibility
-                    //if(agree())
-                    //{	//bpWline(OUMSG_PM_RESET);
-#if defined(BUSPIRATEV4)
-                    //bpWline("* No Software Reset on v4, Use the reset button."); //TRANSLATE-NEEDED
-                    //BPMSG1113;
+#ifdef BUSPIRATEV4
                     bp_write_string("RESET\r\n");
 bpv4reset:
                     versionInfo();
-                    //bpWstring("\r\nHiZ>"); //was printed twice
 #else
                     BPMSG1093;
                     while (0 == UART1TXEmpty()); //wait untill TX finishes
                     asm("RESET");
-                    //}
-#endif
+#endif /* BUSPIRATEV4 */
                     break;
                 case '$': //bpWline("-bootloader jump");
                     if (agree()) { //bpWline("BOOTLOADER");
@@ -1034,13 +977,6 @@ bpv4reset:
             } //switch(c)
             cmdstart = (cmdstart + 1) & CMDLENMSK;
 
-            //			bpWline("");
-            //			bpWstring("cmdstart = ");
-            //			bpWinthex(cmdstart);
-            //			bpWstring(" cmdend = ");
-            //			bpWinthex(cmdend);
-            //			bpWline("");
-
             if (cmderror) { //bpWstring("Syntax error at char ");
                 BPMSG1110;
                 if (cmdstart > oldstart) // find error position :S
@@ -1181,26 +1117,15 @@ void consumewhitechars(void) {
     while (cmdbuf[cmdstart] == 0x20) {
         cmdstart = (cmdstart + 1) & CMDLENMSK; // remove spaces
     }
-} //
+}
 
 void changemode(void) {
     int i, busmode;
 
     busmode = 0;
-
-    //	bpWline("--changemode()");
-
     cmdstart = (cmdstart + 1) & CMDLENMSK;
-
     consumewhitechars();
-
-    //	bpWline("whitechars stripped");
-
     busmode = getint();
-
-    //	bpWstring("numbers: busmode=");
-    //	bpWinthex(busmode);
-    //	bpWline("");
 
     if (!busmode) // no argument entered
     {
@@ -1213,9 +1138,8 @@ void changemode(void) {
         BPMSG1111;
         cmderror = 0; // error is set because no number found, but it is no error here:S eeeh confusing right?
         busmode = getnumber(1, 1, MAXPROTO, 1) - 1;
-        //		bpWstring("busmode= ");
-        //		bpWdec(busmode);
-        if ((busmode == -2) || (busmode == -1)) { //bpWline("no mode change");
+        if ((busmode == -2) || (busmode == -1)) {
+            //bpWline("no mode change");
             BPMSG1112;
         } else {
             protos[bpConfig.bus_mode].protocol_cleanup();
@@ -1246,10 +1170,9 @@ void changemode(void) {
         }
     }
     cmdstart = (cmdend - 1) & CMDLENMSK;
-} //changemode(void)
+}
 
-
-#if defined(BP_ENABLE_COMMAND_HISTORY)
+#ifdef BP_ENABLE_COMMAND_HISTORY
 
 int cmdhistory(void) {
     int i, j, k;
@@ -1299,9 +1222,9 @@ int cmdhistory(void) {
         cmdbuf[(cmdend - 1) & CMDLENMSK] = 0x00;
     }
     return 0;
-} //cmdhistory(void)
-#endif
+}
 
+#endif /* BP_ENABLE_COMMAND_HISTORY */
 
 // gets number from input
 // -1 = abort (x)
@@ -1401,10 +1324,9 @@ again: // need to do it proper with whiles and ifs..
         }
     }
     return temp; // we dont get here, but keep compiler happy
-} //getnumber(int def, int min, int max, int x)
+}
 
-
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
 // gets number from input
 // -1 = abort (x)
 // -2 = input to much
@@ -1505,18 +1427,15 @@ again: // need to do it proper with whiles and ifs..
     }
     return temp; // we dont get here, but keep compiler happy
 }
-#endif
 
-
-
+#endif /* BUSPIRATEV4 */
 
 //print version info (used in menu and at startup in main.c)
 
 void versionInfo(void) {
     unsigned int i;
 
-
-#if defined (BUSPIRATEV3) //we can tell if it's v3a or v3b, show it here
+#ifdef BUSPIRATEV3 //we can tell if it's v3a or v3b, show it here
     bp_write_string(BP_VERSION_STRING);
     UART1TX('.');
     UART1TX(bpConfig.hardware_version);
@@ -1526,7 +1445,7 @@ void versionInfo(void) {
     bpBR;
 #else
     bp_write_line(BP_VERSION_STRING);
-#endif
+#endif /* BUSPIRATEV3 */
 
     bp_write_string(BP_FIRMWARE_STRING);
 
@@ -1544,7 +1463,7 @@ void versionInfo(void) {
     bpWdec(i >> 8);
     UART1TX('.');
     bpWdec(i);
-#endif
+#endif /* !BUSPIRATEV4 */
     bpBR;
 
     //bpWstring("DEVID:");
@@ -1592,7 +1511,7 @@ void versionInfo(void) {
             bp_write_string("UNK");
             break;
     }
-#endif
+#endif /* BUSPIRATEV4 */
 
     bp_write_line(")");
     //bpWline("http://dangerousprototypes.com");
@@ -1608,7 +1527,7 @@ void statusInfo(void) {
     bp_write_string("CFG0: ");
     bpWinthex(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_0));
     bpSP;
-#endif
+#endif /* BUSPIRATEV4 */
 
     //bpWstring("CFG1:");
     BPMSG1136;
@@ -1639,16 +1558,11 @@ void statusInfo(void) {
 #ifdef BUSPIRATEV4
     if (BP_PUVSEL50_DIR == 0) bp_write_string("Vpu=5V, ");
     if (BP_PUVSEL33_DIR == 0) bp_write_string("Vpu=3V3, ");
-
-#endif
+#endif /* BUSPIRATEV4 */
 
     //open collector outputs?
     if (modeConfig.HiZ == 1) BPMSG1120;
     else BPMSG1121; // bpWmessage(MSG_STATUS_OUTPUT_HIZ); else bpWmessage(MSG_STATUS_OUTPUT_NORMAL);
-
-    //voltage report
-    //	measureSupplyVoltages();
-
 
     //bitorder toggle available, enabled
     if (modeConfig.lsbEN == 0) BPMSG1123;
@@ -1666,7 +1580,8 @@ void statusInfo(void) {
 #ifndef BUSPIRATEV4
     if (modeConfig.altAUX == 1) BPMSG1087;
     else BPMSG1086; //bpWmessage(MSG_OPT_AUXPIN_CS); else bpWmessage(MSG_OPT_AUXPIN_AUX);
-#endif
+#endif /* !BUSPIRATEV4 */
+    
 #ifdef BUSPIRATEV4
     switch (modeConfig.altAUX) {
         case 0: BPMSG1087;
@@ -1678,7 +1593,7 @@ void statusInfo(void) {
         case 3: BPMSG1264;
             break;
     }
-#endif
+#endif /* BUSPIRATEV4 */
 
     protos[bpConfig.bus_mode].protocol_print_settings();
 
@@ -1688,19 +1603,17 @@ void statusInfo(void) {
 
 void pinStates(void) { //bpWline("Pinstates:");
     BPMSG1226;
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
     BPMSG1256; //bpWstring("12.(RD)\t11.(BR)\t10.(BLK)\t9.(WT)\t8.(GR)\t7.(PU)\t6.(BL)\t5.(GN)\t4.(YW)\t3.(OR)\t2.(RD)\1.(BR)");
-#else
-    BPMSG1233; //bpWstring("1.(BR)\t2.(RD)\t3.(OR)\t4.(YW)\t5.(GN)\t6.(BL)\t7.(PU)\t8.(GR)\t9.(WT)\t0.(BLK)");
-#endif
-#if defined(BUSPIRATEV4)
     BPMSG1257; //bpWstring("GND\t5.0V\t3.3V\tVPU\tADC\tAUX2\tAUX1\tAUX\t");
 #else
+    BPMSG1233; //bpWstring("1.(BR)\t2.(RD)\t3.(OR)\t4.(YW)\t5.(GN)\t6.(BL)\t7.(PU)\t8.(GR)\t9.(WT)\t0.(BLK)");
     BPMSG1227; //bpWstring("GND\t3.3V\t5.0V\tADC\tVPU\tAUX\t");
-#endif
+#endif /* BUSPIRATEV4 */
+
     protos[bpConfig.bus_mode].protocol_print_pins_state();
     BPMSG1228; //bpWstring("P\tP\tP\tI\tI\t");
-#if defined(BUSPIRATEV4)    
+#ifdef BUSPIRATEV4
     pinDirection(AUX2);
     pinDirection(AUX1);
     pinDirection(AUX);
@@ -1714,53 +1627,46 @@ void pinStates(void) { //bpWline("Pinstates:");
     pinDirection(MOSI);
     pinDirection(CS);
     pinDirection(MISO);
-#endif
+#endif /* BUSPIRATEV4 */
     bpBR;
     BPMSG1234; //bpWstring("GND\t");
     ADCON();
 
-
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
     bpWvolts(bp_read_adc(BP_ADC_5V0));
-    BPMSG1045;
-    UART1TX('\t');
 #else
     bpWvolts(bp_read_adc(BP_ADC_3V3));
+#endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
-#endif
 
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
     bpWvolts(bp_read_adc(BP_ADC_3V3));
-    BPMSG1045;
-    UART1TX('\t');
 #else
     bpWvolts(bp_read_adc(BP_ADC_5V0));
+#endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
-#endif
 
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
     bpWvolts(bp_read_adc(BP_ADC_VPU));
-    BPMSG1045;
-    UART1TX('\t');
 #else
     bpWvolts(bp_read_adc(BP_ADC_PROBE));
+#endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
-#endif
 
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
     bpWvolts(bp_read_adc(BP_ADC_PROBE));
-    BPMSG1045;
-    UART1TX('\t');
 #else
     bpWvolts(bp_read_adc(BP_ADC_VPU));
+#endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
-#endif
+    
     ADCOFF();
-#if defined(BUSPIRATEV4)
+    
+#ifdef BUSPIRATEV4
     pinState(AUX2);
     pinState(AUX1);
     pinState(AUX);
@@ -1774,29 +1680,25 @@ void pinStates(void) { //bpWline("Pinstates:");
     pinState(MOSI);
     pinState(CS);
     pinState(MISO);
-#endif
+#endif /* BUSPIRATEV4 */
     bpBR;
-} //pinStates(void)
+}
 
 void pinDirection(unsigned int pin) {
-
     if (IODIR & pin) {
         bp_write_string("I\t");
     } else {
         bp_write_string("O\t");
     }
-
-} //
+}
 
 void pinState(unsigned int pin) {
-
     if (IOPOR & pin) {
         bp_write_string("H\t");
     } else {
         bp_write_string("L\t");
     }
-
-} //
+}
 
 //user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
 
@@ -1876,7 +1778,6 @@ void set_baud_rate(void) {
 void setPullupVoltage(void) {
     int temp;
 
-
     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
     if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
         BPMSG1088;
@@ -1905,10 +1806,6 @@ void setPullupVoltage(void) {
     {
         cmderror = 0;
 
-        //bpWline("Select Vpu source");
-        //bpWline(" 1) None or external");
-        //bpWline(" 2) Onboard 3V3 Vreg");
-        //bpWline(" 3) Onboard 5V Vreg");
         BPMSG1271;
 
         temp = getnumber(1, 1, 3, 0);

@@ -13,8 +13,8 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-//This profile is for the Bus Pirate v4 hardware only.
-#define BP_VERSION_STRING "Bus Pirate v4"// (Seeed Studio)"
+
+#define BP_VERSION_STRING "Bus Pirate v4"
 #define BP_VERSION "v4"
 
 // If you want to route AUX1 to channel 7 of the JTR SUMP mode in firmware
