@@ -340,7 +340,7 @@ static const uint8_t SUMP_DEVICE_ID[] = {
     '1', 'A', 'L', 'S'
 };
 
-extern bus_pirate_configuration_t bpConfig;
+extern bus_pirate_configuration_t bus_pirate_configuration;
 
 /**
  * Sampler states.
@@ -705,7 +705,7 @@ bool sump_acquire_samples(void) {
 
             /* Capture samples into the terminal buffer. */
             for (offset = 0; offset < samples_to_acquire; offset++) {
-                bpConfig.terminal_input[offset] = PORTB >> 6;
+                bus_pirate_configuration.terminal_input[offset] = PORTB >> 6;
 
                 /* Wait for timer4 interrupt to trigger. */
                 while (IFS1bits.T5IF == OFF) {
@@ -723,7 +723,7 @@ bool sump_acquire_samples(void) {
 
             /* Write captured samples out. */
             for (offset = samples_to_acquire; offset > 0; offset--) {
-                UART1TX(bpConfig.terminal_input[offset - 1]);
+                UART1TX(bus_pirate_configuration.terminal_input[offset - 1]);
             }
 
             /* Reset the analyzer state. */

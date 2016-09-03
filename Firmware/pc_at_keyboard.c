@@ -26,7 +26,7 @@
 #define KBDIO_TRIS 	BP_MOSI_DIR
 #define KBDIO 			BP_MOSI
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 
 void kbSetup(void);
@@ -49,7 +49,7 @@ struct _kbframe{
 
 
 void KEYBsetup(void)
-{	modeConfig.high_impedance=1;//yes, always HiZ
+{	mode_configuration.high_impedance=1;//yes, always HiZ
 }
 
 void KEYBsetup_exc(void)

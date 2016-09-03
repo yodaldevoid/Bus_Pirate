@@ -25,7 +25,7 @@ void bpBusPinsTest(unsigned char d);
 void bpADCPinTest(unsigned char a, unsigned int lval, unsigned int hval);
 
 static unsigned char errors;
-extern bus_pirate_configuration_t bpConfig;
+extern bus_pirate_configuration_t bus_pirate_configuration;
 
 
 //self test, showProgress=1 displays the test results in the terminal, set to 0 for silent mode
@@ -34,7 +34,7 @@ extern bus_pirate_configuration_t bpConfig;
 unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 //toggle display of test results with show Progress variable
 	errors=0;
-	if(!showProgress) bpConfig.quiet=1;
+	if(!showProgress) bus_pirate_configuration.quiet=1;
 	
 //instructions (skip pause if no display output)
 	if(showProgress && jumperTest){
@@ -228,7 +228,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 	BPMSG1179;
 	bpWdec(errors);
 	BPMSG1180;
-	bpConfig.quiet=0;
+	bus_pirate_configuration.quiet=0;
 
 
 	return errors;

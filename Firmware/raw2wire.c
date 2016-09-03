@@ -34,7 +34,7 @@
 #define ISO78133ATR 1
 #define ISO78133ATR_PARSE 2
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 
 void r2wMacro_78133Read(void);
@@ -108,8 +108,8 @@ void R2Wdath(void)
 void R2Wsettings(void) {
     //bpWstring("R2W (spd hiz)=( ");
 	BPMSG1143;
-	bpWdec(modeConfig.speed); bpSP;
-	bpWdec(modeConfig.high_impedance); bpSP;
+	bpWdec(mode_configuration.speed); bpSP;
+	bpWdec(mode_configuration.high_impedance); bpSP;
 	//bpWline(")\r\n");
 	BPMSG1162;
 }
@@ -125,13 +125,13 @@ void R2Wsetup(void)
 
 	// check for userinput (and sanitycheck it!!)
 	if((speed>0)&&(speed<=4))
-	{	modeConfig.speed=speed-1;
+	{	mode_configuration.speed=speed-1;
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
 	}
 	if((output>0)&&(output<=2))
-	{	modeConfig.high_impedance=(~(output-1));
+	{	mode_configuration.high_impedance=(~(output-1));
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
@@ -141,10 +141,10 @@ void R2Wsetup(void)
 	{	cmderror=0;
 		//bpWmessage(MSG_OPT_BB_SPEED);
 		BPMSG1065;
-		modeConfig.speed=(getnumber(1,1,4,0)-1);
+		mode_configuration.speed=(getnumber(1,1,4,0)-1);
 		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
 		BPMSG1142;
-		modeConfig.high_impedance=(~(getnumber(1,1,2,0)-1));
+		mode_configuration.high_impedance=(~(getnumber(1,1,2,0)-1));
 	}
 	else
 	{	R2Wsettings();
@@ -157,7 +157,7 @@ void R2Wsetup_exc(void)
 	R2WDIO=0;			//B9 sda
 	R2WDIO_TRIS=1;//data input
 	R2WCLK_TRIS=0;//clock output
-	bbSetup(2, modeConfig.speed);    
+	bbSetup(2, mode_configuration.speed);    
 }    
 
 void R2Wmacro(unsigned int c)

@@ -25,7 +25,7 @@
 						// RPOR10bits.RP20R
 #define AUXPIN_RPOUT    BP_AUX_RPOUT
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 
 static enum _auxmode
         {
@@ -551,7 +551,7 @@ void bpAuxHiZ(void)
 {
 #ifndef BUSPIRATEV4
 
-        if(modeConfig.altAUX==0)
+        if(mode_configuration.altAUX==0)
         {       BP_AUX0_DIR=1;//aux input
         }
         else
@@ -559,7 +559,7 @@ void bpAuxHiZ(void)
         }
 #endif
 #ifdef BUSPIRATEV4
-        switch(modeConfig.altAUX)
+        switch(mode_configuration.altAUX)
         {       case 0: BP_AUX0_DIR=1;
                                 break;
                 case 1: BP_CS_DIR=1;
@@ -578,7 +578,7 @@ void bpAuxHiZ(void)
 void bpAuxHigh(void){
 
 #ifndef BUSPIRATEV4
-        if(modeConfig.altAUX==0)
+        if(mode_configuration.altAUX==0)
         {       BP_AUX0_DIR=0;//aux output
                 BP_AUX0=1;//aux high
         }
@@ -588,7 +588,7 @@ void bpAuxHigh(void){
         }
 #endif
 #ifdef BUSPIRATEV4
-        switch(modeConfig.altAUX)
+        switch(mode_configuration.altAUX)
         {       case 0: BP_AUX0_DIR=0;
                                 BP_AUX0=1;
                                 break;
@@ -612,7 +612,7 @@ void bpAuxHigh(void){
 void bpAuxLow(void){
         
 #ifndef BUSPIRATEV4
-        if(modeConfig.altAUX==0)
+        if(mode_configuration.altAUX==0)
         {       BP_AUX0_DIR=0;//aux output
                 BP_AUX0=0;//aux high
         }
@@ -622,7 +622,7 @@ void bpAuxLow(void){
         }
 #endif
 #ifdef BUSPIRATEV4
-        switch(modeConfig.altAUX)
+        switch(mode_configuration.altAUX)
         {       case 0: BP_AUX0_DIR=0;
                                 BP_AUX0=0;
                                 break;
@@ -647,7 +647,7 @@ unsigned int bpAuxRead(void){
         unsigned char c;
 
 #ifndef BUSPIRATEV4
-        if(modeConfig.altAUX==0){
+        if(mode_configuration.altAUX==0){
                 BP_AUX0_DIR=1;//aux input
                 Nop();
                 Nop();
@@ -661,7 +661,7 @@ unsigned int bpAuxRead(void){
 #endif
 
 #ifdef BUSPIRATEV4
-        switch(modeConfig.altAUX)
+        switch(mode_configuration.altAUX)
         {       case 0: BP_AUX0_DIR=1;
                 Nop();
                 Nop();

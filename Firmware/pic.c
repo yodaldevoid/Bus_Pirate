@@ -25,8 +25,8 @@
 #include "procMenu.h"		// for the userinteraction subs
 #include "AUXpin.h"
 
-extern bus_pirate_configuration_t bpConfig;
-extern mode_configuration_t modeConfig;
+extern bus_pirate_configuration_t bus_pirate_configuration;
+extern mode_configuration_t mode_configuration;
 
 int picmode;
 int piccmddelay;
@@ -84,16 +84,16 @@ void picinit(void)
 		bp_write_line(")");
 	}
 
-	modeConfig.high_impedance=1;				// to allow different Vcc 
-	modeConfig.int16=1;
+	mode_configuration.high_impedance=1;				// to allow different Vcc 
+	mode_configuration.int16=1;
 	bbL(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 }
 
 //Doesn't do much as the protocol defines that the pins need to be connected bedro power is applied.
-void picinit_exc(void){modeConfig.int16=1;}
+void picinit_exc(void){mode_configuration.int16=1;}
 
 void piccleanup(void)
-{	modeConfig.int16=0;				// other things are cleared except this one :D (we introduced it :D)
+{	mode_configuration.int16=0;				// other things are cleared except this one :D (we introduced it :D)
 }
 
 void picstart(void)					// switch  to commandmode
@@ -101,13 +101,13 @@ void picstart(void)					// switch  to commandmode
 	//bpWstring("CMD");
 	BPMSG1075;
 	UART1TX(0x30+(picmode&PICMODEMSK));			// display #commandbits 
-	modeConfig.int16=0;
+	mode_configuration.int16=0;
 	bpBR;
 }
 
 void picstop(void)					// switch to datamode
 {	picmode&=PICMODEMSK;
-	modeConfig.int16=1;				// data is 14-16 bit
+	mode_configuration.int16=1;				// data is 14-16 bit
 	//bpWline("DTA");
 	BPMSG1076;
 }
@@ -252,7 +252,7 @@ void picmacro(unsigned int macro)
 				BPMSG1079;
 				break;
 		case 1: switch(picmode&PICMODEMSK)
-				{	case PICMODE6:	bpConfig.quiet=1;				// turn echoing off
+				{	case PICMODE6:	bus_pirate_configuration.quiet=1;				// turn echoing off
 									picstart();
 									picwrite(0);
 									picstop();
@@ -264,7 +264,7 @@ void picmacro(unsigned int macro)
 									picwrite(4);
 									picstop();
 									temp=picread();
-									bpConfig.quiet=0;				// turn echoing on
+									bus_pirate_configuration.quiet=0;				// turn echoing on
 									//bpWstring("DevID = ");
 									BPMSG1080;
 									bpWinthex(temp>>5);
@@ -317,7 +317,7 @@ void binpic(void)
 	unsigned int temp;
 
 	bp_write_string("PIC1");
-	modeConfig.high_impedance=1;				// to allow different Vcc 
+	mode_configuration.high_impedance=1;				// to allow different Vcc 
 	bbL(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 	picmode=PICMODE6;
 	piccmddelay=2;

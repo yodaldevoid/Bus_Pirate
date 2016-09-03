@@ -6,8 +6,8 @@
 #include "smps.h"
 #endif
 
-extern mode_configuration_t modeConfig;
-extern bus_pirate_configuration_t bpConfig;
+extern mode_configuration_t mode_configuration;
+extern bus_pirate_configuration_t bus_pirate_configuration;
 void binrawversionString(void);
 void PIC24NOP(void);
 
@@ -79,10 +79,10 @@ void binwire(void) {
 		static unsigned int V_out;
 	#endif
 
-    modeConfig.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
-    modeConfig.lsbEN = 0; //just in case!
-    modeConfig.speed = 1;
-    modeConfig.numbits = 8;
+    mode_configuration.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
+    mode_configuration.lsbEN = 0; //just in case!
+    mode_configuration.speed = 1;
+    mode_configuration.numbits = 8;
     //startup in raw2wire mode
     wires = 2;
     //configure for raw3wire mode
@@ -137,7 +137,7 @@ void binwire(void) {
                         } else {
                             i = bbReadWriteByte(0xff);
                         }
-                        if (modeConfig.lsbEN == 1) {//adjust bitorder
+                        if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             i = bp_reverse_integer(i);
                         }
                         UART1TX(i);
@@ -181,7 +181,7 @@ void binwire(void) {
 
                 for (i = 0; i < inByte; i++) {
                     c = UART1RX(); // /* JTR usb port; */;
-                    if (modeConfig.lsbEN == 1) {//adjust bitorder
+                    if (mode_configuration.lsbEN == 1) {//adjust bitorder
                         c = bp_reverse_integer(c);
                     }
                     if (wires == 2) {//2 wire, send 1
@@ -189,7 +189,7 @@ void binwire(void) {
                         UART1TX(1);
                     } else { //3 wire, return read byte
                         c = bbReadWriteByte(c); //send byte
-                        if (modeConfig.lsbEN == 1) {//adjust bitorder
+                        if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             c = bp_reverse_integer(c);
                         }
                         UART1TX(c);
@@ -240,11 +240,11 @@ void binwire(void) {
                                 //get command byte, two data bytes
                                 for (j = 0; j < cmds; j++) {
 
-                                    bpConfig.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
+                                    bus_pirate_configuration.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
                                 }
 
                                 for (j = 0; j < cmds; j = j + 3) {
-                                    PIC416Write(bpConfig.terminal_input[j], bpConfig.terminal_input[j + 1], bpConfig.terminal_input[j + 2]);
+                                    PIC416Write(bus_pirate_configuration.terminal_input[j], bus_pirate_configuration.terminal_input[j + 1], bus_pirate_configuration.terminal_input[j + 2]);
                                 }
 
                                 UART1TX(1); //send 1/OK
@@ -256,7 +256,7 @@ void binwire(void) {
                                 //get three byte command, 1 byte pre-post NOP
                                 for (j = 0; j < cmds; j++) {
 
-                                    bpConfig.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
+                                    bus_pirate_configuration.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
                                 }
 
                                 for (j = 0; j < cmds; j = j + 4) {
@@ -269,13 +269,13 @@ void binwire(void) {
                                     bbWriteBit(0); //send bit
 
                                     //send data payload
-                                    bbWriteByte(bpConfig.terminal_input[j]); //send byte
-                                    bbWriteByte(bpConfig.terminal_input[j + 1]); //send byte
-                                    bbWriteByte(bpConfig.terminal_input[j + 2]); //send byte
+                                    bbWriteByte(bus_pirate_configuration.terminal_input[j]); //send byte
+                                    bbWriteByte(bus_pirate_configuration.terminal_input[j + 1]); //send byte
+                                    bbWriteByte(bus_pirate_configuration.terminal_input[j + 2]); //send byte
 
                                     //do any post instruction NOPs
-                                    bpConfig.terminal_input[j + 3] &= 0x0F;
-                                    for (i = 0; i < bpConfig.terminal_input[j + 3]; i++) {
+                                    bus_pirate_configuration.terminal_input[j + 3] &= 0x0F;
+                                    for (i = 0; i < bus_pirate_configuration.terminal_input[j + 3]; i++) {
                                         PIC24NOP();
                                     }
                                 }
@@ -349,7 +349,7 @@ void binwire(void) {
                         }
 
                         for (j = 0; j < cmds; j++) {
-                            bpConfig.terminal_input[j] = UART1RX();
+                            bus_pirate_configuration.terminal_input[j] = UART1RX();
                         }
 
                         if (cmdr != 0)
@@ -357,23 +357,23 @@ void binwire(void) {
 
                         j=0;
                         while (j < cmds) {
-                            if (bpConfig.terminal_input[j] == 1) { // write command
+                            if (bus_pirate_configuration.terminal_input[j] == 1) { // write command
                                 if (picMode == PIC614) {
-                                    PIC614Write(bpConfig.terminal_input[j+1], bpConfig.terminal_input[j + 2], bpConfig.terminal_input[j + 3]);
+                                    PIC614Write(bus_pirate_configuration.terminal_input[j+1], bus_pirate_configuration.terminal_input[j + 2], bus_pirate_configuration.terminal_input[j + 3]);
                                     j += 4;
                                 } else if (picMode == PIC416) {
-                                    PIC416Write(bpConfig.terminal_input[j+1], bpConfig.terminal_input[j + 2], bpConfig.terminal_input[j + 3]);
+                                    PIC416Write(bus_pirate_configuration.terminal_input[j+1], bus_pirate_configuration.terminal_input[j + 2], bus_pirate_configuration.terminal_input[j + 3]);
                                     j += 4;
                                 } else if (picMode == PIC424) {
-                                    PIC424Write(&bpConfig.terminal_input[j + 1], bpConfig.terminal_input[j + 4]);
+                                    PIC424Write(&bus_pirate_configuration.terminal_input[j + 1], bus_pirate_configuration.terminal_input[j + 4]);
                                     j += 5;
                                 }
-                            } else if (bpConfig.terminal_input[j] == 2) { // read command
+                            } else if (bus_pirate_configuration.terminal_input[j] == 2) { // read command
                                 if (picMode == PIC614) {
-                                    PIC614Read(bpConfig.terminal_input[j+1]);
+                                    PIC614Read(bus_pirate_configuration.terminal_input[j+1]);
                                     j += 2;
                                 } else if (picMode == PIC416) {
-                                    PIC416Read(bpConfig.terminal_input[j+1]);
+                                    PIC416Read(bus_pirate_configuration.terminal_input[j+1]);
                                     j += 2;
                                 } else if (picMode == PIC424) {
                                     PIC424Read();
@@ -408,26 +408,26 @@ void binwire(void) {
 
             case 0b0110://set speed
                 inByte &= (~0b11111100); //clear command portion
-                modeConfig.speed = inByte;
-                bbSetup(wires, modeConfig.speed);
+                mode_configuration.speed = inByte;
+                bbSetup(wires, mode_configuration.speed);
                 bbCS(1); //takes care of custom HiZ settings too
                 UART1TX(1);
                 break;
 
             case 0b1000: //set config
                 //wxyz //w=HiZ(0)/3.3v(1), x=3wireenable, y=lsb, z=n/a
-                modeConfig.high_impedance = 0;
-                if ((inByte & 0b1000) == 0) modeConfig.high_impedance = 1; //hiz output if this bit is 1
+                mode_configuration.high_impedance = 0;
+                if ((inByte & 0b1000) == 0) mode_configuration.high_impedance = 1; //hiz output if this bit is 1
 
                 wires = 2;
                 if (inByte & 0b100) wires = 3; //3wire/2wire toggle
 
-                modeConfig.lsbEN = 0;
-                if (inByte & 0b10) modeConfig.lsbEN = 1; //lsb/msb, bit order
+                mode_configuration.lsbEN = 0;
+                if (inByte & 0b10) mode_configuration.lsbEN = 1; //lsb/msb, bit order
 
                 //if(inByte&0b1) //bit unused
 
-                bbSetup(wires, modeConfig.speed); //setup the bitbang library, must be done before calling bbCS below
+                bbSetup(wires, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
                 bbCS(1); //takes care of custom HiZ settings too
                 UART1TX(1); //send 1/OK
                 break;

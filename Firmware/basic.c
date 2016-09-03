@@ -29,8 +29,8 @@
 #include "procMenu.h"
 #include "bitbang.h"
 
-extern bus_pirate_configuration_t bpConfig;
-extern mode_configuration_t modeConfig;
+extern bus_pirate_configuration_t bus_pirate_configuration;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 extern bus_pirate_protocol_t protos[MAXPROTO];
 
@@ -387,19 +387,19 @@ int getnumvar(void)
 	else if(pgmspace[pc]>TOKENS)			// looks for tokens like aux, clk and dat
 	{	switch(pgmspace[pc++])					// increment pc
 		{	case TOK_RECEIVE:	//temp=protoread();
-							temp=protos[bpConfig.bus_mode].protocol_read();
+							temp=protos[bus_pirate_configuration.bus_mode].protocol_read();
 							break;
 			case TOK_SEND:	//temp=protoread();
-							temp=protos[bpConfig.bus_mode].protocol_send(assign());
+							temp=protos[bus_pirate_configuration.bus_mode].protocol_send(assign());
 							break;
 			case TOK_AUX:	//temp=protogetaux();
 							temp=bpAuxRead();
 							break;
 			case TOK_DAT:	//temp=protogetdat();
-							temp=protos[bpConfig.bus_mode].protocol_data_state();
+							temp=protos[bus_pirate_configuration.bus_mode].protocol_data_state();
 							break;
 			case TOK_BITREAD:	//temp=protobitr();
-							temp=protos[bpConfig.bus_mode].protocol_read_bit();
+							temp=protos[bus_pirate_configuration.bus_mode].protocol_read_bit();
 							break;
 			case TOK_PSU:	temp=BP_VREGEN; //modeConfig.vregEN;
 							break;
@@ -580,7 +580,7 @@ void interpreter(void)
 	gosubs=0;
 	datapos=0;
 	lineno=0;
-	bpConfig.quiet=1;				// turn echoing off
+	bus_pirate_configuration.quiet=1;				// turn echoing off
 
 	for(i=0; i<26; i++) vars[i]=0;
 
@@ -755,26 +755,26 @@ void interpreter(void)
 							{	if(pgmspace[pc]=='\"')						// is it a string?
 								{	pc++;
 									while(pgmspace[pc]!='\"')
-									{	bpConfig.quiet=0;
+									{	bus_pirate_configuration.quiet=0;
 										UART1TX(pgmspace[pc++]);
-										bpConfig.quiet=1;
+										bus_pirate_configuration.quiet=1;
 									}
 									pc++;
 								}
 								else if(((pgmspace[pc]>='A')&&(pgmspace[pc]<='Z'))||((pgmspace[pc]>=TOKENS)&&(pgmspace[pc]<TOK_LEN)))
 								{	temp=assign();
-									bpConfig.quiet=0;
+									bus_pirate_configuration.quiet=0;
 									bpWintdec(temp);
-									bpConfig.quiet=1;
+									bus_pirate_configuration.quiet=1;
 								}
 								else if(pgmspace[pc]==';')						// spacer
 								{	pc++;
 								}
 							}
 							if(pgmspace[pc-1]!=';')
-							{	bpConfig.quiet=0;
+							{	bus_pirate_configuration.quiet=0;
 								bpBR;
-								bpConfig.quiet=1;
+								bus_pirate_configuration.quiet=1;
 							}
 							handleelse();
 							break;
@@ -785,7 +785,7 @@ void interpreter(void)
 							//} 
 
 							pcupdated=1;
-							bpConfig.quiet=0;		// print prompt
+							bus_pirate_configuration.quiet=0;		// print prompt
 							pc+=4;
 	
 							if(pgmspace[pc]=='\"')						// is it a string?
@@ -805,7 +805,7 @@ void interpreter(void)
 							vars[pgmspace[pc]-'A']=getnumber(0, 0, 0x7FFF, 0);
 							pc++;
 							handleelse();
-							bpConfig.quiet=1;
+							bus_pirate_configuration.quiet=1;
 							break;
 			case TOK_FOR:	//bpWstring(STAT_FOR);
 							//bpSP;
@@ -941,35 +941,35 @@ void interpreter(void)
 			case TOK_START:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.bus_mode].protocol_start();
+							protos[bus_pirate_configuration.bus_mode].protocol_start();
 							handleelse();
 							//protostart();
 							break;
 			case TOK_STARTR:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.bus_mode].protocol_start_with_read();
+							protos[bus_pirate_configuration.bus_mode].protocol_start_with_read();
 							//protostartr();
 							handleelse();
 							break;
 			case TOK_STOP:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.bus_mode].protocol_stop();
+							protos[bus_pirate_configuration.bus_mode].protocol_stop();
 							//protostop();
 							handleelse();
 							break;
 			case TOK_STOPR:	pcupdated=1;
 							pc+=4;
 		
-							protos[bpConfig.bus_mode].protocol_stop_from_read();
+							protos[bus_pirate_configuration.bus_mode].protocol_stop_from_read();
 							//protostopr();
 							handleelse();
 							break;
 			case TOK_SEND:	pcupdated=1;
 							pc+=4;
 							//protowrite(getnumvar());
-							protos[bpConfig.bus_mode].protocol_send((int)assign());
+							protos[bus_pirate_configuration.bus_mode].protocol_send((int)assign());
 							handleelse();
 							break;
 			case TOK_AUX:	pcupdated=1;
@@ -1007,10 +1007,10 @@ void interpreter(void)
 							pc+=4;
 
 							if(assign())
-							{	modeConfig.altAUX=1;
+							{	mode_configuration.altAUX=1;
 							}
 							else
-							{	modeConfig.altAUX=1;
+							{	mode_configuration.altAUX=1;
 							}
 							handleelse();
 						
@@ -1048,11 +1048,11 @@ void interpreter(void)
 
 							if(assign())
 							{	//protodath();
-								protos[bpConfig.bus_mode].protocol_data_high();
+								protos[bus_pirate_configuration.bus_mode].protocol_data_high();
 							}
 							else
 							{	//protodatl();
-								protos[bpConfig.bus_mode].protocol_data_low();
+								protos[bus_pirate_configuration.bus_mode].protocol_data_low();
 							}
 							handleelse();
 						
@@ -1062,13 +1062,13 @@ void interpreter(void)
 
 							switch(assign())
 							{	case 0:	//protoclkl();
-										protos[bpConfig.bus_mode].protocol_clock_low();
+										protos[bus_pirate_configuration.bus_mode].protocol_clock_low();
 										break;
 								case 1:	//protoclkh();
-										protos[bpConfig.bus_mode].protocol_clock_high();
+										protos[bus_pirate_configuration.bus_mode].protocol_clock_high();
 										break;
 								case 2: //protoclk();
-										protos[bpConfig.bus_mode].protocol_clock_pulse();
+										protos[bus_pirate_configuration.bus_mode].protocol_clock_pulse();
 										break;
 							}
 							handleelse();
@@ -1101,7 +1101,7 @@ void interpreter(void)
 			case TOK_MACRO:	pcupdated=1;
 							pc+=4;
 							temp=assign();
-							protos[bpConfig.bus_mode].protocol_run_macro(temp);
+							protos[bus_pirate_configuration.bus_mode].protocol_run_macro(temp);
 							handleelse();
 							break;
 			case TOK_END:	//bpWstring(STAT_END);
@@ -1118,7 +1118,7 @@ void interpreter(void)
 		pcupdated=0;
 	}
 
-	bpConfig.quiet=0; 		// display on 
+	bus_pirate_configuration.quiet=0; 		// display on 
 
 	if(stop!=NOERROR)
 	{	//bpWstring("Error(");
@@ -1358,7 +1358,7 @@ void basiccmdline(void)
 		{	list();
 		}
 		else if(compare("EXIT"))
-		{	bpConfig.basic=0;
+		{	bus_pirate_configuration.basic=0;
 		}
 #ifdef BP_BASIC_I2C_FILESYSTEM
 		else if(compare("FORMAT"))

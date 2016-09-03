@@ -132,8 +132,8 @@ static uint16_t null_data_read_callback(void);
  */
 static bool null_bit_read_callback(void);
 
-extern bus_pirate_configuration_t bpConfig;
-extern mode_configuration_t modeConfig;
+extern bus_pirate_configuration_t bus_pirate_configuration;
+extern mode_configuration_t mode_configuration;
 extern int cmderror;	
 
 bus_pirate_protocol_t protos[MAXPROTO] = {
@@ -475,6 +475,6 @@ void hiz_print_pins_state(void) {
 void reset_mode_to_8_bits(void) {
     /* Sets the mode configuration to 8 bits. */
     
-    modeConfig.numbits = 8;
-	modeConfig.int16 = 0;
+    mode_configuration.numbits = 8;
+	mode_configuration.int16 = 0;
 }

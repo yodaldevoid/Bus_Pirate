@@ -38,7 +38,7 @@
 #define	BB_MAXSPEED_CLOCK 0
 #define	BB_MAXSPEED_HALFCLOCK 0
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 
 struct _bitbang{
 	unsigned char pins;
@@ -147,11 +147,11 @@ unsigned int bbReadWriteByte(unsigned int c){
 	unsigned int i,bt,tem,di,dat=0;
 
 	//begin with clock low...	
-	bt=1<<(modeConfig.numbits-1);
+	bt=1<<(mode_configuration.numbits-1);
 
 	tem=c;//????
 //	for(i=0;i<8;i++){
-	for(i=0;i<modeConfig.numbits;i++){
+	for(i=0;i<mode_configuration.numbits;i++){
 		bbPins((tem&bt), MOSI, bitbang.delaySettle); //set data out
 		bbH(CLK,bitbang.delayClock);//set clock high
 		di=bbR(MISO); //read data pin	
@@ -174,10 +174,10 @@ void bbWriteByte(unsigned int c){
 	//bbo();//prepare for output
 
 	//bt=0x80;
-	bt=1<<(modeConfig.numbits-1);
+	bt=1<<(mode_configuration.numbits-1);
 
 	tem=c;//????
-	for(i=0;i<modeConfig.numbits;i++){
+	for(i=0;i<mode_configuration.numbits;i++){
 		//if( (b & d)== 0) bbL(bitbang.MOpin,bitbang.delaySettle); else bbH(bitbang.MOpin,bitbang.delaySettle);//setup the data pin
 		bbPins((tem&bt), MOSI, bitbang.delaySettle );
 		bbH(CLK,bitbang.delayClock);
@@ -194,7 +194,7 @@ unsigned int bbReadByte(void){
 	//bbi();//prepare for input
 	bbR(MOSI); //setup for input
 
-	for(i=0;i<modeConfig.numbits;i++){
+	for(i=0;i<mode_configuration.numbits;i++){
 		bbH(CLK,bitbang.delayClock);//set clock high
 		di=bbR(MOSI); //same as MISO on 2-wire
 		bbL(CLK,bitbang.delayClock);;//set clock low
@@ -250,7 +250,7 @@ unsigned char bbMISO (void){ return bbR(bitbang.MIpin);}
 // BASE IO functions
 //
 void bbH(unsigned int pins, unsigned char delay){
-	if(modeConfig.high_impedance==0){
+	if(mode_configuration.high_impedance==0){
 		IOLAT |= pins;//normal output high
 		IODIR &=(~pins);//direction to output
 	}else{
@@ -270,7 +270,7 @@ void bbPins(unsigned int dir, unsigned int pins, unsigned char delay){
 		IOLAT &=(~pins); //pins to 0
 		IODIR &=(~pins);//direction to output
 	}else{
-		if(modeConfig.high_impedance==0){
+		if(mode_configuration.high_impedance==0){
 			IOLAT |= pins;//normal output high
 			IODIR &=(~pins);//direction to output
 		}else{

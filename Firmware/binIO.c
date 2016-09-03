@@ -48,7 +48,7 @@
 #include "AUXpin.h"
 #include "binwire.h"
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 
 //unsigned char binBBpindirectionset(unsigned char inByte);
 //unsigned char binBBpinset(unsigned char inByte);

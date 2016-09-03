@@ -92,7 +92,7 @@
 //7bit display data RAM address
 
 //configuration structure
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 
 struct _HD44780_interface {
@@ -168,7 +168,7 @@ void LCDstop(void)
 
 void LCDsetup(void)
 {       
-        modeConfig.high_impedance=1;//yes, always HiZ
+        mode_configuration.high_impedance=1;//yes, always HiZ
 }
 
 void LCDsetup_exc(void)

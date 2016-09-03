@@ -33,7 +33,7 @@
 #define R3WMISO 		BP_MISO 
 #define R3WCS 			BP_CS 
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 void R3Wsetup_exc(void);
 
@@ -49,14 +49,14 @@ unsigned int R3Wread(void)
 
 unsigned int R3Wwrite(unsigned int c)
 {	c=bbReadWriteByte(c);
-	if(modeConfig.write_with_read==1)
+	if(mode_configuration.write_with_read==1)
 	{	return c;
 	}
 	return 0x00;
 }
 
 void R3Wstartr(void)
-{	modeConfig.write_with_read=1;
+{	mode_configuration.write_with_read=1;
 	if(r3wSettings.csl)
 	{	bbCS(0);
 	}
@@ -68,7 +68,7 @@ void R3Wstartr(void)
 	BPMSG1159;
 }
 void R3Wstart(void)
-{	modeConfig.write_with_read=0;
+{	mode_configuration.write_with_read=0;
 	if(r3wSettings.csl)
 	{	bbCS(0);
 	}
@@ -80,7 +80,7 @@ void R3Wstart(void)
 	BPMSG1159;
 }
 void R3Wstop(void)
-{	modeConfig.write_with_read=0;
+{	mode_configuration.write_with_read=0;
 	if(r3wSettings.csl)
 	{	bbCS(1);
 	}
@@ -116,9 +116,9 @@ void R3Wdatl(void)
 void R3Wsettings(void) {
     //bpWstring("R3W (spd hiz)=( ");
 	BPMSG1161;
-	bpWdec(modeConfig.speed); bpSP;
+	bpWdec(mode_configuration.speed); bpSP;
 	bpWdec(r3wSettings.csl); bpSP;
-	bpWdec(modeConfig.high_impedance); bpSP;
+	bpWdec(mode_configuration.high_impedance); bpSP;
 	bp_write_line(")");
 }
 
@@ -134,7 +134,7 @@ void R3Wsetup(void)
 	output=getint();
 
 	if((speed>0)&&(speed<=4))
-	{	modeConfig.speed=speed-1;
+	{	mode_configuration.speed=speed-1;
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
@@ -146,7 +146,7 @@ void R3Wsetup(void)
 	{	speed=0;					// when speed is 0 we ask the user
 	}
 	if((output>0)&&(output<=2))
-	{	modeConfig.high_impedance=(~(output-1));
+	{	mode_configuration.high_impedance=(~(output-1));
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
@@ -155,7 +155,7 @@ void R3Wsetup(void)
 	if(speed==0)
 	{	//bpWmessage(MSG_OPT_BB_SPEED);
 		BPMSG1065;
-		modeConfig.speed=(getnumber(1,1,4,0)-1);
+		mode_configuration.speed=(getnumber(1,1,4,0)-1);
 
 		//bpWline("CS:\r\n 1. CS\r\n 2. /CS *default");
 		BPMSG1253;
@@ -163,7 +163,7 @@ void R3Wsetup(void)
 
 		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
 		BPMSG1142;
-		modeConfig.high_impedance=(~(getnumber(1,1,2,0)-1));
+		mode_configuration.high_impedance=(~(getnumber(1,1,2,0)-1));
 		cmderror=0;
 	}
 	else
@@ -171,12 +171,12 @@ void R3Wsetup(void)
 	}
 
 	//reset the write with read variable
-	modeConfig.write_with_read=0;
-	modeConfig.int16=0; //8 bit
+	mode_configuration.write_with_read=0;
+	mode_configuration.int16=0; //8 bit
 }
 void R3Wsetup_exc(void)
 {
-    bbSetup(3, modeConfig.speed); //setup the bitbang library, must be done before calling bbCS below
+    bbSetup(3, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
 	//setup pins (pins are input/low when we start)
 	//MOSI output, low
 	//clock output, low

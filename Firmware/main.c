@@ -77,8 +77,8 @@ void ISRTable(); //Pseudo function to hold ISR remap jump table
 void Initialize(void);
 
 static unsigned char __attribute__((section(".bss.end"))) _buffer[BP_TERMINAL_BUFFER_SIZE];
-bus_pirate_configuration_t bpConfig = {.terminal_input = _buffer}; //holds persistant bus pirate settings (see busPirateCore.h)
-mode_configuration_t modeConfig; //holds mode info, cleared between modes
+bus_pirate_configuration_t bus_pirate_configuration = {.terminal_input = _buffer}; //holds persistant bus pirate settings (see busPirateCore.h)
+mode_configuration_t mode_configuration; //holds mode info, cleared between modes
 command_t bpCommand; //holds the current active command so we don't ahve to put so many variables on the stack
 
 #pragma code
@@ -176,8 +176,8 @@ void Initialize(void) {
 #endif /* BUSPIRATEV3 || (BUSPIRATEV4 && BPV4_DEBUG) */
 
     //put startup values in config (do first)
-    bpConfig.terminal_speed = 8; //default PC side port speed, startup in 115200, or saved state (later)....
-    bpConfig.display_mode = HEX;
+    bus_pirate_configuration.terminal_speed = 8; //default PC side port speed, startup in 115200, or saved state (later)....
+    bus_pirate_configuration.display_mode = HEX;
 
     bp_reset_board_state(); //put startup values in config (do first)clean up, exit in HI-Z
 
@@ -201,22 +201,22 @@ void Initialize(void) {
     CNPU1bits.CN7PUE = ON;
 #endif /* BUSPIRATEV3 */
 
-    bpConfig.device_type = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_TYPE);
-    bpConfig.device_revision = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_REV);
+    bus_pirate_configuration.device_type = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_TYPE);
+    bus_pirate_configuration.device_revision = bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_REV);
 
 #if defined(BUSPIRATEV3)
     /* Get the revision identifier. */
-    bpConfig.hardware_version = BPV3_HARDWARE_VERSION_TABLE[(PORTB >> 2) & 0b00000011];
+    bus_pirate_configuration.hardware_version = BPV3_HARDWARE_VERSION_TABLE[(PORTB >> 2) & 0b00000011];
 
     /* Turn pullups OFF. */
     CNPU1bits.CN6PUE = OFF;
     CNPU1bits.CN7PUE = OFF;
 #else
-    bpConfig.hardware_version = 0;
+    bus_pirate_configuration.hardware_version = 0;
 #endif /* BUSPIRATEV3 */
 
-    bpConfig.quiet = 0; // turn output on (default)
-    modeConfig.numbits = 8;
+    bus_pirate_configuration.quiet = 0; // turn output on (default)
+    mode_configuration.numbits = 8;
     
 #ifdef BP_ENABLE_BASIC_SUPPORT
     initpgmspace();

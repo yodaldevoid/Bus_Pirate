@@ -24,7 +24,7 @@
 #include "1wire_lib.h"
 #include "binIOhelpers.h"
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 
 //the roster stores the first OW_DEV_ROSTER_SLOTS 1-wire addresses found during a ROM SEARCH command
@@ -109,7 +109,7 @@ void OWdath(void)
 
 void OWsetup(void)
 {       
-        modeConfig.high_impedance=1;//yes, always HiZ
+        mode_configuration.high_impedance=1;//yes, always HiZ
 
         OWroster.num=0;//clear any old 1-wire bus enumeration rosters
         //-- Ensure pins are in high impedance mode --
@@ -575,8 +575,8 @@ void bin1WIRE(void){
 
         BP_CS_DIR=0;                    //set CS pin direction to output on setup
 
-        modeConfig.high_impedance=1;//yes, always hiz, sets CS to open drain state 
-        modeConfig.lsbEN=0;//just in case!
+        mode_configuration.high_impedance=1;//yes, always hiz, sets CS to open drain state 
+        mode_configuration.lsbEN=0;//just in case!
 
         bin1WIREversionString();//reply string
 

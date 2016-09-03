@@ -25,7 +25,7 @@ static const unsigned char HEXASCII[] = {
     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-extern bus_pirate_configuration_t bpConfig;
+extern bus_pirate_configuration_t bus_pirate_configuration;
 
 #if defined (BUSPIRATEV4)
 extern BYTE cdc_In_len;
@@ -289,7 +289,7 @@ static unsigned int UARTspeed[] = {13332, 3332, 1666, 832, 416, 207, 103, 68, 34
 
 void InitializeUART1(void) { // if termspeed==9 it is custom
     // dunno if the additional settings are needed but justin kaas!
-    if (bpConfig.terminal_speed != 9) U1BRG = UARTspeed[bpConfig.terminal_speed]; //13332=300, 1666=2400, 416=9600, 34@32mhz=115200....
+    if (bus_pirate_configuration.terminal_speed != 9) U1BRG = UARTspeed[bus_pirate_configuration.terminal_speed]; //13332=300, 1666=2400, 416=9600, 34@32mhz=115200....
     U1MODE = 0;
     U1MODEbits.BRGH = 1;
     U1STA = 0;
@@ -318,7 +318,7 @@ void UARTbufSetup(void) {
     //setup ring buffer pointers
     readpointer = 0;
     writepointer = 1;
-    bpConfig.overflow = 0;
+    bus_pirate_configuration.overflow = 0;
 }
 
 void UARTbufService(void) {
@@ -329,7 +329,7 @@ void UARTbufService(void) {
         if (i == BP_TERMINAL_BUFFER_SIZE) i = 0; //check for wrap
         if (i == writepointer) return; //buffer empty,
         readpointer = i;
-        U1TXREG = bpConfig.terminal_input[readpointer]; //move a byte to UART
+        U1TXREG = bus_pirate_configuration.terminal_input[readpointer]; //move a byte to UART
     }
 }
 
@@ -343,7 +343,7 @@ void UARTbufFlush(void) {
 
         if (U1STAbits.UTXBF == 0) {//free slot, move a byte to UART
             readpointer = i;
-            U1TXREG = bpConfig.terminal_input[readpointer];
+            U1TXREG = bus_pirate_configuration.terminal_input[readpointer];
         }
     }
 }
@@ -351,9 +351,9 @@ void UARTbufFlush(void) {
 void UARTbuf(char c) {
     if (writepointer == readpointer) {
         BP_LEDMODE = 0; //drop byte, buffer full LED off
-        bpConfig.overflow = 1;
+        bus_pirate_configuration.overflow = 1;
     } else {
-        bpConfig.terminal_input[writepointer] = c;
+        bus_pirate_configuration.terminal_input[writepointer] = c;
         writepointer++;
         if (writepointer == BP_TERMINAL_BUFFER_SIZE) writepointer = 0; //check for wrap
     }
@@ -373,7 +373,7 @@ void WAITTXEmpty(void) {
 //uses PIC 4 byte UART FIFO buffer
 
 void UART1TX(char c) {
-    if (bpConfig.quiet) return;
+    if (bus_pirate_configuration.quiet) return;
     while (U1STAbits.UTXBF == 1); //if buffer is full, wait
     U1TXREG = c;
 }
@@ -447,7 +447,7 @@ void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
 extern BDentry *CDC_Outbdp, *CDC_Inbdp;
 
 void UART1TX(char c) {
-    if (bpConfig.quiet) return;
+    if (bus_pirate_configuration.quiet) return;
     putc_cdc(c);
 }
 
@@ -515,7 +515,7 @@ static unsigned int UARTspeed[] = {13332, 3332, 1666, 832, 416, 207, 103, 68, 34
 
 void InitializeUART1(void) { // if termspeed==9 it is custom
     // dunno if the additional settings are needed but justin kaas!
-    if (bpConfig.terminal_speed != 9) U1BRG = UARTspeed[bpConfig.terminal_speed]; //13332=300, 1666=2400, 416=9600, 34@32mhz=115200....
+    if (bus_pirate_configuration.terminal_speed != 9) U1BRG = UARTspeed[bus_pirate_configuration.terminal_speed]; //13332=300, 1666=2400, 416=9600, 34@32mhz=115200....
     U1MODE = 0;
     U1MODEbits.BRGH = 1;
     U1STA = 0;
@@ -544,7 +544,7 @@ void UARTbufSetup(void) {
     //setup ring buffer pointers
     readpointer = 0;
     writepointer = 1;
-    bpConfig.overflow = 0;
+    bus_pirate_configuration.overflow = 0;
 }
 
 void UARTbufService(void) {
@@ -555,7 +555,7 @@ void UARTbufService(void) {
         if (i == BP_TERMINAL_BUFFER_SIZE) i = 0; //check for wrap
         if (i == writepointer) return; //buffer empty,
         readpointer = i;
-        U1TXREG = bpConfig.terminal_input[readpointer]; //move a byte to UART
+        U1TXREG = bus_pirate_configuration.terminal_input[readpointer]; //move a byte to UART
     }
 }
 
@@ -569,7 +569,7 @@ void UARTbufFlush(void) {
 
         if (U1STAbits.UTXBF == 0) {//free slot, move a byte to UART
             readpointer = i;
-            U1TXREG = bpConfig.terminal_input[readpointer];
+            U1TXREG = bus_pirate_configuration.terminal_input[readpointer];
         }
     }
 }
@@ -577,9 +577,9 @@ void UARTbufFlush(void) {
 void UARTbuf(char c) {
     if (writepointer == readpointer) {
         BP_LEDMODE = 0; //drop byte, buffer full LED off
-        bpConfig.overflow = 1;
+        bus_pirate_configuration.overflow = 1;
     } else {
-        bpConfig.terminal_input[writepointer] = c;
+        bus_pirate_configuration.terminal_input[writepointer] = c;
         writepointer++;
         if (writepointer == BP_TERMINAL_BUFFER_SIZE) writepointer = 0; //check for wrap
     }
@@ -599,7 +599,7 @@ void WAITTXEmpty(void) {
 //uses PIC 4 byte UART FIFO buffer
 
 void UART1TX(char c) {
-    if (bpConfig.quiet) return;
+    if (bus_pirate_configuration.quiet) return;
     while (U1STAbits.UTXBF == 1); //if buffer is full, wait
     U1TXREG = c;
 }

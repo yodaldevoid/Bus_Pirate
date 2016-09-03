@@ -55,8 +55,8 @@ i2c_state_t i2c_state = { 0 };
 #define SDA 		BP_MOSI        //-- The SDA output pin
 #define SDA_TRIS 	BP_MOSI_DIR    //-- The SDA Direction Register Bit
 
-extern bus_pirate_configuration_t bpConfig;
-extern mode_configuration_t modeConfig;
+extern bus_pirate_configuration_t bus_pirate_configuration;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 
 void hwi2cSetup(void);
@@ -215,7 +215,7 @@ void I2Csettings(void) {
     bpWdec(0);
     bpSP; // softmode
 #endif /* BP_I2C_USE_HW_BUS */
-    bpWdec(modeConfig.speed);
+    bpWdec(mode_configuration.speed);
     bpSP;
     bp_write_line(")");
 }
@@ -244,7 +244,7 @@ void I2Csetup(void) {
 #endif /* BP_I2C_USE_HW_BUS */
 
     if ((speed > 0) && (speed <= 4)) {
-        modeConfig.speed = speed - 1;
+        mode_configuration.speed = speed - 1;
     } else {
         speed = 0;
     }
@@ -263,22 +263,22 @@ void I2Csetup(void) {
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
             //bpWmessage(MSG_OPT_BB_SPEED);
             BPMSG1065;
-            modeConfig.speed = (getnumber(1, 1, 4, 0) - 1);
+            mode_configuration.speed = (getnumber(1, 1, 4, 0) - 1);
         } else {
 #ifdef BUSPIRATEV3
             // There is a hardware incompatibility with <B4
             // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
-            if (bpConfig.device_revision <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
+            if (bus_pirate_configuration.device_revision <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
 #endif /* BUSPIRATEV3 */
             //bpWline(OUMSG_I2C_HWSPEED);
             BPMSG1067;
-            modeConfig.speed = (getnumber(1, 1, 3, 0) - 1);
+            mode_configuration.speed = (getnumber(1, 1, 3, 0) - 1);
         }
     } else {
 #ifdef BUSPIRATEV3
         // There is a hardware incompatibility with <B4
         // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
-        if (bpConfig.device_revision <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
+        if (bus_pirate_configuration.device_revision <= PIC_REV_A3) BPMSG1066; //bpWline(OUMSG_I2C_REV3_WARN);
 #endif /* BUSPIRATEV3 */
         I2Csettings();
 
@@ -287,7 +287,7 @@ void I2Csetup(void) {
     }
 
     //set the options avaiable here....
-    modeConfig.high_impedance = 1; //yes, always hiz
+    mode_configuration.high_impedance = 1; //yes, always hiz
 }
 
 void I2Csetup_exc(void) //Executes the setup.. controlled with 'P' command
@@ -297,7 +297,7 @@ void I2Csetup_exc(void) //Executes the setup.. controlled with 'P' command
        SCL_TRIS = 1;
        SCL = 0; //B8 scl
        SDA = 0; //B9 sda
-       bbSetup(2, modeConfig.speed); //configure the bitbang library for 2-wire, set the speed
+       bbSetup(2, mode_configuration.speed); //configure the bitbang library for 2-wire, set the speed
    }
 #ifdef BP_I2C_USE_HW_BUS
    else {
@@ -413,7 +413,7 @@ void I2Cmacro(unsigned int c) {
             I2C1CONbits.SMEN = 0;
 
             // Baud rate setting
-            I2C1BRG = I2Cspeed[modeConfig.speed];
+            I2C1BRG = I2Cspeed[mode_configuration.speed];
 
             // Enable I2C module
             I2C1CONbits.I2CEN = 1;
@@ -540,7 +540,7 @@ void hwi2cSetup(void) {
 
 
     // Baud rate setting
-    I2C3BRG = I2Cspeed[modeConfig.speed];
+    I2C3BRG = I2Cspeed[mode_configuration.speed];
 
     // Enable I2C module
     I2C3CONbits.I2CEN = 1;
@@ -828,8 +828,8 @@ void binI2C(void) {
     //set CS pin direction to output on setup
     BP_CS_DIR = 0; //B6 cs output
 
-    modeConfig.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
-    modeConfig.lsbEN = 0; //just in case!
+    mode_configuration.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
+    mode_configuration.lsbEN = 0; //just in case!
     bbSetup(2, 0xff); //configure the bitbang library for 2-wire, set the speed to default/high
     binI2CversionString(); //reply string
 
@@ -898,7 +898,7 @@ I2C_write_read_error: //use this for the read error too
                         //get bytes
                         for (j = 0; j < fw; j++) {
                             //JTR Not required while (!UART1RXRdy()); //wait for a byte
-                            bpConfig.terminal_input[j] = UART1RX();
+                            bus_pirate_configuration.terminal_input[j] = UART1RX();
                             /* JTR usb port; */;
                         }
 
@@ -908,7 +908,7 @@ I2C_write_read_error: //use this for the read error too
                         for (j = 0; j < fw; j++) {
                             //get ACK
                             //if no ack, goto error
-                            bbWriteByte(bpConfig.terminal_input[j]); //send byte
+                            bbWriteByte(bus_pirate_configuration.terminal_input[j]); //send byte
                             if (bbReadBit() == 1) goto I2C_write_read_error;
                         }
 
@@ -916,7 +916,7 @@ I2C_write_read_error: //use this for the read error too
                         for (j = 0; j < fr; j++) { //read bulk bytes from SPI
                             //send ack
                             //i flast byte, send NACK
-                            bpConfig.terminal_input[j] = bbReadByte();
+                            bus_pirate_configuration.terminal_input[j] = bbReadByte();
 
                             if (j < fw) {
                                 bbI2Cack();
@@ -930,7 +930,7 @@ I2C_write_read_error: //use this for the read error too
                         UART1TX(1); //send 1/OK
 
                         for (j = 0; j < fr; j++) { //send the read buffer contents over serial
-                            UART1TX(bpConfig.terminal_input[j]);
+                            UART1TX(bus_pirate_configuration.terminal_input[j]);
                         }
 
                         break;//00001001 xxxxxxxx
@@ -961,10 +961,10 @@ I2C_write_read_error: //use this for the read error too
 					            fr = bpAuxRead();
 					            break;
 					         case 0x10:
-					            modeConfig.altAUX = 0;
+					            mode_configuration.altAUX = 0;
 					            break;
 					         case 0x20:
-					            modeConfig.altAUX = 1;
+					            mode_configuration.altAUX = 1;
 					            break;
 					         default:
 					            fw = 0;

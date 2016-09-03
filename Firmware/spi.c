@@ -43,9 +43,9 @@
 
 #define SPICS_RPIN		BP_CS_RPIN
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
-extern bus_pirate_configuration_t bpConfig; //we use the big buffer
+extern bus_pirate_configuration_t bus_pirate_configuration; //we use the big buffer
 
 void binSPIversionString(void);
 //void spiSetup(unsigned char spiSpeed);
@@ -71,7 +71,7 @@ static const uint8_t spi_bus_speed[] = {
 };
 
 void SPIstartr(void) {
-    modeConfig.write_with_read = 1;
+    mode_configuration.write_with_read = 1;
     if (spiSettings.csl) {
         SPICS = 0;
     } else {
@@ -83,7 +83,7 @@ void SPIstartr(void) {
 }
 
 void SPIstart(void) {
-    modeConfig.write_with_read = 0;
+    mode_configuration.write_with_read = 0;
     if (spiSettings.csl) {
         SPICS = 0;
     } else {
@@ -114,7 +114,7 @@ unsigned int SPIwrite(unsigned int c) {
     unsigned char r;
 
     r = spiWriteByte(c);
-    if (modeConfig.write_with_read == 1) {
+    if (mode_configuration.write_with_read == 1) {
         return r;
     }
     //FIXME what to return if wwr=0? we need an uint here
@@ -124,7 +124,7 @@ unsigned int SPIwrite(unsigned int c) {
 void SPIsettings(void) {
     //bpWstring("SPI (spd ckp ske smp hiz)=( ");
     BPMSG1191;
-    bpWdec((modeConfig.speed + 1));
+    bpWdec((mode_configuration.speed + 1));
     bpSP;
     bpWdec(spiSettings.ckp);
     bpSP;
@@ -134,7 +134,7 @@ void SPIsettings(void) {
     bpSP;
     bpWdec(spiSettings.csl);
     bpSP;
-    bpWdec(modeConfig.high_impedance);
+    bpWdec(mode_configuration.high_impedance);
     bpSP;
     //bpWline(")\r\n");
     BPMSG1162;
@@ -164,7 +164,7 @@ void SPIsetup(void) {
 
     // check for userinput (and sanitycheck it!!)
     if ((speed > 0) && (speed <= 4)) {
-        modeConfig.speed = speed - 1;
+        mode_configuration.speed = speed - 1;
     } else {
         speed = 0; // when speed is 0 we ask the user
     }
@@ -195,7 +195,7 @@ void SPIsetup(void) {
 
 
     if ((output > 0) && (output <= 2)) {
-        modeConfig.high_impedance = (~(output - 1));
+        mode_configuration.high_impedance = (~(output - 1));
     } else {
         speed = 0; // when speed is 0 we ask the user
     }
@@ -209,7 +209,7 @@ void SPIsetup(void) {
         //bpWline(OUMSG_SPI_SPEED);
         BPMSG1187;
         //modeConfig.speed=(bpUserNumberPrompt(1, 4, 1)-1);
-        modeConfig.speed = getnumber(1, 1, 4, 0) - 1;
+        mode_configuration.speed = getnumber(1, 1, 4, 0) - 1;
 
         //bpWstring("Clock polarity:\x0D\x0A 1. Idle low *default\x0D\x0A 2. Idle high\x0D\x0A");
         //bpWmessage(MSG_OPT_CKP);
@@ -236,17 +236,17 @@ void SPIsetup(void) {
         //bpWmessage(MSG_OPT_OUTPUT_TYPE);
         BPMSG1142;
         //modeConfig.HiZ=(~(bpUserNumberPrompt(1, 2, 1)-1));
-        modeConfig.high_impedance = (~(getnumber(1, 1, 2, 0) - 1));
+        mode_configuration.high_impedance = (~(getnumber(1, 1, 2, 0) - 1));
     } else {
         SPIsettings();
     }
-    modeConfig.write_with_read = 0;
+    mode_configuration.write_with_read = 0;
 }
 
 void SPIsetup_exc(void)
 {
     //do SPI peripheral setup
-    spiSetup(spi_bus_speed[modeConfig.speed]);
+    spiSetup(spi_bus_speed[mode_configuration.speed]);
 
     // set cs the way the user wants
     SPICS = spiSettings.csl; 
@@ -318,7 +318,7 @@ void spiSetup(unsigned char spiSpeed) {
     //use open drain control register to
     //enable Hi-Z mode on hardware module outputs
     //inputs are already HiZ
-    if (modeConfig.high_impedance == 1) {
+    if (mode_configuration.high_impedance == 1) {
         SPIMOSI_ODC = 1;
         SPICLK_ODC = 1;
         SPICS_ODC = 1;
@@ -439,9 +439,9 @@ spiSnifferStart:
 
         }
 
-        if (SPI1STATbits.SPIROV == 1 || SPI2STATbits.SPIROV == 1 || bpConfig.overflow == 1) {//we weren't fast enough, buffer overflow
+        if (SPI1STATbits.SPIROV == 1 || SPI2STATbits.SPIROV == 1 || bus_pirate_configuration.overflow == 1) {//we weren't fast enough, buffer overflow
 
-            if (bpConfig.overflow == 0) UARTbufFlush();
+            if (bus_pirate_configuration.overflow == 0) UARTbufFlush();
             SPI1STAT = 0;
             SPI2STAT = 0;
 
@@ -464,7 +464,7 @@ spiSnifferStart:
     }
     spiSlaveDisable();
 
-    spiSetup(spi_bus_speed[modeConfig.speed]);
+    spiSetup(spi_bus_speed[mode_configuration.speed]);
 }
 
 //configure both SPI units for slave mode on different pins
@@ -489,14 +489,14 @@ void spiSlaveSetup(void) {
     RPINR22bits.SCK2R = BP_CLK_RPIN; //SPICLK_RPIN; //assign SPI2 CLK input to bus pirate CLK pin
 
     //clear old SPI settings first
-    SPI1CON1 = (spi_bus_speed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
+    SPI1CON1 = (spi_bus_speed[mode_configuration.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
     SPI1CON1bits.CKP = spiSettings.ckp;
     SPI1CON1bits.CKE = spiSettings.cke;
     //SPI1CON1bits.SMP=spiSettings.smp;
     SPI1CON2 = 0;
     SPI1STAT = 0; // clear SPI
 
-    SPI2CON1 = (spi_bus_speed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
+    SPI2CON1 = (spi_bus_speed[mode_configuration.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
     SPI2CON1bits.CKP = spiSettings.ckp;
     SPI2CON1bits.CKE = spiSettings.cke;
     SPI2CON2 = 0;
@@ -578,12 +578,12 @@ void binSPI(void) {
 
     //useful default values
     /* CKE=1, CKP=0, SMP=0 */
-    modeConfig.speed = 1;
+    mode_configuration.speed = 1;
     spiSettings.ckp = 0;
     spiSettings.cke = 1;
     spiSettings.smp = 0;
-    modeConfig.high_impedance = 1;
-    spiSetup(binSPIspeed[modeConfig.speed]); //start with 250khz (30,125,250,1000khz)
+    mode_configuration.high_impedance = 1;
+    spiSetup(binSPIspeed[mode_configuration.speed]); //start with 250khz (30,125,250,1000khz)
     binSPIversionString(); //1 - SPI setup and reply string
 
     while (1) {
@@ -646,24 +646,24 @@ void binSPI(void) {
 
                         //get bytes
                         for (j = 0; j < fw; j++) {
-                            bpConfig.terminal_input[j] = UART1RX();
+                            bus_pirate_configuration.terminal_input[j] = UART1RX();
                             /* JTR usb port; */;
                         }
 
                         if (inByte == 4) SPICS = 0;
                         for (j = 0; j < fw; j++) {
-                            spiWriteByte(bpConfig.terminal_input[j]);
+                            spiWriteByte(bus_pirate_configuration.terminal_input[j]);
                         }
                         bp_delay_us(1);
                         for (j = 0; j < fr; j++) { //read bulk bytes from SPI
-                            bpConfig.terminal_input[j] = spiWriteByte(0xff);
+                            bus_pirate_configuration.terminal_input[j] = spiWriteByte(0xff);
                         }
                         if (inByte == 4) SPICS = 1;
 
                         UART1TX(1); //send 1/OK
 
                         for (j = 0; j < fr; j++) { //send the read buffer contents over serial
-                            UART1TX(bpConfig.terminal_input[j]);
+                            UART1TX(bus_pirate_configuration.terminal_input[j]);
                         }
 
                         break;
@@ -765,8 +765,8 @@ void binSPI(void) {
 #endif
             case 0b0110://set speed
                 inByte &= (~0b11111000); //clear command portion
-                modeConfig.speed = inByte;
-                spiSetup(binSPIspeed[modeConfig.speed]); //resetup SPI
+                mode_configuration.speed = inByte;
+                spiSetup(binSPIspeed[mode_configuration.speed]); //resetup SPI
                 UART1TX(1); //send 1/OK
                 break;
             case 0b1000: //set SPI config
@@ -774,12 +774,12 @@ void binSPI(void) {
                 spiSettings.ckp = 0;
                 spiSettings.cke = 0;
                 spiSettings.smp = 0;
-                modeConfig.high_impedance = 0;
+                mode_configuration.high_impedance = 0;
                 if (inByte & 0b100) spiSettings.ckp = 1; //set idle
                 if (inByte & 0b10) spiSettings.cke = 1; //set edge
                 if (inByte & 0b1) spiSettings.smp = 1; //set sample time
-                if ((inByte & 0b1000) == 0) modeConfig.high_impedance = 1; //hiz output if this bit is 1
-                spiSetup(binSPIspeed[modeConfig.speed]); //resetup SPI
+                if ((inByte & 0b1000) == 0) mode_configuration.high_impedance = 1; //hiz output if this bit is 1
+                spiSetup(binSPIspeed[mode_configuration.speed]); //resetup SPI
                 UART1TX(1); //send 1/OK
                 break;
             default:

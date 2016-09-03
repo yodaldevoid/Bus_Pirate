@@ -11,8 +11,8 @@
 #include "bus_pirate_core.h"
 #include "binIOhelpers.h"
 
-extern mode_configuration_t modeConfig;
-extern bus_pirate_configuration_t bpConfig;
+extern mode_configuration_t mode_configuration;
+extern bus_pirate_configuration_t bus_pirate_configuration;
 
 // tris registers
 #define OOCD_TDO_TRIS   BP_MISO_DIR
@@ -85,7 +85,7 @@ static unsigned int OpenOCDJtagDelay;
 static void binOpenOCDString(void){bp_write_string("OCD1");}
 
 void binOpenOCD(void){
-	unsigned char *buf = bpConfig.terminal_input; // for simplicity :)
+	unsigned char *buf = bus_pirate_configuration.terminal_input; // for simplicity :)
 	unsigned int i,j;
 	unsigned char inByte;
 	unsigned char inByte2;
@@ -207,11 +207,11 @@ this will misbehave when polling is turned off in OpenOCD
 				binOpenOCDAnswer(buf, 3);
 
 				// prepare the interrupt transfer
-				UART1RXBuf = (unsigned char*)bpConfig.terminal_input;
+				UART1RXBuf = (unsigned char*)bus_pirate_configuration.terminal_input;
 				UART1RXToRecv = 2*i;
 				UART1RXRecvd = 0;
 
-				UART1TXBuf = (unsigned char*)(bpConfig.terminal_input + 2100); // 2048 bytes + 3 command header + to be sure
+				UART1TXBuf = (unsigned char*)(bus_pirate_configuration.terminal_input + 2100); // 2048 bytes + 3 command header + to be sure
 				UART1TXSent = 0;
 				UART1TXAvailable = 0;
 

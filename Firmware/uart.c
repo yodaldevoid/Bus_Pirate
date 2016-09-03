@@ -24,7 +24,7 @@
 
 #include "procMenu.h"		// for the userinteraction subs
 
-extern mode_configuration_t modeConfig;
+extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 
 void UARTgetbaud_InitTimer(void);
@@ -78,17 +78,17 @@ unsigned int UARTwrite(unsigned int c)
 void UARTsettings(void)
 {	//bpWstring("UART (spd dbp sb rxp hiz)=( ");
 	BPMSG1202;
-	bpWdec(modeConfig.speed); bpSP;
-	if(modeConfig.speed==9)
+	bpWdec(mode_configuration.speed); bpSP;
+	if(mode_configuration.speed==9)
 	{	bpWintdec(U2BRG); bpSP;
 	}
 	else
-	{	bpWintdec(UART2speed[modeConfig.speed]); bpSP;
+	{	bpWintdec(UART2speed[mode_configuration.speed]); bpSP;
 	}
 	bpWdec(uartSettings.dbp); bpSP;
 	bpWdec(uartSettings.sb); bpSP;
 	bpWdec(uartSettings.rxp); bpSP;
-	bpWdec(modeConfig.high_impedance); bpSP;
+	bpWdec(mode_configuration.high_impedance); bpSP;
 	//bpWline(")\r\n");
 	BPMSG1162;
 }	
@@ -121,7 +121,7 @@ void UARTsetup(void)
 	output=getint();
  
 	if((speed>0)&&(speed<=10))
-	{	modeConfig.speed=speed-1;
+	{	mode_configuration.speed=speed-1;
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
@@ -149,7 +149,7 @@ void UARTsetup(void)
 	}
 	
 	if((output>0)&&(output<=2))
-	{	modeConfig.high_impedance=(~(output-1));
+	{	mode_configuration.high_impedance=(~(output-1));
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
@@ -164,17 +164,17 @@ void UARTsetup(void)
 		#if defined(BUSPIRATEV4)
 		// BPv4 Mode; has custom BAUD entry and auto-baud detection
 
-		modeConfig.speed=getnumber(1,1,11,0)-1; //get user reply
+		mode_configuration.speed=getnumber(1,1,11,0)-1; //get user reply
 		
-		if(modeConfig.speed==10)
+		if(mode_configuration.speed==10)
 		{
-			modeConfig.speed=8; //Set to 115200 for now
+			mode_configuration.speed=8; //Set to 115200 for now
 			abd=1;				//trigger to run baud detection
 			uartSettings.autoBaudF = 1;
 			bp_write_line("Baud detection selected..");
 		}
 		
-		if(modeConfig.speed==9)
+		if(mode_configuration.speed==9)
 		{	
 			BPMSG1248;						//say input custom BAUD rate
 			abd=getlong(115200,1,999999,0); //get the baud rate from user
@@ -187,9 +187,9 @@ void UARTsetup(void)
 		
 		#else
 		// Normal mode; input BRG and no autobaud detection
-		modeConfig.speed=getnumber(1,1,10,0)-1; //get user reply
+		mode_configuration.speed=getnumber(1,1,10,0)-1; //get user reply
 		
-		if(modeConfig.speed==9)
+		if(mode_configuration.speed==9)
 		{	BPMSG1248;
 			brg=getnumber(34,1,32767,0);
 			//hack hack hack 
@@ -216,12 +216,12 @@ void UARTsetup(void)
 	
 		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
 		BPMSG1142;
-		modeConfig.high_impedance=(~(getnumber(1,1,2,0)-1));
+		mode_configuration.high_impedance=(~(getnumber(1,1,2,0)-1));
 
 	}
 	else
 	{
-    	if(modeConfig.speed==9)
+    	if(mode_configuration.speed==9)
 		{
     	    abd = brg;
     	    abd=(((32000000/abd)/8)-1);		//calculate BRG
@@ -236,17 +236,17 @@ void UARTsetup(void)
 
 void UARTsetup_exc(void)
 {
-    if(modeConfig.speed==9)
+    if(mode_configuration.speed==9)
 	{	
     	//hack hack hack
-    	UART2Setup(U2BRG,modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb ); //U2BRG passed insted of brg, collected in UARTsetup
+    	UART2Setup(U2BRG,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb ); //U2BRG passed insted of brg, collected in UARTsetup
 	}
 	else
-	{	UART2Setup(UART2speed[modeConfig.speed],modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
+	{	UART2Setup(UART2speed[mode_configuration.speed],mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
 	}
 
 	if(uartSettings.dbp==3)		// 9 bits
-	{	modeConfig.numbits=9;
+	{	mode_configuration.numbits=9;
 	}
 	
     UART2Enable();
@@ -269,14 +269,14 @@ void UARTsetup_exc(void)
 
 		if(abd == 0)
 		{
-			UART2Setup(UART2speed[8],modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
+			UART2Setup(UART2speed[8],mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
 		}
 		else
 		{
-			modeConfig.speed=9;
+			mode_configuration.speed=9;
 			abd=(((32000000/abd)/8)-1);
 			brg=abd;
-			UART2Setup(brg,modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
+			UART2Setup(brg,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
 			
 		}
 		UART2Enable();
@@ -422,14 +422,14 @@ void UARTmacro(unsigned int macro)
 void UARTstart(void)
 {	U2STA &= (~0b10); //clear overrun error if exists
 	uartSettings.eu=1;//open uart
-	modeConfig.periodicService=1;//start periodic service calls
+	mode_configuration.periodicService=1;//start periodic service calls
 	//bpWline(OUMSG_UART_LIVE_DISPLAY_ON);
 	BPMSG1207;
 }
 
 void UARTstop(void)
 {	uartSettings.eu=0;// uart
-	modeConfig.periodicService=0;//start periodic service calls
+	mode_configuration.periodicService=0;//start periodic service calls
 	//bpWline(OUMSG_UART_LIVE_DISPLAY_OFF);
 	BPMSG1208;
 }
@@ -681,10 +681,10 @@ void binUART(void){
 	uartSettings.dbp=0; //startup defaults
 	uartSettings.sb=0;
 	uartSettings.rxp=0;
-	modeConfig.high_impedance=1;
+	mode_configuration.high_impedance=1;
 	BRGval=binUARTspeed[0]; //start at 300bps
 	uartSettings.eu=0;
-	UART2Setup(BRGval,modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
+	UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
 	UART2Enable();
 	binUARTversionString();
 
@@ -732,7 +732,7 @@ void binUART(void){
 							BRGval=(unsigned int)(UART1RX()<<8);
 							UART1TX(1);
 							BRGval|=UART1RX(); /* JTR usb port; */
-							UART2Setup(BRGval,modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
+							UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
 							UART2Enable();
 							UART1TX(1);
 							break;
@@ -787,7 +787,7 @@ void binUART(void){
 					if(inByte>0b1010) inByte=0b1010; //safe default if out of range
 					BRGval=binUARTspeed[inByte];
 					UART2Disable();
-					UART2Setup(BRGval,modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
+					UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
 					UART2Enable();
 					UART1TX(1);//send 1/OK	
 					break;
@@ -797,14 +797,14 @@ void binUART(void){
 					uartSettings.dbp=0;
 					uartSettings.sb=0;
 					uartSettings.rxp=0;
-					modeConfig.high_impedance=0;
+					mode_configuration.high_impedance=0;
 					if(inByte&0b1000) uartSettings.dbp|=0b10;//set 
 					if(inByte&0b100) uartSettings.dbp|=0b1;//set 
 					if(inByte&0b10) uartSettings.sb=1;//set 	
 					if(inByte&0b1) uartSettings.rxp=1;//set 
-					if((inByte&0b10000)==0) modeConfig.high_impedance=1;//hiz output if this bit is 1
+					if((inByte&0b10000)==0) mode_configuration.high_impedance=1;//hiz output if this bit is 1
 					UART2Disable();
-					UART2Setup(BRGval,modeConfig.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
+					UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
 					UART2Enable();
 					UART1TX(1);//send 1/OK	
 					break;
