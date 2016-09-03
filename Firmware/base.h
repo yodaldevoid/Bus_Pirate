@@ -24,9 +24,7 @@
 #include <string.h>
 
 #include "configuration.h"
-
-#define FALSE   0
-#define TRUE    (!FALSE)
+#include "messages.h"
 
 /**
  * Value indicating a bit to be OFF.
@@ -72,18 +70,9 @@
  */
 #define LO16(value) ((uint32_t) (value) & 0xFFFF)
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////// [ BUS PIRATE SETTINGS ] ////////////////////////////////////////////////////
-/////////// NOTE:
-///////////     Configuration and Settings for building the Bus Pirate firmware. For more information and support
-///////////  On building your own firmware. Please visit the forums on DangerousPrototypes.com. Enjoy the BP :)
-///////////
-///////////                                                 Bus Pirate - Brought to you by DangerousPrototypes.com
-
-////////////////////////////////////////
-// FIRMWARE VERSION STRING
-// Build Firmware Version String
-// used in 'i' and startup
+/**
+ * Firmware version string, used at startup and for the 'i' command.
+ */
 #define BP_FIRMWARE_STRING "Community Firmware v7.0 - goo.gl/gCzQnW "
 
 #ifdef BUSPIRATEV3
@@ -97,7 +86,6 @@
 #endif /* BUSPIRATEV3 || BUSPIRATEV4 */
 
 #include "baseIO.h"
-#include "messages.h"
 
 //Debugging mode for BPv4, comment out for normal compiling
 //Adds alternative communicaton to UART1 over AUX1 and AUX2 instead of USB.
@@ -111,24 +99,19 @@
 //#define BASICTEST_PIC10                       // program blink a led
 //#define BASICTEST_PIC10_2                     // read whole pic
 
-//sets the address in the bootloader to jump to on the bootloader command
-//must be defined in asm
+/*
+ * Sets the address in the bootloader to jump to on the bootloader command,
+ * must be defined via an inline assembly block.
+ */
 asm (".equ BLJUMPADDRESS, 0xABF8");
 
-//
-//
-//
-// END CONFIG AREA
-//
-//
-//
-
-//these settings are destroyed between modes.
-//this is used to pass stuff from protocol libraries to BP
-//for example, allowpullup determines if the P menu is available
-//TO DO: add global scratch buffer to setting array for use in 
-//	1-Wire enumeration, JTAG input buffer, etc...
-
+/**
+ * Current mode configuration settings structure.
+ * 
+ * This is used to let protocol implementations to interact with the Bus Pirate
+ * event loop.  Every time a mode is changed (a.k.a. a new protocol gets
+ * activated) this structure is cleared.
+ */
 typedef struct {
     unsigned char speed;
     unsigned char numbits;
@@ -136,9 +119,18 @@ typedef struct {
     unsigned char altAUX : 2; // there are 4 AUX on BUSPIRATEV4
     unsigned char periodicService : 1;
     unsigned char lsbEN : 1;
-    unsigned char HiZ : 1;
-    unsigned char int16 : 1; // 16 bits output?
-    unsigned char wwr : 1; // write with read
+    unsigned char high_impedance : 1;
+    
+    /**
+     * Values are 16-bits wide.
+     */
+    unsigned char int16 : 1;
+    
+    /**
+     * Each I/O write from the protocol must be followed by a read operation.
+     */
+    unsigned char write_with_read : 1;
+    
 } mode_configuration_t;
 
 typedef struct {
@@ -147,10 +139,20 @@ typedef struct {
     unsigned int repeat;
 } command_t;
 
-unsigned int bpRevByte(unsigned int c);
+/**
+ * Reverses the bits in the given value and returns it.
+ * 
+ * @param[in] value the value whose bits should be reversed.
+ * 
+ * @return the value with reversed bits.
+ */
+unsigned int bp_reverse_integer(unsigned int value);
 
-//reset all peripherals before configuring a new bus protocol
-void bpInit(void);
+/**
+ * Bring the board to a clean slate shortly before switching to a new
+ * operational mode.
+ */
+void bp_reset_board_state(void);
 
 /**
  * Reads a value from the ADC on the given channel.
@@ -163,13 +165,24 @@ void bpInit(void);
  */
 unsigned int bp_read_adc(unsigned int channel);
 
-//takes a measurement from the ADC probe and prints the result to the user terminal
-void bpADCprobe(void);
-void bpADCCprobe(void);
+/**
+ * Takes one single ADC measurement and prints it to the serial port.
+ */
+void bp_adc_probe(void);
 
-//print byte c to the user terminal in the format 
-//  specified by the bpConfig.displayMode setting
-void bpWbyte(unsigned int c);
+/**
+ * Takes ADC measurements and prints them to the serial port until a byte is
+ * sent to the serial port.
+ */
+void bp_adc_continuous_probe(void);
+
+/**
+ * Prints the given value to the user terminal according to the format settings
+ * specified by bus_pirate_configuration_t.display_mode.
+ * 
+ * @param[in] value the value to print to the serial port.
+ */
+void bp_write_formatted_integer(unsigned int value);
 
 /**
  * Pauses execution for the given amount of milliseconds.

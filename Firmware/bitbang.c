@@ -250,7 +250,7 @@ unsigned char bbMISO (void){ return bbR(bitbang.MIpin);}
 // BASE IO functions
 //
 void bbH(unsigned int pins, unsigned char delay){
-	if(modeConfig.HiZ==0){
+	if(modeConfig.high_impedance==0){
 		IOLAT |= pins;//normal output high
 		IODIR &=(~pins);//direction to output
 	}else{
@@ -270,7 +270,7 @@ void bbPins(unsigned int dir, unsigned int pins, unsigned char delay){
 		IOLAT &=(~pins); //pins to 0
 		IODIR &=(~pins);//direction to output
 	}else{
-		if(modeConfig.HiZ==0){
+		if(modeConfig.high_impedance==0){
 			IOLAT |= pins;//normal output high
 			IODIR &=(~pins);//direction to output
 		}else{

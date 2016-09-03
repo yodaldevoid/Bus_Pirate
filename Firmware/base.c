@@ -17,53 +17,44 @@
 #include "base.h"
 #include "bus_pirate_core.h"
 
-extern bus_pirate_configuration_t bpConfig; //global config variables
-extern mode_configuration_t modeConfig; //mode config variables
+extern bus_pirate_configuration_t bpConfig;
+extern mode_configuration_t modeConfig;
 
-void clearModeConfig(void); //private function to clear modeConfig on reset
+/**
+ * Clear mode configuration on mode change.
+ */
+static void clear_mode_configuration(void);
 
-//private function to clear modeConfig on reset
-void clearModeConfig(void){
-	//reset the options structure here...
-	modeConfig.HiZ=0;
-	modeConfig.speed=0; 
-	modeConfig.periodicService=0;
-	modeConfig.altAUX=0;
-	modeConfig.lsbEN=0;
+void clear_mode_configuration(void) {
+	modeConfig.high_impedance = 0;
+	modeConfig.speed = 0; 
+	modeConfig.periodicService = 0;
+	modeConfig.altAUX = 0;
+	modeConfig.lsbEN = 0;
 }
 
-//get bus pirate ready after first start
-//or clean up after any dirty modules
-//modules MUST teardown any PPS functions on the CMD_CLEANUP command
-void bpInit(void){
-	//do this manually so there aren't problems with hardware
-	//that has I/O on different ports
-	BP_MOSI_DIR=1;
-	BP_CLK_DIR=1; 
-	BP_MISO_DIR=1;
-	BP_CS_DIR=1; 
-	BP_AUX0_DIR=1;
-	BP_LEDMODE=0; //mode LED OFF
-	BP_LEDMODE_DIR=0;
+void bp_reset_board_state(void) {
+	BP_MOSI_DIR = INPUT;
+	BP_CLK_DIR = INPUT;
+	BP_MISO_DIR = INPUT;
+	BP_CS_DIR = INPUT;
+	BP_AUX0_DIR = INPUT;
+	BP_LEDMODE = OFF;
+	BP_LEDMODE_DIR = OUTPUT;
 #ifdef BUSPIRATEV4
 	BP_USBLED_OFF();
 	BPV4_HWI2CPINS_SETUP();
 	BP_BUTTON_SETUP();
 	BP_3V3PU_OFF();
-	//BP_5VPU_OFF();
 	eeprom_initialize();
 #endif /* BUSPIRATEv4 */
 
 	BP_AUX_RPOUT = 0;    //remove output from AUX pin (PWM/servo modes)
 
-	bpConfig.bus_mode=BP_HIZ;
-
-	clearModeConfig(); //reset the mode settings structure
-	
-		BP_PULLUP_OFF();
-
-	BP_VREG_OFF();//disable the VREG
-
+	bpConfig.bus_mode = BP_HIZ;
+	clear_mode_configuration();
+	BP_PULLUP_OFF();
+	BP_VREG_OFF();
 	//setup voltage monitoring on ADC. see hardwarevx.h!
 	BP_ADC_PINSETUP();
 
@@ -72,12 +63,12 @@ void bpInit(void){
 								// counter ends sampling and starts
 								// converting.
 	AD1CSSL = 0;
-	AD1CON3 = 0x1F02; // Sample time = 31Tad,
-						// Tad = 2 Tcy
+	AD1CON3 = 0x1F02; // Sample time = 31Tad, Tad = 2 Tcy
 	AD1CON2 = 0;
 }
 
 unsigned int bp_read_adc(unsigned int channel) {
+    
     /* Set channel. */
     AD1CHS = channel;
 
@@ -88,74 +79,93 @@ unsigned int bp_read_adc(unsigned int channel) {
     AD1CON1bits.DONE = OFF;
 
     /* Wait for conversion to finish. */
-    while (AD1CON1bits.DONE == OFF) {
-    }
+    while (AD1CON1bits.DONE == OFF);
 
     /* Return value. */
     return ADC1BUF0;
 }
 
-//takes a measurement from the ADC probe and prints the result to the user terminal
-void bpADCprobe(void){
-	AD1CON1bits.ADON = 1; // turn ADC ON
-	bpWvolts(bp_read_adc(BP_ADC_PROBE)); //print measurement
-	AD1CON1bits.ADON = 0; // turn ADC OFF
+void bp_adc_probe(void) {
+	AD1CON1bits.ADON = ON;
+	bpWvolts(bp_read_adc(BP_ADC_PROBE));
+	AD1CON1bits.ADON = OFF;
 }
 
-// measure constantly 
-void bpADCCprobe(void)
-{	unsigned int temp;
+void bp_adc_continuous_probe(void) {
+	unsigned int measurement;
 
 	//bpWline(OUMSG_PS_ADCC);
 	BPMSG1042;
 	//bpWline(OUMSG_PS_ANY_KEY);
-	BPMSG1250; //BPMSG1043;
+	BPMSG1250;
 	//bpWstring(OUMSG_PS_ADC_VOLT_PROBE);
 	BPMSG1044;
-	bpWvolts(0);						// print dummy (0v)
+	bpWvolts(0);
 	//bpWstring(OUMSG_PS_ADC_VOLTS);
 	BPMSG1045;
-	while(!UART1RXRdy())				// wait for keypress
-	{	AD1CON1bits.ADON = 1;			// turn ADC ON
-		temp=bp_read_adc(BP_ADC_PROBE);
-		AD1CON1bits.ADON = 0;			// turn ADC OFF
-		bp_write_string("\x08\x08\x08\x08\x08");	// 5x backspace ( e.g. 5.00V )
-		//BPMSG1046;
-		bpWvolts(temp);					// print measurement
+	
+    /* Perform ADC probes until a character is sent to the serial port. */
+    while (!UART1RXRdy()) {
+        /* Turn the ADC on. */
+        AD1CON1bits.ADON = ON;
+        
+        /* Perform the measurement. */
+		measurement = bp_read_adc(BP_ADC_PROBE);
+        
+        /* Turn the ADC off. */
+		AD1CON1bits.ADON = OFF;
+        
+        /* Erase previous measurement. */
+		bp_write_string("\x08\x08\x08\x08\x08");
+        
+        /* Print new measurement. */
+		bpWvolts(measurement);
+        
 		//bpWstring(OUMSG_PS_ADC_VOLTS);
 		BPMSG1045;
-
-		// CvD: wait xx ms??
 	}
+    
+    /* Flush the incoming serial buffer. */
 	UART1RX();
-	bp_write_line("");							// need a linefeed :D
+    
+    bpBR;
 }
 
-
-//print byte c to the user terminal in the format 
-//  specified by the bpConfig.displayMode setting
-void bpWbyte(unsigned int c)
-{	if(modeConfig.numbits<16)
-	{	c&=(0x7FFF>>((16-modeConfig.numbits)-1));
+void bp_write_formatted_integer(unsigned int value) {
+	if (modeConfig.numbits < 16) {
+        value &= 0x7FFF >> ((16 - modeConfig.numbits) - 1);
 	}
-	switch(bpConfig.display_mode){
+    
+	switch (bpConfig.display_mode) {
 		case HEX:
-			if(modeConfig.int16) bpWinthex(c); else bpWhex(c);
+			if (modeConfig.int16) {
+                bpWinthex(value);
+            } else {
+                bpWhex(value);
+            }
 			break;
+            
 		case DEC:
-			if(modeConfig.int16) bpWintdec(c); else bpWdec(c);
+			if (modeConfig.int16) {
+                bpWintdec(value);
+            } else {
+                bpWdec(value);
+            }
 			break;
+            
 		case BIN:
-			if(modeConfig.int16)
-			{	bpWbin(c); bpSP;
+			if (modeConfig.int16) {
+                bpWbin(value);
+                bpSP;
 			}
-			bpWbin(c);
+			bpWbin(value);
 			break;
+            
 		case RAW:
-			if(modeConfig.int16)
-			{	UART1TX(c>>8);
+			if (modeConfig.int16) {
+                UART1TX(value >> 8);
 			}
-			UART1TX(c&0x0FF);
+			UART1TX(value & 0xFF);
 			break;
 	}
 }
@@ -174,7 +184,7 @@ void bp_delay_ms(unsigned int milliseconds) {
 void bp_delay_us(unsigned int microseconds) {
 	unsigned int counter;
 	
-	/* When running at 32MHz, it can execute 16 instructions per µS */
+	/* When running at 32MHz, it can execute 16 instructions per uS */
 	for (counter = 0; counter < microseconds; counter++) {
 		Nop();
 		Nop();
@@ -195,35 +205,21 @@ void bp_delay_us(unsigned int microseconds) {
 	}
 }
 
+unsigned int bp_reverse_integer(unsigned int value) {
+    unsigned int reversed = 0, bitmask;
 
-/*
-unsigned char bpRevByte(unsigned char c){
-	unsigned char r=0, i;
-
-	for(i=0b1; i!=0; i=i<<1){
-		r=r<<1;	
-		if(c&i)r|=0b1;
+	for (bitmask = 0b00000001; bitmask != 0; bitmask = bitmask << 1) {
+        reversed = reversed << 1;	
+		if (value & bitmask) {
+            reversed |= 0b00000001;
+        }
 	}
 
-	if(modeConfig.numbits!=8)
-	{	r>>=(8-modeConfig.numbits);
+	if (modeConfig.numbits != 16) {
+        reversed >>= 16 - modeConfig.numbits;
 	}
-	return r;
-}
-*/
-
-unsigned int bpRevByte(unsigned int c)
-{	unsigned int r=0, i;
-
-	for(i=0b1; i!=0; i=i<<1)
-	{	r=r<<1;	
-		if(c&i)r|=0b1;
-	}
-
-	if(modeConfig.numbits!=16)
-	{	r>>=(16-modeConfig.numbits);
-	}
-	return r;
+    
+	return reversed;
 }
 
 

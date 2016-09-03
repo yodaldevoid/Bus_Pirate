@@ -25,7 +25,7 @@ void binIOperipheralset(unsigned char inByte) {
 
 	//CS pin, follows HiZ setting
 	if(inByte&0b1){
-		if(modeConfig.HiZ==1){
+		if(modeConfig.high_impedance==1){
 			IODIR|=CS; //CS iput in open drain mode
 		}else{	
 			IOLAT|=CS; //CS high
@@ -44,7 +44,7 @@ void binIOperipheralset(unsigned char inByte) {
 unsigned char binBBpullVoltage(unsigned char ctrlB)
 {
 	unsigned char temp=1;
-	if(modeConfig.HiZ == 0)
+	if(modeConfig.high_impedance == 0)
 	{
 		temp = 0;
 	}

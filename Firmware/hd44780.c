@@ -168,7 +168,7 @@ void LCDstop(void)
 
 void LCDsetup(void)
 {       
-        modeConfig.HiZ=1;//yes, always HiZ
+        modeConfig.high_impedance=1;//yes, always HiZ
 }
 
 void LCDsetup_exc(void)

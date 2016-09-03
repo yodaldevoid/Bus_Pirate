@@ -84,7 +84,7 @@ void picinit(void)
 		bp_write_line(")");
 	}
 
-	modeConfig.HiZ=1;				// to allow different Vcc 
+	modeConfig.high_impedance=1;				// to allow different Vcc 
 	modeConfig.int16=1;
 	bbL(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 }
@@ -317,7 +317,7 @@ void binpic(void)
 	unsigned int temp;
 
 	bp_write_string("PIC1");
-	modeConfig.HiZ=1;				// to allow different Vcc 
+	modeConfig.high_impedance=1;				// to allow different Vcc 
 	bbL(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 	picmode=PICMODE6;
 	piccmddelay=2;

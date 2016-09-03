@@ -223,7 +223,7 @@ unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
 		BP_VREG_OFF();
 	}
 
-	bpInit();//clean up
+	bp_reset_board_state();//clean up
 
 	BPMSG1179;
 	bpWdec(errors);

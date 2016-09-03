@@ -179,7 +179,7 @@ void Initialize(void) {
     bpConfig.terminal_speed = 8; //default PC side port speed, startup in 115200, or saved state (later)....
     bpConfig.display_mode = HEX;
 
-    bpInit(); //put startup values in config (do first)clean up, exit in HI-Z
+    bp_reset_board_state(); //put startup values in config (do first)clean up, exit in HI-Z
 
 #ifdef BUSPIRATEV3
     InitializeUART1(); //init the PC side serial port

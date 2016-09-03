@@ -49,7 +49,7 @@ struct _kbframe{
 
 
 void KEYBsetup(void)
-{	modeConfig.HiZ=1;//yes, always HiZ
+{	modeConfig.high_impedance=1;//yes, always HiZ
 }
 
 void KEYBsetup_exc(void)
@@ -91,7 +91,7 @@ void KEYBmacro(unsigned int c)
 				BPMSG1250;
 				while(1)
 				{	if(kbReadByte()==0)
-					{	bpWbyte(kbScancode.code);
+					{	bp_write_formatted_integer(kbScancode.code);
 						bpSP;
 					}
 					if(UART1RXRdy() == 1) //any key pressed, exit

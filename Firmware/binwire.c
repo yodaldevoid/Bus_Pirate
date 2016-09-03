@@ -79,7 +79,7 @@ void binwire(void) {
 		static unsigned int V_out;
 	#endif
 
-    modeConfig.HiZ = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
+    modeConfig.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
     modeConfig.lsbEN = 0; //just in case!
     modeConfig.speed = 1;
     modeConfig.numbits = 8;
@@ -138,7 +138,7 @@ void binwire(void) {
                             i = bbReadWriteByte(0xff);
                         }
                         if (modeConfig.lsbEN == 1) {//adjust bitorder
-                            i = bpRevByte(i);
+                            i = bp_reverse_integer(i);
                         }
                         UART1TX(i);
                         break;
@@ -182,7 +182,7 @@ void binwire(void) {
                 for (i = 0; i < inByte; i++) {
                     c = UART1RX(); // /* JTR usb port; */;
                     if (modeConfig.lsbEN == 1) {//adjust bitorder
-                        c = bpRevByte(c);
+                        c = bp_reverse_integer(c);
                     }
                     if (wires == 2) {//2 wire, send 1
                         bbWriteByte(c); //send byte
@@ -190,7 +190,7 @@ void binwire(void) {
                     } else { //3 wire, return read byte
                         c = bbReadWriteByte(c); //send byte
                         if (modeConfig.lsbEN == 1) {//adjust bitorder
-                            c = bpRevByte(c);
+                            c = bp_reverse_integer(c);
                         }
                         UART1TX(c);
                     }
@@ -416,8 +416,8 @@ void binwire(void) {
 
             case 0b1000: //set config
                 //wxyz //w=HiZ(0)/3.3v(1), x=3wireenable, y=lsb, z=n/a
-                modeConfig.HiZ = 0;
-                if ((inByte & 0b1000) == 0) modeConfig.HiZ = 1; //hiz output if this bit is 1
+                modeConfig.high_impedance = 0;
+                if ((inByte & 0b1000) == 0) modeConfig.high_impedance = 1; //hiz output if this bit is 1
 
                 wires = 2;
                 if (inByte & 0b100) wires = 3; //3wire/2wire toggle
@@ -577,9 +577,9 @@ void PIC424Write_internal(unsigned long cmd, unsigned char pn) {
     bbWriteBit(0); //send bit
 
     //send data payload 0xBA0B96 0xBADBB6 0xBA0BB6
-    bbWriteByte(bpRevByte(cmd)); //send byte
-    bbWriteByte(bpRevByte(cmd >> 8)); //send byte
-    bbWriteByte(bpRevByte(cmd >> 16)); //send byte
+    bbWriteByte(bp_reverse_integer(cmd)); //send byte
+    bbWriteByte(bp_reverse_integer(cmd >> 8)); //send byte
+    bbWriteByte(bp_reverse_integer(cmd >> 16)); //send byte
 
     //do any post instruction NOPs
     pn &= 0x0F;

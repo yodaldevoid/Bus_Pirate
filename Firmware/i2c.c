@@ -94,7 +94,7 @@ unsigned int I2Cread(void) {
         //bpWmessage(MSG_ACK);
         BPMSG1060;
         bpSP;
-        i2c_state.i2c_acknowledgment_pending = FALSE;
+        i2c_state.i2c_acknowledgment_pending = false;
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
@@ -105,7 +105,7 @@ unsigned int I2Cread(void) {
         c = hwi2cread();
     }
 #endif /* BP_I2C_USE_HW_BUS */
-    i2c_state.i2c_acknowledgment_pending = TRUE;
+    i2c_state.i2c_acknowledgment_pending = true;
     return c;
 }
 
@@ -123,7 +123,7 @@ unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
             hwi2csendack(0); //all other reads get an ACK
         }
 #endif /* BP_I2C_USE_HW_BUS */
-        i2c_state.i2c_acknowledgment_pending = FALSE;
+        i2c_state.i2c_acknowledgment_pending = false;
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
@@ -159,7 +159,7 @@ void I2Cstart(void) {
             hwi2csendack(1); //the last read before a stop/start condition gets an NACK
         }
 #endif /* BP_I2C_USE_HW_BUS */
-        i2c_state.i2c_acknowledgment_pending = FALSE;
+        i2c_state.i2c_acknowledgment_pending = false;
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
@@ -190,7 +190,7 @@ void I2Cstop(void) {
             hwi2csendack(1); //the last read before a stop/start condition gets an NACK
         }
 #endif /* BP_I2C_USE_HW_BUS */
-        i2c_state.i2c_acknowledgment_pending = FALSE;
+        i2c_state.i2c_acknowledgment_pending = false;
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
@@ -282,12 +282,12 @@ void I2Csetup(void) {
 #endif /* BUSPIRATEV3 */
         I2Csettings();
 
-        i2c_state.i2c_acknowledgment_pending = FALSE;
+        i2c_state.i2c_acknowledgment_pending = false;
         //		I2Cstop();			// this needs to be done after a mode change??
     }
 
     //set the options avaiable here....
-    modeConfig.HiZ = 1; //yes, always hiz
+    modeConfig.high_impedance = 1; //yes, always hiz
 }
 
 void I2Csetup_exc(void) //Executes the setup.. controlled with 'P' command
@@ -308,7 +308,7 @@ void I2Csetup_exc(void) //Executes the setup.. controlled with 'P' command
 
    
 void I2Ccleanup(void) {
-    i2c_state.i2c_acknowledgment_pending = FALSE; //clear any pending ACK from previous use
+    i2c_state.i2c_acknowledgment_pending = false; //clear any pending ACK from previous use
     if (i2c_state.i2c_mode == I2C_TYPE_HARDWARE) {
         I2C1CONbits.I2CEN = 0; //disable I2C module
 #ifdef BUSPIRATEV4
@@ -358,9 +358,9 @@ void I2Cmacro(unsigned int c) {
 #endif /* BP_I2C_USE_HW_BUS */
                 if (c == 0) {//0 is ACK
 
-                    bpWbyte(i);
+                    bp_write_formatted_integer(i);
                     UART1TX('('); //bpWstring("(");
-                    bpWbyte((i >> 1));
+                    bp_write_formatted_integer((i >> 1));
                     if ((i & 0b1) == 0) {//if the first bit is set it's a read address, send a byte plus nack to clean up
                         bp_write_string(" W");
                     } else {
@@ -828,7 +828,7 @@ void binI2C(void) {
     //set CS pin direction to output on setup
     BP_CS_DIR = 0; //B6 cs output
 
-    modeConfig.HiZ = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
+    modeConfig.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
     modeConfig.lsbEN = 0; //just in case!
     bbSetup(2, 0xff); //configure the bitbang library for 2-wire, set the speed to default/high
     binI2CversionString(); //reply string

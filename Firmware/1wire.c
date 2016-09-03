@@ -109,7 +109,7 @@ void OWdath(void)
 
 void OWsetup(void)
 {       
-        modeConfig.HiZ=1;//yes, always HiZ
+        modeConfig.high_impedance=1;//yes, always HiZ
 
         OWroster.num=0;//clear any old 1-wire bus enumeration rosters
         //-- Ensure pins are in high impedance mode --
@@ -140,7 +140,7 @@ void OWmacro(unsigned int macro)
                 bpWdec(macro+1);
                 bp_write_string(": ");
                 for(j=0;j<8;j++){
-                        bpWbyte(OWroster.dev[macro].id[j]); 
+                        bp_write_formatted_integer(OWroster.dev[macro].id[j]); 
                         bpSP; 
                         OWWriteByte(OWroster.dev[macro].id[j]);
                 } //write address
@@ -162,7 +162,7 @@ void OWmacro(unsigned int macro)
                                         bpSP;//space
                                         bpWdec(c+1);
                                         bp_write_string(".");
-                                        for(j=0;j<8;j++){bpWbyte(OWroster.dev[c].id[j]); bpSP;}
+                                        for(j=0;j<8;j++){bp_write_formatted_integer(OWroster.dev[c].id[j]); bpSP;}
                                         //bpWstring("\x0D\x0A   *");
                                         BPMSG1008;
                                         DS1wireID(OWroster.dev[c].id[0]);       //print the device family identity (if known)
@@ -197,7 +197,7 @@ void OWmacro(unsigned int macro)
                 
                                 // print address
                                 for (i = 0; i <8; i++){
-                                        bpWbyte(ROM_NO[i]);
+                                        bp_write_formatted_integer(ROM_NO[i]);
                                         bpSP;
                                 }
                                 //bpWstring("\x0D\x0A   *");
@@ -226,7 +226,7 @@ void OWmacro(unsigned int macro)
                         OWWriteByte(0x33);
                         for(i=0; i<8; i++){
                                 devID[i]=OWReadByte();
-                                bpWbyte(devID[i]);
+                                bp_write_formatted_integer(devID[i]);
                                 bpSP;   
                         }
                         bpBR;  
@@ -328,7 +328,7 @@ unsigned char OWFirst()
 {
    // reset the search state
    LastDiscrepancy = 0;
-   LastDeviceFlag = FALSE;
+   LastDeviceFlag = false;
    LastFamilyDiscrepancy = 0;
 
    return OWSearch();
@@ -374,9 +374,9 @@ unsigned char OWSearch()
       {
          // reset the search
          LastDiscrepancy = 0;
-         LastDeviceFlag = FALSE;
+         LastDeviceFlag = false;
          LastFamilyDiscrepancy = 0;
-         return FALSE;
+         return false;
       }
 
       // issue the search command 
@@ -452,9 +452,9 @@ unsigned char OWSearch()
 
          // check for last device
          if (LastDiscrepancy == 0)
-            LastDeviceFlag = TRUE;
+            LastDeviceFlag = true;
          
-         search_result = TRUE;
+         search_result = true;
       }
    }
 
@@ -462,9 +462,9 @@ unsigned char OWSearch()
    if (!search_result || !ROM_NO[0])
    {
       LastDiscrepancy = 0;
-      LastDeviceFlag = FALSE;
+      LastDeviceFlag = false;
       LastFamilyDiscrepancy = 0;
-      search_result = FALSE;
+      search_result = false;
    }
 
    return search_result;
@@ -489,23 +489,23 @@ unsigned char OWVerify()
 
    // set search to find the same device
    LastDiscrepancy = 64;
-   LastDeviceFlag = FALSE;
+   LastDeviceFlag = false;
 
    if (OWSearch())
    {
       // check if same device found
-      rslt = TRUE;
+      rslt = true;
       for (i = 0; i < 8; i++)
       {
          if (rom_backup[i] != ROM_NO[i])
          {
-            rslt = FALSE;
+            rslt = false;
             break;
          }
       }
    }
    else
-     rslt = FALSE;
+     rslt = false;
 
    // restore the search state 
    for (i = 0; i < 8; i++)
@@ -575,7 +575,7 @@ void bin1WIRE(void){
 
         BP_CS_DIR=0;                    //set CS pin direction to output on setup
 
-        modeConfig.HiZ=1;//yes, always hiz, sets CS to open drain state 
+        modeConfig.high_impedance=1;//yes, always hiz, sets CS to open drain state 
         modeConfig.lsbEN=0;//just in case!
 
         bin1WIREversionString();//reply string

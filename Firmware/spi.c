@@ -71,7 +71,7 @@ static const uint8_t spi_bus_speed[] = {
 };
 
 void SPIstartr(void) {
-    modeConfig.wwr = 1;
+    modeConfig.write_with_read = 1;
     if (spiSettings.csl) {
         SPICS = 0;
     } else {
@@ -83,7 +83,7 @@ void SPIstartr(void) {
 }
 
 void SPIstart(void) {
-    modeConfig.wwr = 0;
+    modeConfig.write_with_read = 0;
     if (spiSettings.csl) {
         SPICS = 0;
     } else {
@@ -114,7 +114,7 @@ unsigned int SPIwrite(unsigned int c) {
     unsigned char r;
 
     r = spiWriteByte(c);
-    if (modeConfig.wwr == 1) {
+    if (modeConfig.write_with_read == 1) {
         return r;
     }
     //FIXME what to return if wwr=0? we need an uint here
@@ -134,7 +134,7 @@ void SPIsettings(void) {
     bpSP;
     bpWdec(spiSettings.csl);
     bpSP;
-    bpWdec(modeConfig.HiZ);
+    bpWdec(modeConfig.high_impedance);
     bpSP;
     //bpWline(")\r\n");
     BPMSG1162;
@@ -195,7 +195,7 @@ void SPIsetup(void) {
 
 
     if ((output > 0) && (output <= 2)) {
-        modeConfig.HiZ = (~(output - 1));
+        modeConfig.high_impedance = (~(output - 1));
     } else {
         speed = 0; // when speed is 0 we ask the user
     }
@@ -236,11 +236,11 @@ void SPIsetup(void) {
         //bpWmessage(MSG_OPT_OUTPUT_TYPE);
         BPMSG1142;
         //modeConfig.HiZ=(~(bpUserNumberPrompt(1, 2, 1)-1));
-        modeConfig.HiZ = (~(getnumber(1, 1, 2, 0) - 1));
+        modeConfig.high_impedance = (~(getnumber(1, 1, 2, 0) - 1));
     } else {
         SPIsettings();
     }
-    modeConfig.wwr = 0;
+    modeConfig.write_with_read = 0;
 }
 
 void SPIsetup_exc(void)
@@ -318,7 +318,7 @@ void spiSetup(unsigned char spiSpeed) {
     //use open drain control register to
     //enable Hi-Z mode on hardware module outputs
     //inputs are already HiZ
-    if (modeConfig.HiZ == 1) {
+    if (modeConfig.high_impedance == 1) {
         SPIMOSI_ODC = 1;
         SPICLK_ODC = 1;
         SPICS_ODC = 1;
@@ -582,7 +582,7 @@ void binSPI(void) {
     spiSettings.ckp = 0;
     spiSettings.cke = 1;
     spiSettings.smp = 0;
-    modeConfig.HiZ = 1;
+    modeConfig.high_impedance = 1;
     spiSetup(binSPIspeed[modeConfig.speed]); //start with 250khz (30,125,250,1000khz)
     binSPIversionString(); //1 - SPI setup and reply string
 
@@ -774,11 +774,11 @@ void binSPI(void) {
                 spiSettings.ckp = 0;
                 spiSettings.cke = 0;
                 spiSettings.smp = 0;
-                modeConfig.HiZ = 0;
+                modeConfig.high_impedance = 0;
                 if (inByte & 0b100) spiSettings.ckp = 1; //set idle
                 if (inByte & 0b10) spiSettings.cke = 1; //set edge
                 if (inByte & 0b1) spiSettings.smp = 1; //set sample time
-                if ((inByte & 0b1000) == 0) modeConfig.HiZ = 1; //hiz output if this bit is 1
+                if ((inByte & 0b1000) == 0) modeConfig.high_impedance = 1; //hiz output if this bit is 1
                 spiSetup(binSPIspeed[modeConfig.speed]); //resetup SPI
                 UART1TX(1); //send 1/OK
                 break;

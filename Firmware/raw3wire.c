@@ -49,14 +49,14 @@ unsigned int R3Wread(void)
 
 unsigned int R3Wwrite(unsigned int c)
 {	c=bbReadWriteByte(c);
-	if(modeConfig.wwr==1)
+	if(modeConfig.write_with_read==1)
 	{	return c;
 	}
 	return 0x00;
 }
 
 void R3Wstartr(void)
-{	modeConfig.wwr=1;
+{	modeConfig.write_with_read=1;
 	if(r3wSettings.csl)
 	{	bbCS(0);
 	}
@@ -68,7 +68,7 @@ void R3Wstartr(void)
 	BPMSG1159;
 }
 void R3Wstart(void)
-{	modeConfig.wwr=0;
+{	modeConfig.write_with_read=0;
 	if(r3wSettings.csl)
 	{	bbCS(0);
 	}
@@ -80,7 +80,7 @@ void R3Wstart(void)
 	BPMSG1159;
 }
 void R3Wstop(void)
-{	modeConfig.wwr=0;
+{	modeConfig.write_with_read=0;
 	if(r3wSettings.csl)
 	{	bbCS(1);
 	}
@@ -118,7 +118,7 @@ void R3Wsettings(void) {
 	BPMSG1161;
 	bpWdec(modeConfig.speed); bpSP;
 	bpWdec(r3wSettings.csl); bpSP;
-	bpWdec(modeConfig.HiZ); bpSP;
+	bpWdec(modeConfig.high_impedance); bpSP;
 	bp_write_line(")");
 }
 
@@ -146,7 +146,7 @@ void R3Wsetup(void)
 	{	speed=0;					// when speed is 0 we ask the user
 	}
 	if((output>0)&&(output<=2))
-	{	modeConfig.HiZ=(~(output-1));
+	{	modeConfig.high_impedance=(~(output-1));
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
@@ -163,7 +163,7 @@ void R3Wsetup(void)
 
 		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
 		BPMSG1142;
-		modeConfig.HiZ=(~(getnumber(1,1,2,0)-1));
+		modeConfig.high_impedance=(~(getnumber(1,1,2,0)-1));
 		cmderror=0;
 	}
 	else
@@ -171,7 +171,7 @@ void R3Wsetup(void)
 	}
 
 	//reset the write with read variable
-	modeConfig.wwr=0;
+	modeConfig.write_with_read=0;
 	modeConfig.int16=0; //8 bit
 }
 void R3Wsetup_exc(void)

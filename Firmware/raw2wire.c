@@ -109,7 +109,7 @@ void R2Wsettings(void) {
     //bpWstring("R2W (spd hiz)=( ");
 	BPMSG1143;
 	bpWdec(modeConfig.speed); bpSP;
-	bpWdec(modeConfig.HiZ); bpSP;
+	bpWdec(modeConfig.high_impedance); bpSP;
 	//bpWline(")\r\n");
 	BPMSG1162;
 }
@@ -131,7 +131,7 @@ void R2Wsetup(void)
 	{	speed=0;					// when speed is 0 we ask the user
 	}
 	if((output>0)&&(output<=2))
-	{	modeConfig.HiZ=(~(output-1));
+	{	modeConfig.high_impedance=(~(output-1));
 	}
 	else	
 	{	speed=0;					// when speed is 0 we ask the user
@@ -144,7 +144,7 @@ void R2Wsetup(void)
 		modeConfig.speed=(getnumber(1,1,4,0)-1);
 		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
 		BPMSG1142;
-		modeConfig.HiZ=(~(getnumber(1,1,2,0)-1));
+		modeConfig.high_impedance=(~(getnumber(1,1,2,0)-1));
 	}
 	else
 	{	R2Wsettings();

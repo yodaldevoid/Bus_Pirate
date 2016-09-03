@@ -556,7 +556,7 @@ end:
                     if (bpConfig.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
-                        if (modeConfig.HiZ == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
+                        if (modeConfig.high_impedance == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
                             BPMSG1209;
                         }
                         BP_PULLUP_ON(); //pseudofunction in hardwarevx.h
@@ -591,7 +591,7 @@ end:
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
                     temp = getint();
-                    temp = bpRevByte((unsigned char) temp);
+                    temp = bp_reverse_integer((unsigned char) temp);
                     bpWhex(temp);
                     bp_write_string(" = ");
                     bpWdec(temp);
@@ -622,7 +622,7 @@ bpv4reset:
                     if (agree()) { //bpWline("BOOTLOADER");
                         BPMSG1094;
                         bp_delay_ms(100);
-                        bpInit(); // turn off nasty things, cleanup first needed?
+                        bp_reset_board_state(); // turn off nasty things, cleanup first needed?
                         while (0 == UART1TXEmpty()); //wait untill TX finishes
                         asm volatile ("mov #BLJUMPADDRESS, w1 \n" //bootloader location
                                     "goto w1 \n");
@@ -690,13 +690,13 @@ bpv4reset:
                 case 'd': //bpWline("-read ADC");	//do an adc reading
                     //bpWstring(OUMSG_PS_ADC_VOLT_PROBE);
                     BPMSG1044;
-                    bpADCprobe();
+                    bp_adc_probe();
                     //bpWline(OUMSG_PS_ADC_VOLTS);`
                     BPMSG1045;
                     bpBR;
                     break;
                 case 'D': //bpWline("-DVM mode");	//dumb voltmeter mode
-                    bpADCCprobe();
+                    bp_adc_continuous_probe();
                     break;
                 case '&': //bpWline("-delay 1ms");
                     repeat = getrepeat();
@@ -804,7 +804,7 @@ bpv4reset:
                             sendw = cmdbuf[cmdstart];
                             if (modeConfig.lsbEN == 1) //adjust bitorder
                             {
-                                sendw = bpRevByte(sendw);
+                                sendw = bp_reverse_integer(sendw);
                             }
                             protos[bpConfig.bus_mode].protocol_send(sendw);
                         }
@@ -848,22 +848,22 @@ bpv4reset:
                         else modeConfig.int16 = 0;
                     }
                     while (--repeat) {
-                        bpWbyte(sendw);
+                        bp_write_formatted_integer(sendw);
                         if (((modeConfig.int16 == 0) && (modeConfig.numbits != 8)) || ((modeConfig.int16 == 1) && (modeConfig.numbits != 16))) {
                             UART1TX(';');
                             bpWdec(modeConfig.numbits);
                         }
                         if (modeConfig.lsbEN == 1) {//adjust bitorder
-                            sendw = bpRevByte(sendw);
+                            sendw = bp_reverse_integer(sendw);
                         }
                         received = protos[bpConfig.bus_mode].protocol_send(sendw);
                         bpSP;
-                        if (modeConfig.wwr) { //bpWmessage(MSG_READ);
+                        if (modeConfig.write_with_read) { //bpWmessage(MSG_READ);
                             BPMSG1102;
                             if (modeConfig.lsbEN == 1) {//adjust bitorder
-                                received = bpRevByte(received);
+                                received = bp_reverse_integer(received);
                             }
-                            bpWbyte(received);
+                            bp_write_formatted_integer(received);
                             bpSP;
                         }
                     }
@@ -889,9 +889,9 @@ bpv4reset:
                     while (--repeat) {
                         received = protos[bpConfig.bus_mode].protocol_read();
                         if (modeConfig.lsbEN == 1) {//adjust bitorder
-                            received = bpRevByte(received);
+                            received = bp_reverse_integer(received);
                         }
-                        bpWbyte(received);
+                        bp_write_formatted_integer(received);
                         if (((modeConfig.int16 == 0) && (modeConfig.numbits != 8)) || ((modeConfig.int16 == 1) && (modeConfig.numbits != 16))) {
                             UART1TX(';');
                             bpWdec(modeConfig.numbits);
@@ -950,7 +950,7 @@ bpv4reset:
                 case '^': //bpWline("-CLK pulse");
                     repeat = getrepeat();
                     BPMSG1108;
-                    bpWbyte(repeat);
+                    bp_write_formatted_integer(repeat);
                     repeat++;
                     while (--repeat) { //bpWmessage(MSG_BIT_CLK);
                         protos[bpConfig.bus_mode].protocol_clock_pulse();
@@ -1143,7 +1143,7 @@ void changemode(void) {
             BPMSG1112;
         } else {
             protos[bpConfig.bus_mode].protocol_cleanup();
-            bpInit();
+            bp_reset_board_state();
             bpConfig.bus_mode = busmode;
             protos[bpConfig.bus_mode].protocol_setup();
             bp_write_line("Clutch disengaged!!!");
@@ -1159,7 +1159,7 @@ void changemode(void) {
         busmode--; // save a couple of programwords to do it here :D
         if (busmode < MAXPROTO) {
             protos[bpConfig.bus_mode].protocol_cleanup();
-            bpInit();
+            bp_reset_board_state();
             bpConfig.bus_mode = busmode;
             protos[bpConfig.bus_mode].protocol_setup();
             if (busmode) BP_LEDMODE = 1; // mode led is on when proto >0
@@ -1561,7 +1561,7 @@ void statusInfo(void) {
 #endif /* BUSPIRATEV4 */
 
     //open collector outputs?
-    if (modeConfig.HiZ == 1) BPMSG1120;
+    if (modeConfig.high_impedance == 1) BPMSG1120;
     else BPMSG1121; // bpWmessage(MSG_STATUS_OUTPUT_HIZ); else bpWmessage(MSG_STATUS_OUTPUT_NORMAL);
 
     //bitorder toggle available, enabled
@@ -1784,7 +1784,7 @@ void setPullupVoltage(void) {
         cmderror = 1; // raise error
         return;
     }
-    if (modeConfig.HiZ == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
+    if (modeConfig.high_impedance == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
         BPMSG1209;
         cmderror = 1; // raise error
         return;
