@@ -14,6 +14,8 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <stdbool.h>
+
 /* Binary access modes for Bus Pirate scripting */
 
 #include "configuration.h"
@@ -53,7 +55,7 @@ extern mode_configuration_t mode_configuration;
 //unsigned char binBBpindirectionset(unsigned char inByte);
 //unsigned char binBBpinset(unsigned char inByte);
 void binBBversion(void);
-void binSelfTest(unsigned char jumperTest);
+void binSelfTest(bool jumper_test);
 void binReset(void);
 unsigned char getRXbyte(void);
 
@@ -365,11 +367,11 @@ unsigned char binBBpinset(unsigned char inByte) {
     return inByte; //return the read
 }
 
-void binSelfTest(unsigned char jumperTest) {
+void binSelfTest(bool jumper_test) {
     static volatile unsigned int tick = 0;
     unsigned char errors, inByte;
 
-    errors = selfTest(0, jumperTest); //silent self-test
+    errors = perform_selftest(false, jumper_test); //silent self-test
     if (errors) BP_LEDMODE = 1; //light MODE LED if errors
     UART1TX(errors); //reply with number of errors
 

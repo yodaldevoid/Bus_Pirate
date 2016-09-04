@@ -40,7 +40,11 @@
 #define IOPOR 	PORTB
 #define IOLAT	LATB
 #define IODIR	TRISB
-#define ALLIO  (MOSI+CLK+MISO+CS)
+
+/**
+ * Bitmask for all available the I/O pins.
+ */
+#define ALLIO  (MOSI + CLK + MISO + CS)
 
 //these macros set the pin IO used in each module
 #define BP_MOSI 		PORTBbits.RB9

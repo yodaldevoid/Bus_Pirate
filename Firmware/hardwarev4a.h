@@ -47,7 +47,11 @@
 #define IOPOR                   PORTD
 #define IOLAT                   LATD
 #define IODIR                   TRISD
-#define ALLIO                   (MOSI+CLK+MISO+CS)
+
+/**
+ * Bitmask for all available the I/O pins.
+ */
+#define ALLIO                   (MOSI + CLK + MISO + CS)
 #define AUX                     AUX0
 
 //these macros set the pin IO used in each module

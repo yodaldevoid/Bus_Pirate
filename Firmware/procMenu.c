@@ -601,7 +601,7 @@ end:
                     break;
                 case '~': //bpWline("-selftest");
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) {
-                        selfTest(1, 1); //self test, showprogress in terminal
+                        perform_selftest(true, true);
                     } else {
                         //bpWline(OUMSG_PM_SELFTEST_HIZ);
                         BPMSG1092;

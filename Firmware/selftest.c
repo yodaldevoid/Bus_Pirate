@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -15,259 +16,363 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
+
+#include "selftest.h"
 
 #include "base.h"
-#include "selftest.h"
 #include "bus_pirate_core.h"
 
-void bpTest(unsigned char p, unsigned char d);
-void bpBusPinsTest(unsigned char d);
-void bpADCPinTest(unsigned char a, unsigned int lval, unsigned int hval);
+/**
+ * How many milliseconds to wait before reading all pins once set.
+ */
+#define PIN_STATE_TEST_DELAY 100
 
-static unsigned char errors;
+/**
+ * How many milliseconds to wait before reading power pins status once set.
+ */
+#define PWR_STATE_TEST_DELAY 2
+
+/**
+ * Checks whether the given test value matches the expected result, and prints
+ * the result to the serial port.
+ *
+ * If the values do not match, the internal error counter gets incremented by
+ * one.
+ *
+ * @param[in] obtained the value obtained by the test procedure.
+ * @param[in] expected the value that was meant to be obtained.
+ */
+void check_result(bool obtained, bool expected);
+
+/**
+ * Checks whether all pins are actually set to the same given state.
+ *
+ * @todo Check AUX pin too on v3
+ * @todo Check AUX1/AUX2 pins too on v4
+ *
+ * @param[in] state the pin state to check pins against.
+ */
+void perform_pins_state_test(bool state);
+
+/**
+ * Takes an ADC measurement and checks whether the result is within the set
+ * threshold range.
+ *
+ * @param[in] channel the channel to read from.
+ * @param[in] minimum_threshold the minimum acceptable value.
+ * @param[in] maximum_threshold the maximum acceptable value.
+ */
+void perform_adc_test(unsigned int channel, unsigned int minimum_threshold,
+                      unsigned int maximum_threshold);
+
+/**
+ * Detected errors counter.
+ */
+static uint8_t errors;
+
+/**
+ * Board configuration information.
+ */
 extern bus_pirate_configuration_t bus_pirate_configuration;
 
+uint8_t perform_selftest(bool show_progress, bool jumper_test) {
 
-//self test, showProgress=1 displays the test results in the terminal, set to 0 for silent mode
-//errors are counted in the global errors variable
-//returns number of errors
-unsigned char selfTest(unsigned char showProgress, unsigned char jumperTest){
-//toggle display of test results with show Progress variable
-	errors=0;
-	if(!showProgress) bus_pirate_configuration.quiet=1;
-	
-//instructions (skip pause if no display output)
-	if(showProgress && jumperTest){
-		//bpPOSTWline("Disconnect any devices");
-		//bpPOSTWline("Connect (Vpu to +5V) and (ADC to +3.3V)");
-		BPMSG1163;
-		BPMSG1251; // //bpPOSTWline("Press a key to start");
-		//JTR Not required while(!UART1RXRdy()); //wait for key
-		UART1RX();//discard byte
-	}
+  errors = 0;
+  if (!show_progress) {
+    bus_pirate_configuration.quiet = true;
+  }
 
-	//bpPOSTWline("Ctrl");
-	BPMSG1164;
-	BP_AUX0=1;
-	BP_AUX0_DIR=0;
-	//bpPOSTWstring("AUX");
-	BPMSG1165;
-	bpTest(BP_AUX0,1);
-	BP_AUX0=0;
-	BP_AUX0_DIR=1;
-				
-	BP_LEDMODE=1;
-	BP_LEDMODE_DIR=0;	
-	//bpPOSTWstring("MODE LED");
-	BPMSG1166;
-	bpTest(BP_LEDMODE,1);
-	BP_LEDMODE=0;
-	
-	BP_PULLUP_ON();
-	//bpPOSTWstring("PULLUP H");
-	BPMSG1167;
-	bpTest(BP_PULLUP,1);
-	BP_PULLUP_OFF();
-	//bpPOSTWstring("PULLUP L");
-	BPMSG1168;
-	bpTest(BP_PULLUP,0);
-	
-	BP_VREG_ON();
-	bp_delay_ms(2);//in silent mode there's not enought delay for the power supplied to come on
-	//bpPOSTWstring("VREG");
-	BPMSG1169;
-	bpTest(BP_VREGEN,1);
+  /* Alert the user to perform the required manual operations if needed. */
 
-#if defined (BUSPIRATEV4)
-	BPMSG1265; //bpWline("EEPROM");
-	BPMSG1266; //bpWstring("SCL");
-	bpTest(BP_EE_SCL, 1);
-	BPMSG1267; //bpWstring("SDA");
-	bpTest(BP_EE_SDA, 1);
-	BPMSG1268; //bpWstring("WP");
-	bpTest(BP_EE_WP, 1);
-	BPMSG1269; //bpWstring("ACK");
-	bpTest(eeprom_test(), true);
-#endif
+  if (show_progress && jumper_test) {
 
-	//ADC check
-	//bpPOSTWline("ADC and supply");
-	BPMSG1170;
-	ADCON(); // turn ADC ON
+    /* Print alert. */
+    BPMSG1163;
+    BPMSG1251;
 
-#if defined (BUSPIRATEV4)
-	BPMSG1270; //bpWstring("Vusb");
-	bpADCPinTest(BP_ADC_USB,V5L, V5H);
+    /* Wait for a character to come in. */
+    UART1RX();
+  }
 
-	//bpPOSTWstring("5V");
-	BPMSG1171;
-	bpADCPinTest(BP_ADC_5V0,V5L, V5H);
+  /* Start the test procedure. */
 
-	//enable 5v0 pullup and test
-	BP_5VPU_ON();
-	BPMSG1171; //bpWstring("5V0 VPU");
-	bp_write_string(" ");
-	BPMSG1172; //VPU 
-	
-	bp_delay_ms(2);
-	bpADCPinTest(BP_ADC_VPU,V5L, V5H);
-	BP_5VPU_OFF();
+  BPMSG1164;
 
-	//ADC test (3.3 volts)
-	if(jumperTest){
-		//ADC is connected to 3.3 volts
-		//bpPOSTWstring("ADC");
-		BPMSG1174;
-		bpADCPinTest(BP_ADC_PROBE,V33L, V33H);
-	}	
+  /* Check whether AUX0 goes HIGH when requested. */
 
-	//bpPOSTWstring("3.3V");
-	BPMSG1173;
-	bpADCPinTest(BP_ADC_3V3,V33L, V33H);
+  BP_AUX0 = HIGH;
+  BP_AUX0_DIR = OUTPUT;
+  BPMSG1165;
+  check_result(BP_AUX0, HIGH);
+  BP_AUX0 = LOW;
+  BP_AUX0_DIR = INPUT;
 
-	//enable 3v3 pullup and test
-	BP_3V3PU_ON();
-	BPMSG1173; //bpWstring("3V3 VPU");
-	bp_write_string(" ");
-	BPMSG1172; //VPU 
-	
-	bp_delay_ms(2);
-	bpADCPinTest(BP_ADC_VPU,V33L, V33H);
-	BP_3V3PU_OFF();
+  /* Check whether the LED line goes HIGH when requested. */
 
-#elif defined (BUSPIRATEV3)
-	 //v3 test
-	//0x030F is 5volts
-	//bpPOSTWstring("5V");
-	BPMSG1171;
-	bpADCPinTest(BP_ADC_5V0,V5L, V5H);
-	
-	if(jumperTest){
-		//Vpullup is connected to 5volts
-		//bpPOSTWstring("VPU");
-		BPMSG1172;
-		bpADCPinTest(BP_ADC_VPU,V5L, V5H);
-	}
+  BP_LEDMODE = HIGH;
+  BP_LEDMODE_DIR = INPUT;
+  BPMSG1166;
+  check_result(BP_LEDMODE, HIGH);
+  BP_LEDMODE = LOW;
 
-	//0x0208 is 3.3volts
-	//bpPOSTWstring("3.3V");
-	BPMSG1173;
-	bpADCPinTest(BP_ADC_3V3,V33L, V33H);
+  /* Check whether the pull-up line goes HIGH when requested. */
 
-	if(jumperTest){
-		//ADC is connected to 3.3volts
-		//bpPOSTWstring("ADC");
-		BPMSG1174;
-		bpADCPinTest(BP_ADC_PROBE,V33L, V33H);
-	}
-#endif
+  BP_PULLUP_ON();
+  BPMSG1167;
+  check_result(BP_PULLUP, HIGH);
 
-	ADCOFF(); // turn ADC OFF 
+  /* Check whether the pull-up line goes LOW when requested. */
 
-//*************
-//
-//  Test bus pins three ways, also tests on-board pullup resistors:
-//	1. normal/high, 2. open collector ground, 3. open collector high.
-//
-//***************
+  BP_PULLUP_OFF();
+  BPMSG1168;
+  check_result(BP_PULLUP, LOW);
 
-	//pullup off, pins=output & high, read input, high?
-	//bpPOSTWline("Bus high");
-	BPMSG1175;
-	IODIR&= ~(ALLIO);//output
-	IOLAT|=ALLIO; //high	
-	bp_delay_ms(100);
-	bpBusPinsTest(1);
+  /* Check whether the regulated voltage line goes HIGH when requested. */
 
-	//pullup on, pins=output & low, read input, low?
-	//bpPOSTWline("Bus Hi-Z 0");
-	BPMSG1176;
-	IOLAT&= ~(ALLIO); //low
-	if(jumperTest){
-		#if defined	(BUSPIRATEV4)	
-		BP_3V3PU_ON();
-		#endif
-		BP_PULLUP_ON();
-	}
-	bp_delay_ms(100);
-	bpBusPinsTest(0);
+  BP_VREG_ON();
+  bp_delay_ms(PWR_STATE_TEST_DELAY);
+  BPMSG1169;
+  check_result(BP_VREGEN, HIGH);
 
-	if(jumperTest){
-	//pullup on, pins=input & low, read input, high?
-		//bpPOSTWline("Bus Hi-Z 1");
-		BPMSG1177;
-		IODIR|=ALLIO;//output
-		bp_delay_ms(100);
-		bpBusPinsTest(1);
-		#if defined	(BUSPIRATEV4)	
-		BP_3V3PU_OFF();
-		#endif
-	}
+#ifdef BUSPIRATEV4
 
-//instructions (skip pause if no display output)
-	if(showProgress && jumperTest){
-		BP_VREG_ON();
-		BP_MODELED_ON();
-		//bpPOSTWline("MODE and VREG LEDs should be on! Any key exits.");
-		#if defined (BUSPIRATEV4)
-			BP_USBLED_ON();
-		#endif
-		BPMSG1178;
-		BPMSG1250;
-		//JTR Not required while(!UART1RXRdy());
-		UART1RX();
-		#ifdef BUSPIRATEV4
-			BP_USBLED_OFF();
-		#endif
-		BP_MODELED_OFF();
-		BP_VREG_OFF();
-	}
+  /* Test the internal EEPROM. */
 
-	bp_reset_board_state();//clean up
+  BPMSG1265;
 
-	BPMSG1179;
-	bpWdec(errors);
-	BPMSG1180;
-	bus_pirate_configuration.quiet=0;
+  /* Check the SPI flash clock line. */
+  BPMSG1266;
+  check_result(BP_EE_SCL, HIGH);
 
+  /* Check the SPI flash data line. */
+  BPMSG1267;
+  check_result(BP_EE_SDA, HIGH);
 
-	return errors;
+  /* Check the SPI flash WRITE PROTECT line. */
+  BPMSG1268;
+  check_result(BP_EE_WP, HIGH);
 
+  /* Performs a more complete EEPROM test. */
+
+  BPMSG1269;
+  check_result(eeprom_test(), true);
+
+#endif /* BUSPIRATEV4 */
+
+  /* ADC check. */
+
+  BPMSG1170;
+
+  /* Turn ADC on. */
+  ADCON();
+
+#ifdef BUSPIRATEV4
+
+  /* Check whether the voltage coming in from the USB port is within range. */
+
+  BPMSG1270;
+  perform_adc_test(BP_ADC_USB, V5L, V5H);
+
+#endif /* BUSPIRATEV4 */
+
+  /* Check whether the +5v rail output is within range. */
+
+  BPMSG1171;
+  perform_adc_test(BP_ADC_5V0, V5L, V5H);
+
+#ifdef BUSPIRATEV4
+
+  /* Test the +5v pull-up line. */
+
+  BP_5VPU_ON();
+  BPMSG1171;
+  bpSP;
+  BPMSG1172;
+  bp_delay_ms(PWR_STATE_TEST_DELAY);
+  perform_adc_test(BP_ADC_VPU, V5L, V5H);
+  BP_5VPU_OFF();
+
+  if (jumper_test) {
+
+    /*
+     * Check whether the +3.3v rail output is within range when measured from
+     * outside the board circuitry, once a jumper wire is manually placed
+     * between the +3.3v rail pin and the ADC input pin.
+     */
+
+    BPMSG1174;
+    perform_adc_test(BP_ADC_PROBE, V33L, V33H);
+  }
+
+  /*
+   * Check whether the +3.3v rail output is within range when measured from
+   * inside the board circuitry.
+   */
+
+  BPMSG1173;
+  perform_adc_test(BP_ADC_3V3, V33L, V33H);
+
+  /* Test the +3.3v pull-up line. */
+
+  BP_3V3PU_ON();
+  BPMSG1173;
+  bpSP;
+  BPMSG1172;
+  bp_delay_ms(PWR_STATE_TEST_DELAY);
+  perform_adc_test(BP_ADC_VPU, V33L, V33H);
+  BP_3V3PU_OFF();
+
+#elif defined(BUSPIRATEV3)
+
+  if (jumper_test) {
+
+    /*
+     * Check whether the +5v pull-up output is within range when measured from
+     * outside the board circuitry, once a jumper wire is manually placed
+     * between the +5v pull-up pin and the ADC input pin.
+     */
+
+    BPMSG1172;
+    perform_adc_test(BP_ADC_VPU, V5L, V5H);
+  }
+
+  /* Check whether the +3.3v rail output is within range. */
+
+  BPMSG1173;
+  perform_adc_test(BP_ADC_3V3, V33L, V33H);
+
+  if (jumper_test) {
+
+    /*
+     * Check whether the +3.3v rail output is within range when measured from
+     * outside the board circuitry, once a jumper wire is manually placed
+     * between the +3.3v rail pin and the ADC input pin.
+     */
+
+    BPMSG1174;
+    perform_adc_test(BP_ADC_PROBE, V33L, V33H);
+  }
+
+#endif /* BUSPIRATEV4 || BUSPIRATEV3 */
+
+  /* Turn ADC off. */
+  ADCOFF();
+
+  /*
+   * Pull all I/O pins HIGH with pull-ups deactivated, and check the pins
+   * state afterwards.
+   */
+
+  BPMSG1175;
+  IODIR &= ~ALLIO;
+  IOLAT |= ALLIO;
+  bp_delay_ms(PIN_STATE_TEST_DELAY);
+  perform_pins_state_test(HIGH);
+
+  /*
+   * Pull all I/O pins LOW with pull-ups active and check the pins state
+   * afterwards.
+   */
+
+  BPMSG1176;
+  IOLAT &= ~ALLIO;
+  if (jumper_test) {
+#ifdef BUSPIRATEV4
+    BP_3V3PU_ON();
+#endif /* BUSPIRATEV4 */
+    BP_PULLUP_ON();
+  }
+  bp_delay_ms(PIN_STATE_TEST_DELAY);
+  perform_pins_state_test(LOW);
+
+  if (jumper_test) {
+    /*
+     * Pull all I/O pins HIGH with pull-ups active and check the pins state
+     * afterwards.
+     */
+
+    /* TODO: should this be done without jumpers too? */
+
+    BPMSG1177;
+    IODIR |= ALLIO;
+    bp_delay_ms(PIN_STATE_TEST_DELAY);
+    perform_pins_state_test(HIGH);
+#ifdef BUSPIRATEV4
+    BP_3V3PU_OFF();
+#endif /* BUSPIRATEV4 */
+  }
+
+  if (show_progress && jumper_test) {
+
+    /*
+     * Alert the user to check the LED on/off states, and prompt for a key
+     * to be pressed to continue.
+     */
+
+    BP_VREG_ON();
+    BP_MODELED_ON();
+#ifdef BUSPIRATEV4
+    BP_USBLED_ON();
+#endif /* BUSPIRATEV4 */
+    BPMSG1178;
+    BPMSG1250;
+    UART1RX();
+#ifdef BUSPIRATEV4
+    BP_USBLED_OFF();
+#endif /* BUSPIRATEV4 */
+    BP_MODELED_OFF();
+    BP_VREG_OFF();
+  }
+
+  bp_reset_board_state();
+
+  BPMSG1179;
+  bpWdec(errors);
+  BPMSG1180;
+  bus_pirate_configuration.quiet = false;
+
+  return errors;
 }
 
-void bpADCPinTest(unsigned char a, unsigned int lval, unsigned int hval){
-	unsigned int b;
-	UART1TX('(');
-	b=bp_read_adc(a);
-	bpWvolts(b);
-	UART1TX(')');
-	bpTest(((b>lval)&&(b<hval)),1);
+void perform_adc_test(unsigned int channel, unsigned int minimum_threshold,
+                      unsigned int maximum_threshold) {
+
+  unsigned int measurement;
+
+  UART1TX('(');
+  measurement = bp_read_adc(channel);
+  bpWvolts(measurement);
+  UART1TX(')');
+  check_result(
+      ((measurement > minimum_threshold) && (measurement < maximum_threshold)),
+      true);
 }
 
-//test that all bus pins are direction d
-void bpBusPinsTest(unsigned char d){
-	//bpPOSTWstring("MOSI");
-	BPMSG1181;
-	bpTest(BP_MOSI,d);
-	//bpPOSTWstring("CLK");
-	BPMSG1182;
-	bpTest(BP_CLK,d);
-	//bpPOSTWstring("MISO");
-	BPMSG1183;
-	bpTest(BP_MISO,d);
-	//bpPOSTWstring("CS");
-	BPMSG1184;
-	bpTest(BP_CS,d);
+void perform_pins_state_test(bool state) {
+
+  /* Check MOSI pin state. */
+  BPMSG1181;
+  check_result(BP_MOSI, state);
+
+  /* Check CLK pin state. */
+  BPMSG1182;
+  check_result(BP_CLK, state);
+
+  /* Check MISO pin state. */
+  BPMSG1183;
+  check_result(BP_MISO, state);
+
+  /* Check CS pin state. */
+  BPMSG1184;
+  check_result(BP_CS, state);
 }
 
-//tests pin p for direction d
-void bpTest(unsigned char obtained, unsigned char expected) {
-	if (obtained == expected) {
-		//bpPOSTWline(" OK");
-		BPMSG1185;
-	} else {
-		//bpPOSTWline(" FAIL");
-		BPMSG1186;
-		errors++;
-	}
+void check_result(bool obtained, bool expected) {
+  if (obtained == expected) {
+    BPMSG1185;
+  } else {
+    BPMSG1186;
+    errors++;
+  }
 }
