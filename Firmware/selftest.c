@@ -141,15 +141,15 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
 
   BPMSG1265;
 
-  /* Check the SPI flash clock line. */
+  /* Check the I2C flash clock line. */
   BPMSG1266;
   check_result(BP_EE_SCL, HIGH);
 
-  /* Check the SPI flash data line. */
+  /* Check the I2C flash data line. */
   BPMSG1267;
   check_result(BP_EE_SDA, HIGH);
 
-  /* Check the SPI flash WRITE PROTECT line. */
+  /* Check the I2C flash WRITE PROTECT line. */
   BPMSG1268;
   check_result(BP_EE_WP, HIGH);
 

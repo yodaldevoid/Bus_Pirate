@@ -26,6 +26,7 @@
 
 extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
+extern bool command_error;
 
 void UARTgetbaud_InitTimer(void);
 void UARTgetbaud_clrTimer(void);
@@ -156,7 +157,7 @@ void UARTsetup(void)
 	}
 
 	if(speed==0)
-	{	cmderror=0;
+	{	command_error=false;
 
 
 		BPMSG1133;

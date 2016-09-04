@@ -14,6 +14,9 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #include "configuration.h"
 
 #include "base.h"
@@ -57,7 +60,12 @@ void setPullupVoltage(void); // onboard Vpu selection
 char cmdbuf[BP_COMMAND_BUFFER_SIZE];
 unsigned int cmdend;
 unsigned int cmdstart;
-int cmderror;
+
+/**
+ * Flag indicating whether an error condition was detected in the previous
+ * command execution.
+ */
+bool command_error;
 
 static char usrmacros[BP_USER_MACROS_COUNT][BP_USER_MACRO_MAX_LENGTH];
 static int usrmacro;
@@ -84,7 +92,7 @@ void serviceuser(void) {
     tmphistcnt = 0;
     bus_pirate_configuration.bus_mode = BP_HIZ;
     temp2 = 0;
-    cmderror = 0; // we don't want to start with error do we?
+    command_error = false;
     binmodecnt = 0;
 
     for (repeat = 0; repeat < BP_USER_MACROS_COUNT; repeat++) {
@@ -449,7 +457,7 @@ end:
         cmd = 0;
 
         stop = 0;
-        cmderror = 0;
+        command_error = false;
 
 #ifdef BP_ENABLE_BASIC_SUPPORT
         if (bus_pirate_configuration.basic) {
@@ -725,15 +733,15 @@ bpv4reset:
                         bpServo();
                     }
                     break;
-                case '<': cmderror = 1;
+                case '<': command_error = true;
                     temp = 1;
 
                     while (cmdbuf[((cmdstart + temp) & CMDLENMSK)] != 0x00) {
-                        if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == '>') cmderror = 0; // clear error if we found a > before the command ends
+                        if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == '>') command_error = false; // clear error if we found a > before the command ends
                         temp++;
                     }
-                    if (temp >= (BP_USER_MACRO_MAX_LENGTH + 3)) cmderror = 1; // too long (avoid overflows)
-                    if (!cmderror) {
+                    if (temp >= (BP_USER_MACRO_MAX_LENGTH + 3)) command_error = true; // too long (avoid overflows)
+                    if (!command_error) {
                         cmdstart = (cmdstart + 1) & CMDLENMSK;
                         temp = getint();
                         if (cmdbuf[((cmdstart) & CMDLENMSK)] == '=') // assignment
@@ -751,7 +759,7 @@ bpv4reset:
                                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                                 }
                             } else {
-                                cmderror = 1;
+                                command_error = true;
                             }
                         } else {
                             if (temp == 0) {
@@ -767,7 +775,7 @@ bpv4reset:
                                 bpBR;
                                 usrmacro = temp;
                             } else {
-                                cmderror = 1;
+                                command_error = true;
                             }
                         }
                     }
@@ -783,19 +791,19 @@ bpv4reset:
                         protos[bus_pirate_configuration.bus_mode].protocol_run_macro(sendw);
                         bpBR;
                     } else {
-                        cmderror = 1;
+                        command_error = true;
                     }
                     break;
                 case 0x22: //bpWline("-send string");
-                    cmderror = 1;
+                    command_error = true;
                     temp = 1;
 
                     while (cmdbuf[((cmdstart + temp) & CMDLENMSK)] != 0x00) {
-                        if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == 0x22) cmderror = 0; // clear error if we found a " before the command ends
+                        if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == 0x22) command_error = false; // clear error if we found a " before the command ends
                         temp++;
                     }
 
-                    if (!cmderror) {
+                    if (!command_error) {
                         BPMSG1101;
                         UART1TX(0x22);
                         while (cmdbuf[((++cmdstart) & CMDLENMSK)] != 0x22) {
@@ -973,11 +981,11 @@ bpv4reset:
                 case 0x0A: // same here
                 case ' ':
                 case ',': break; // no match so it is an error
-                default: cmderror = 1;
+                default: command_error = true;
             } //switch(c)
             cmdstart = (cmdstart + 1) & CMDLENMSK;
 
-            if (cmderror) { //bpWstring("Syntax error at char ");
+            if (command_error) { //bpWstring("Syntax error at char ");
                 BPMSG1110;
                 if (cmdstart > oldstart) // find error position :S
                 {
@@ -985,7 +993,7 @@ bpv4reset:
                 } else {
                     bpWdec((BP_COMMAND_BUFFER_SIZE + cmdstart) - oldstart);
                 }
-                cmderror = 0;
+                command_error = false;
                 stop = 1;
                 bpBR;
             }
@@ -1053,7 +1061,7 @@ int getint(void) // get int from user (accept decimal, hex (0x) or binairy (0b)
         }
     } else // how did we come here??
     {
-        cmderror = 1;
+        command_error = true;
         return 0;
     }
 
@@ -1136,7 +1144,7 @@ void changemode(void) {
         }
         //bpWline("x. exit(without change)");
         BPMSG1111;
-        cmderror = 0; // error is set because no number found, but it is no error here:S eeeh confusing right?
+        command_error = false; // error is set because no number found, but it is no error here:S eeeh confusing right?
         busmode = getnumber(1, 1, MAXPROTO, 1) - 1;
         if ((busmode == -2) || (busmode == -1)) {
             //bpWline("no mode change");
@@ -1713,7 +1721,7 @@ void setDisplayMode(void) {
     if ((mode > 0) && (mode <= 4)) {
         bus_pirate_configuration.display_mode = mode - 1;
     } else {
-        cmderror = 0;
+        command_error = false;
         //bpWmessage(MSG_OPT_DISPLAYMODE); //show the display mode options message
         BPMSG1127;
         //	bpConfig.displayMode=(bpUserNumberPrompt(1, 4, 1)-1); //get, store user reply
@@ -1737,7 +1745,7 @@ void set_baud_rate(void) {
     if ((speed > 0) && (speed <= 10)) {
         bus_pirate_configuration.terminal_speed = speed - 1;
     } else {
-        cmderror = 0;
+        command_error = false;
         //bpWmessage(MSG_OPT_UART_BAUD); //show stored dialog
         BPMSG1133;
         //	bpConfig.termSpeed=(bpUserNumberPrompt(1, 9, 9)-1);
@@ -1749,7 +1757,7 @@ void set_baud_rate(void) {
         brg = getint();
 
         if (brg == 0) {
-            cmderror = 0;
+            command_error = false;
             bp_write_line("Enter raw value for BRG");
             brg = getnumber(34, 0, 32767, 0);
         }
@@ -1781,12 +1789,12 @@ void setPullupVoltage(void) {
     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
     if (bus_pirate_configuration.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
         BPMSG1088;
-        cmderror = 1; // raise error
+        command_error = true; // raise error
         return;
     }
     if (mode_configuration.high_impedance == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
         BPMSG1209;
-        cmderror = 1; // raise error
+        command_error = true; // raise error
         return;
     }
 
@@ -1802,9 +1810,9 @@ void setPullupVoltage(void) {
     consumewhitechars();
 
     temp = getint();
-    if (cmderror) // I think the user wants a menu
+    if (command_error) // I think the user wants a menu
     {
-        cmderror = 0;
+        command_error = false;
 
         BPMSG1271;
 

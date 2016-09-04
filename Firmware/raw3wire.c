@@ -35,6 +35,8 @@
 
 extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
+extern bool command_error;
+
 void R3Wsetup_exc(void);
 
 struct _R3W{
@@ -164,7 +166,7 @@ void R3Wsetup(void)
 		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
 		BPMSG1142;
 		mode_configuration.high_impedance=(~(getnumber(1,1,2,0)-1));
-		cmderror=0;
+		command_error=false;
 	}
 	else
 	{	R3Wsettings();

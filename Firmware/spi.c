@@ -46,6 +46,7 @@
 extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 extern bus_pirate_configuration_t bus_pirate_configuration; //we use the big buffer
+extern bool command_error;
 
 void binSPIversionString(void);
 //void spiSetup(unsigned char spiSpeed);
@@ -203,7 +204,7 @@ void SPIsetup(void) {
 
     if (speed == 0) // no (valid) cmdline options found
     {
-        cmderror = 0; // reset errorflag because of no cmdlineinput
+        command_error = false; // reset errorflag because of no cmdlineinput
 
         //bpWstring("Set speed:\x0D\x0A 1. 30KHz\x0D\x0A 2. 125KHz\x0D\x0A 3. 250KHz\x0D\x0A 4. 1MHz\x0D\x0A");
         //bpWline(OUMSG_SPI_SPEED);

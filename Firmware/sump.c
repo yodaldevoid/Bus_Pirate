@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -23,13 +24,14 @@
 #ifdef BP_ENABLE_SUMP_SUPPORT
 
 #include "base.h"
-#include "uart.h"
-#include "bus_pirate_core.h"
 #include "baseIO.h"
+#include "bus_pirate_core.h"
+#include "uart.h"
 
 /*
  * SUMP command set - taken from http://www.sump.org/projects/analyzer/protocol/
- * With additions taken from http://dangerousprototypes.com/docs/The_Logic_Sniffer's_extended_SUMP_protocol
+ * With additions taken from
+ * http://dangerousprototypes.com/docs/The_Logic_Sniffer's_extended_SUMP_protocol
  *
  * @TODO: Add commands 0x0F, 0x9E, 0x9F from the extended SUMP protocol?
  * @TODO: Add "Set trigger configuration" command (0xC2, 0xC6, 0xCA, 0xCE).
@@ -303,31 +305,28 @@ static const uint8_t SUMP_METADATA[] = {
     /* Sample memory (4096 bytes). */
 
     SUMP_METADATA_SAMPLE_MEMORY_AVAILABLE,
-    (uint8_t) ((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE >> 24),
-    (uint8_t) (((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE >> 16) & 0xFF),
-    (uint8_t) (((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE >> 8) & 0xFF),
-    (uint8_t) ((uint32_t) BP_SUMP_SAMPLE_MEMORY_SIZE & 0xFF),
+    (uint8_t)((uint32_t)BP_SUMP_SAMPLE_MEMORY_SIZE >> 24),
+    (uint8_t)(((uint32_t)BP_SUMP_SAMPLE_MEMORY_SIZE >> 16) & 0xFF),
+    (uint8_t)(((uint32_t)BP_SUMP_SAMPLE_MEMORY_SIZE >> 8) & 0xFF),
+    (uint8_t)((uint32_t)BP_SUMP_SAMPLE_MEMORY_SIZE & 0xFF),
 
     /* Sample rate (1MHz). */
 
     SUMP_METADATA_MAXIMUM_SAMPLE_RATE,
-    (uint8_t) ((uint32_t) BP_SUMP_MAXIMUM_SAMPLE_RATE >> 24),
-    (uint8_t) (((uint32_t) BP_SUMP_MAXIMUM_SAMPLE_RATE >> 16) & 0xFF),
-    (uint8_t) (((uint32_t) BP_SUMP_MAXIMUM_SAMPLE_RATE >> 8) & 0xFF),
-    (uint8_t) ((uint32_t) BP_SUMP_MAXIMUM_SAMPLE_RATE & 0xFF),
+    (uint8_t)((uint32_t)BP_SUMP_MAXIMUM_SAMPLE_RATE >> 24),
+    (uint8_t)(((uint32_t)BP_SUMP_MAXIMUM_SAMPLE_RATE >> 16) & 0xFF),
+    (uint8_t)(((uint32_t)BP_SUMP_MAXIMUM_SAMPLE_RATE >> 8) & 0xFF),
+    (uint8_t)((uint32_t)BP_SUMP_MAXIMUM_SAMPLE_RATE & 0xFF),
 
     /* Number of probes (5). */
 
-    SUMP_METADATA_USABLE_PROBES_SHORT_NUMBER,
-    BP_SUMP_PROBES_COUNT,
+    SUMP_METADATA_USABLE_PROBES_SHORT_NUMBER, BP_SUMP_PROBES_COUNT,
 
     /* Protocol version (v2). */
 
-    SUMP_METADATA_PROTOCOL_SHORT_VERSION,
-    BP_SUMP_PROTOCOL_VERSION,
+    SUMP_METADATA_PROTOCOL_SHORT_VERSION, BP_SUMP_PROTOCOL_VERSION,
 
-    SUMP_METADATA_END
-};
+    SUMP_METADATA_END};
 
 /**
  * SUMP_ID response buffer, advertise ourselves as a Logic Sniffer.
@@ -336,9 +335,7 @@ static const uint8_t SUMP_METADATA[] = {
  * 'SLA1', however both Logic Sniffer (http://ols.lxtreme.nl) and
  * sigrok (https://sigrok.org) will not handle the device otherwise.
  */
-static const uint8_t SUMP_DEVICE_ID[] = {
-    '1', 'A', 'L', 'S'
-};
+static const uint8_t SUMP_DEVICE_ID[] = {'1', 'A', 'L', 'S'};
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 
@@ -346,25 +343,25 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
  * Sampler states.
  */
 typedef enum {
-    /** Sampler is not armed, no acquisition is in progress. */
-    SAMPLER_IDLE = 0,
+  /** Sampler is not armed, no acquisition is in progress. */
+  SAMPLER_IDLE = 0,
 
-    /** Sampler is either ready for acquisition or is currently acquiring. */
-    SAMPLER_ARMED
+  /** Sampler is either ready for acquisition or is currently acquiring. */
+  SAMPLER_ARMED
 } sump_sampler_state_t;
 
 /**
  * Incoming command processing states.
  */
 typedef enum {
-    /** Waiting for a command to arrive on the serial port. */
-    RX_COMMAND_IDLE = 0,
+  /** Waiting for a command to arrive on the serial port. */
+  RX_COMMAND_IDLE = 0,
 
-    /** A long command was received, and parameters need to be acquired. */
-    RX_COMMAND_PARAMETERS,
+  /** A long command was received, and parameters need to be acquired. */
+  RX_COMMAND_PARAMETERS,
 
-    /** A fully formed command was received and is being processed. */
-    RX_COMMAND_PROCESS
+  /** A fully formed command was received and is being processed. */
+  RX_COMMAND_PROCESS
 } sump_analyzer_command_state_t;
 
 /**
@@ -379,14 +376,14 @@ typedef enum {
  * SUMP command storage structure.
  */
 typedef struct {
-    /** Command bytes storage buffer. */
-    uint8_t bytes[SUMP_COMMAND_BUFFER_LENGTH];
+  /** Command bytes storage buffer. */
+  uint8_t bytes[SUMP_COMMAND_BUFFER_LENGTH];
 
-    /** How many parameter bytes still need to be obtained. */
-    uint8_t left;
+  /** How many parameter bytes still need to be obtained. */
+  uint8_t left;
 
-    /** How many parameter bytes have been obtained so far. */
-    uint8_t count;
+  /** How many parameter bytes have been obtained so far. */
+  uint8_t count;
 } __attribute__((packed)) sump_command_t;
 
 /**
@@ -434,313 +431,309 @@ static bool sump_handle_command_byte(uint8_t input_byte);
 
 void enter_sump_mode(void) {
 
-    /* Set probing channels to INPUT mode. */
-    IODIR |= AUX + MOSI + CLK + MISO + CS;
+  /* Set probing channels to INPUT mode. */
+  IODIR |= AUX + MOSI + CLK + MISO + CS;
 
-    /* Reset the analyzer state. */
-    sump_reset();
+  /* Reset the analyzer state. */
+  sump_reset();
 
-    /* Trigger the device ID broadcast response. */
-    sump_handle_command_byte(SUMP_ID);
+  /* Trigger the device ID broadcast response. */
+  sump_handle_command_byte(SUMP_ID);
 
-    /* Sampling action. */
-    for (;;) {
+  /* Sampling action. */
+  for (;;) {
 
-        /* Wait for a command byte to be available on the bus. */
-        if (UART1RXRdy()) {
+    /* Wait for a command byte to be available on the bus. */
+    if (UART1RXRdy()) {
 
-            /* Process the command byte. */
-            if (sump_handle_command_byte(UART1RX())) {
+      /* Process the command byte. */
+      if (sump_handle_command_byte(UART1RX())) {
 
-                /* A SUMP_RESET command was received, abort. */
-                return;
-            }
-        }
-
-        /*
-         * Start the acquisition process (if the device is not properly set up
-         * nothing will happen, so it's safe to call this anyway).
-         */
-        if (sump_acquire_samples()) {
-
-            /* The acquisition process finished, end. */
-            return;
-        }
+        /* A SUMP_RESET command was received, abort. */
+        return;
+      }
     }
+
+    /*
+     * Start the acquisition process (if the device is not properly set up
+     * nothing will happen, so it's safe to call this anyway).
+     */
+    if (sump_acquire_samples()) {
+
+      /* The acquisition process finished, end. */
+      return;
+    }
+  }
 }
 
 void sump_reset(void) {
-    /* Switch LED off. */
-    BP_LEDMODE = OFF;
+  /* Switch LED off. */
+  BP_LEDMODE = OFF;
 
-    /* Switch pull-ups off for all pins. */
-    CNPU1 = 0;
-    CNPU2 = 0;
+  /* Switch pull-ups off for all pins. */
+  CNPU1 = 0;
+  CNPU2 = 0;
 
-    /* Disable change notification for all pins. */
-    CNEN1 = 0;
-    CNEN2 = 0;
+  /* Disable change notification for all pins. */
+  CNEN1 = 0;
+  CNEN2 = 0;
 
-    /* Stop timer #4. */
-    T4CON = 0;
+  /* Stop timer #4. */
+  T4CON = 0;
 
-    /* Disable change notification interrupts (set priority to 0). */
-    IPC4bits.CNIP = 0;
+  /* Disable change notification interrupts (set priority to 0). */
+  IPC4bits.CNIP = 0;
 
-    /* Setup timer periods. */
-    PR5 = HI16(BP_DEFAULT_TIMER_PERIOD);
-    PR4 = LO16(BP_DEFAULT_TIMER_PERIOD);
+  /* Setup timer periods. */
+  PR5 = HI16(BP_DEFAULT_TIMER_PERIOD);
+  PR4 = LO16(BP_DEFAULT_TIMER_PERIOD);
 
-    /* Default to acquire a full buffer. */
-    samples_to_acquire = BP_SUMP_SAMPLE_MEMORY_SIZE;
+  /* Default to acquire a full buffer. */
+  samples_to_acquire = BP_SUMP_SAMPLE_MEMORY_SIZE;
 
-    /* Initialize the sampler. */
-    sampler_state = SAMPLER_IDLE;
+  /* Initialize the sampler. */
+  sampler_state = SAMPLER_IDLE;
 }
 
 bool sump_handle_command_byte(unsigned char input_byte) {
 
-    /*
-     * The command storage buffer.
-     *
-     * No need to clear it first, as it will be properly initialized upon
-     * receiving a long (5 bytes) command.
-     */
-    sump_command_t command_buffer = {
-        .bytes = { 0 },
-        .count = 0,
-        .left = 0
-    };
+  /*
+   * The command storage buffer.
+   *
+   * No need to clear it first, as it will be properly initialized upon
+   * receiving a long (5 bytes) command.
+   */
+  sump_command_t command_buffer = {.bytes = {0}, .count = 0, .left = 0};
 
-    switch (command_processor_state) {
+  switch (command_processor_state) {
 
-        /* No command bytes received yet, this is the first one. */
-        case RX_COMMAND_IDLE:
-            switch (input_byte) {
+  /* No command bytes received yet, this is the first one. */
+  case RX_COMMAND_IDLE:
+    switch (input_byte) {
 
-                /* Reset the analyzer. */
-                case SUMP_RESET:
-                    sump_reset();
-                    return true;
+    /* Reset the analyzer. */
+    case SUMP_RESET:
+      sump_reset();
+      return true;
 
-                /* Send the device identification buffer. */
-                case SUMP_ID:
-                    bp_write_buffer(SUMP_DEVICE_ID, sizeof(SUMP_DEVICE_ID));
-                    break;
+    /* Send the device identification buffer. */
+    case SUMP_ID:
+      bp_write_buffer(SUMP_DEVICE_ID, sizeof(SUMP_DEVICE_ID));
+      break;
 
-                /* Arm the sampler. */
-                case SUMP_RUN:
-                    /* Turn the LED on. */
-                    BP_LEDMODE = ON;
+    /* Arm the sampler. */
+    case SUMP_RUN:
+      /* Turn the LED on. */
+      BP_LEDMODE = ON;
 
-                    /* Stop timer #4. */
-                    T4CON = 0;
+      /* Stop timer #4. */
+      T4CON = 0;
 
-                    /* Clear timer #5 holding register. */
-                    TMR5HLD = 0;
+      /* Clear timer #5 holding register. */
+      TMR5HLD = 0;
 
-                    /* Setup timer #4 counter. */
-                    TMR4 = 0;
+      /* Setup timer #4 counter. */
+      TMR4 = 0;
 
-                    /* Timer #4 counter will be 32 bits wide. */
-                    T4CONbits.T32 = ON;
+      /* Timer #4 counter will be 32 bits wide. */
+      T4CONbits.T32 = ON;
 
-                    /* Clear change notification interrupt flag. */
-                    IFS1bits.CNIF = OFF;
+      /* Clear change notification interrupt flag. */
+      IFS1bits.CNIF = OFF;
 
-                    /* Disable change notification interrupts. */
-                    IEC1bits.CNIE = OFF;
+      /* Disable change notification interrupts. */
+      IEC1bits.CNIE = OFF;
 
-                    /* Set change notification interrupt priority to 1. */
-                    IPC4bits.CNIP = 1;
+      /* Set change notification interrupt priority to 1. */
+      IPC4bits.CNIP = 1;
 
-                    /* Update sampler state. */
-                    sampler_state = SAMPLER_ARMED;
-                    break;
+      /* Update sampler state. */
+      sampler_state = SAMPLER_ARMED;
+      break;
 
-                /* Send device description. */
-                case SUMP_DESC:
-                    bp_write_buffer(SUMP_METADATA, sizeof(SUMP_METADATA));
-                    break;
+    /* Send device description. */
+    case SUMP_DESC:
+      bp_write_buffer(SUMP_METADATA, sizeof(SUMP_METADATA));
+      break;
 
-                /* Start/Stop data flow. */
-                case SUMP_XON:
-                case SUMP_XOFF:
-                    /* Stop and resume are not supported yet. */
-                    break;
+    /* Start/Stop data flow. */
+    case SUMP_XON:
+    case SUMP_XOFF:
+      /* Stop and resume are not supported yet. */
+      break;
 
-                /* It must be a long command then. */
-                default:
-                    /* Store the first byte. */
-                    command_buffer.bytes[0] = input_byte;
+    /* It must be a long command then. */
+    default:
+      /* Store the first byte. */
+      command_buffer.bytes[0] = input_byte;
 
-                    /* Update counters. */
-                    command_buffer.left = 4;
-                    command_buffer.count = 0;
+      /* Update counters. */
+      command_buffer.left = 4;
+      command_buffer.count = 0;
 
-                    /* Update state. */
-                    command_processor_state = RX_COMMAND_PARAMETERS;
-                    break;
-            }
-
-            break;
-
-        /* Keep reading parameter data. */
-        case RX_COMMAND_PARAMETERS:
-
-            /* Update command count. */
-            command_buffer.count++;
-
-            /* Fill buffer. */
-            command_buffer.bytes[command_buffer.count] = input_byte;
-
-            /* Check whether the buffer is full or not. */
-            if (command_buffer.count < command_buffer.left) {
-                break;
-            }
-
-            /* Intentional fall-through. */
-
-        /* Process the fully read command buffer. */
-        case RX_COMMAND_PROCESS:
-            switch (command_buffer.bytes[0]) {
-                /* Set triggers. */
-                case SUMP_TRIG:
-
-                    /* Set a trigger on the AUX pin. */
-                    if (command_buffer.bytes[1] & 0b00010000) {
-                        CNEN2 |= 0b0000000000000001;
-                    }
-
-                    /* Set a trigger on the ??? pin. */
-                    if (command_buffer.bytes[1] & 0b00001000) {
-                        CNEN2 |= 0b0000000000100000;
-                    }
-
-                    /* Set a trigger on the ??? pin. */
-                    if (command_buffer.bytes[1] & 0b00000100) {
-                        CNEN2 |= 0b0000000001000000;
-                    }
-
-                    /* Set a trigger on the ??? pin. */
-                    if (command_buffer.bytes[1] & 0b00000010) {
-                        CNEN2 |= 0b0000000010000000;
-                    }
-
-                    /* Set a trigger on the ??? pin. */
-                    if (command_buffer.bytes[1] & 0b00000001) {
-                        CNEN2 |= 0b0000000100000000;
-                    }
-
-                    break;
-
-                case SUMP_FLAGS:
-                    /* @TODO: Fill this? */
-                    break;
-
-                /* Read requested samples buffer size. */
-                case SUMP_CNT:
-                    samples_to_acquire = (((command_buffer.bytes[2] << 8) +
-                            command_buffer.bytes[1]) + 1) * 4;
-
-                    /* Clamp sample counter if more bytes are requested. */
-                    if (samples_to_acquire > BP_SUMP_SAMPLE_MEMORY_SIZE) {
-                        samples_to_acquire = BP_SUMP_SAMPLE_MEMORY_SIZE;
-                    }
-                    break;
-
-                case SUMP_DIV: {
-                    uint32_t period;
-
-                    /*
-                     * Read the 24-bits period value and rescale from SUMP's
-                     * own 100MHz frequency range to the internal 16MIPs
-                     * range.
-                     */
-                    period = (((((uint32_t) command_buffer.bytes[3] << 16) +
-                            ((uint32_t) command_buffer.bytes[2] << 8) +
-                            (uint32_t) command_buffer.bytes[1]) + 1) * 4) / 25;
-
-                    /* Round down if needed. */
-                    if (period > 0x10) {
-                        period -= 0x10;
-                    } else {
-                        period = 1;
-                    }
-
-                    /* Set timer period. */
-                    PR5 = HI16(period);
-                    PR4 = LO16(period);
-
-                    break;
-                }
-            }
-
-            command_processor_state = RX_COMMAND_IDLE;
-            break;
+      /* Update state. */
+      command_processor_state = RX_COMMAND_PARAMETERS;
+      break;
     }
 
-    return false;
+    break;
+
+  /* Keep reading parameter data. */
+  case RX_COMMAND_PARAMETERS:
+
+    /* Update command count. */
+    command_buffer.count++;
+
+    /* Fill buffer. */
+    command_buffer.bytes[command_buffer.count] = input_byte;
+
+    /* Check whether the buffer is full or not. */
+    if (command_buffer.count < command_buffer.left) {
+      break;
+    }
+
+  /* Intentional fall-through. */
+
+  /* Process the fully read command buffer. */
+  case RX_COMMAND_PROCESS:
+    switch (command_buffer.bytes[0]) {
+    /* Set triggers. */
+    case SUMP_TRIG:
+
+      /* Set a trigger on the AUX pin. */
+      if (command_buffer.bytes[1] & 0b00010000) {
+        CNEN2 |= 0b0000000000000001;
+      }
+
+      /* Set a trigger on the ??? pin. */
+      if (command_buffer.bytes[1] & 0b00001000) {
+        CNEN2 |= 0b0000000000100000;
+      }
+
+      /* Set a trigger on the ??? pin. */
+      if (command_buffer.bytes[1] & 0b00000100) {
+        CNEN2 |= 0b0000000001000000;
+      }
+
+      /* Set a trigger on the ??? pin. */
+      if (command_buffer.bytes[1] & 0b00000010) {
+        CNEN2 |= 0b0000000010000000;
+      }
+
+      /* Set a trigger on the ??? pin. */
+      if (command_buffer.bytes[1] & 0b00000001) {
+        CNEN2 |= 0b0000000100000000;
+      }
+
+      break;
+
+    case SUMP_FLAGS:
+      /* @TODO: Fill this? */
+      break;
+
+    /* Read requested samples buffer size. */
+    case SUMP_CNT:
+      samples_to_acquire =
+          (((command_buffer.bytes[2] << 8) + command_buffer.bytes[1]) + 1) * 4;
+
+      /* Clamp sample counter if more bytes are requested. */
+      if (samples_to_acquire > BP_SUMP_SAMPLE_MEMORY_SIZE) {
+        samples_to_acquire = BP_SUMP_SAMPLE_MEMORY_SIZE;
+      }
+      break;
+
+    case SUMP_DIV: {
+      uint32_t period;
+
+      /*
+       * Read the 24-bits period value and rescale from SUMP's
+       * own 100MHz frequency range to the internal 16MIPs
+       * range.
+       */
+      period = (((((uint32_t)command_buffer.bytes[3] << 16) +
+                  ((uint32_t)command_buffer.bytes[2] << 8) +
+                  (uint32_t)command_buffer.bytes[1]) + 1) * 4) / 25;
+
+      /* Round down if needed. */
+      if (period > 0x10) {
+        period -= 0x10;
+      } else {
+        period = 1;
+      }
+
+      /* Set timer period. */
+      PR5 = HI16(period);
+      PR4 = LO16(period);
+
+      break;
+    }
+    }
+
+    command_processor_state = RX_COMMAND_IDLE;
+    break;
+  }
+
+  return false;
 }
 
 bool sump_acquire_samples(void) {
-    switch (sampler_state) {
+  switch (sampler_state) {
 
-        /* Can start sampling. */
-        case SAMPLER_ARMED: {
-            size_t offset;
+  /* Can start sampling. */
+  case SAMPLER_ARMED: {
+    size_t offset;
 
-            /* Skip if no interrupt and no trigger set. */
-            if (!IFS1bits.CNIF && CNEN2) {
-                break;
-            }
-
-            /* Take samples. */
-
-            /* Start timer #4. */
-            T4CONbits.TON = ON;
-
-            /* Clear timer #4 interrupt flag. */
-            IFS1bits.T5IF = OFF;
-
-            /* Capture samples into the terminal buffer. */
-            for (offset = 0; offset < samples_to_acquire; offset++) {
-                bus_pirate_configuration.terminal_input[offset] = PORTB >> 6;
-
-                /* Wait for timer4 interrupt to trigger. */
-                while (IFS1bits.T5IF == OFF) {
-                }
-
-                /* Clear timer #4 interrupt flag. */
-                IFS1bits.T5IF = OFF;
-            }
-
-            /* Disable change notification for pins 16 to 31. */
-            CNEN2 = 0;
-
-            /* Stop timer #4. */
-            T4CON = OFF;
-
-            /* Write captured samples out. */
-            for (offset = samples_to_acquire; offset > 0; offset--) {
-                UART1TX(bus_pirate_configuration.terminal_input[offset - 1]);
-            }
-
-            /* Reset the analyzer state. */
-            sump_reset();
-
-            /* Acquisition complete. */
-            return true;
-        }
-
-        case SAMPLER_IDLE:
-        default:
-            /* Nothing to do. */
-            break;
+    /* Skip if no interrupt and no trigger set. */
+    if (!IFS1bits.CNIF && CNEN2) {
+      break;
     }
 
-    /* Acquisition was not performed. */
-    return false;
+    /* Take samples. */
+
+    /* Start timer #4. */
+    T4CONbits.TON = ON;
+
+    /* Clear timer #4 interrupt flag. */
+    IFS1bits.T5IF = OFF;
+
+    /* Capture samples into the terminal buffer. */
+    for (offset = 0; offset < samples_to_acquire; offset++) {
+      bus_pirate_configuration.terminal_input[offset] = PORTB >> 6;
+
+      /* Wait for timer4 interrupt to trigger. */
+      while (IFS1bits.T5IF == OFF) {
+      }
+
+      /* Clear timer #4 interrupt flag. */
+      IFS1bits.T5IF = OFF;
+    }
+
+    /* Disable change notification for pins 16 to 31. */
+    CNEN2 = 0;
+
+    /* Stop timer #4. */
+    T4CON = OFF;
+
+    /* Write captured samples out. */
+    for (offset = samples_to_acquire; offset > 0; offset--) {
+      UART1TX(bus_pirate_configuration.terminal_input[offset - 1]);
+    }
+
+    /* Reset the analyzer state. */
+    sump_reset();
+
+    /* Acquisition complete. */
+    return true;
+  }
+
+  case SAMPLER_IDLE:
+  default:
+    /* Nothing to do. */
+    break;
+  }
+
+  /* Acquisition was not performed. */
+  return false;
 }
 
 #endif /* BP_ENABLE_SUMP_SUPPORT */

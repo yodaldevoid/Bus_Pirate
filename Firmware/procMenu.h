@@ -21,7 +21,7 @@
 extern char cmdbuf[BP_COMMAND_BUFFER_SIZE];
 extern unsigned int cmdend;
 extern unsigned int cmdstart;
-extern int cmderror;
+extern bool command_error;
 
 //prints version, used internally and in main.c
 void versionInfo(void); 

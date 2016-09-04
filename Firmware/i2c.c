@@ -58,6 +58,7 @@ i2c_state_t i2c_state = { 0 };
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
+extern bool command_error;
 
 void hwi2cSetup(void);
 void hwi2cstart(void);
@@ -250,7 +251,7 @@ void I2Csetup(void) {
     }
 
     if (speed == 0) {
-        cmderror = 0;
+        command_error = false;
 
 #ifdef BP_I2C_USE_HW_BUS
         //bpWline(OUMSG_I2C_CON);

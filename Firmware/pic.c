@@ -27,6 +27,7 @@
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
+extern bool command_error;
 
 int picmode;
 int piccmddelay;
@@ -53,7 +54,7 @@ void picinit(void)
 	}
 
 	if(interactive)
-	{	cmderror=0;
+	{	command_error=false;
 
 		//bpWline("Commandmode");
 		//bpWline("1. 6b/14b");

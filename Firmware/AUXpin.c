@@ -26,6 +26,7 @@
 #define AUXPIN_RPOUT    BP_AUX_RPOUT
 
 extern mode_configuration_t mode_configuration;
+extern bool command_error;
 
 static enum _auxmode
         {
@@ -179,7 +180,7 @@ void bpPWM(void){
 
         //calculate frequency:
         if(done!=2)//no command line variables, prompt for PWM frequency
-        {       cmderror=0;
+        {       command_error=false;
 
                 //bpWline(OUMSG_AUX_PWM_NOTE);
                 BPMSG1029;
@@ -713,8 +714,8 @@ void bpServo(void)
         // Get servo position from command line or prompt for value
         consumewhitechars();
         PWM_pd = getint();
-        if (cmderror || (PWM_pd > 180)) {
-                cmderror = 0;
+        if (command_error || (PWM_pd > 180)) {
+                command_error = false;
                 BPMSG1254;
                 PWM_pd = getnumber(90, 0, 180, 0);
 				entryloop=1;

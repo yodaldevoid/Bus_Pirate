@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -25,15 +26,15 @@
 
 /**
  * Initializes the I/O port for communication with the on-board EEPROM.
- * 
+ *
  * This function is marked as inline since EEPROM port initialization is
  * supposed to happen exactly once at boot stage.
  */
-void inline __attribute__ ((always_inline)) eeprom_initialize(void);
+void inline __attribute__((always_inline)) eeprom_initialize(void);
 
 /**
  * Tests the on-board 8 kilobytes EEPROM.
- * 
+ *
  * @return true if the test passed, false otherwise.
  */
 bool eeprom_test(void);

@@ -36,19 +36,10 @@
 
 extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
+extern bool command_error;
 
 void r2wMacro_78133Read(void);
 void r2wMacro_78133Write(void);
-
-/*
-// move into a .h or other .c??? 
-int getnumber(int def, int max); // everything to make the compiler happy *dubbelzucht*
-int getint(void);
-int getrepeat(void);
-void consumewhitechars(void);
-extern int cmderror;
-*/
-
 
 unsigned int R2Wread(void)
 {	return (bbReadByte());
@@ -138,7 +129,7 @@ void R2Wsetup(void)
 	}
 
 	if(speed==0)
-	{	cmderror=0;
+	{	command_error=false;
 		//bpWmessage(MSG_OPT_BB_SPEED);
 		BPMSG1065;
 		mode_configuration.speed=(getnumber(1,1,4,0)-1);
