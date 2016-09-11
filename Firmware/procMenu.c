@@ -82,7 +82,9 @@ void serviceuser(void) {
     int binmodecnt;
     int numbits;
     unsigned int tmpcmdend, histcnt, tmphistcnt;
-
+    unsigned char oldDmode;//temporarily holds the default display mode, while a different display read is performed
+    unsigned char newDmode;
+    
     // init
     cmd = 0;
     cmdstart = 0;
@@ -95,6 +97,13 @@ void serviceuser(void) {
     command_error = false;
     binmodecnt = 0;
 
+    stop = 0;
+    newstart = 0;
+    oldstart = 0;
+    
+    oldDmode=0;//temporarily holds the default display mode, while a different display read is performed
+    newDmode=0;
+    
     for (repeat = 0; repeat < BP_USER_MACROS_COUNT; repeat++) {
         for (temp = 0; temp < 32; temp++) {
             usrmacros[repeat][temp] = 0;
@@ -468,8 +477,8 @@ end:
         }
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 
-        unsigned char oldDmode=0;//temperarly holds the defaout display mode, while a differend display read is preformed
-        unsigned char newDmode=0;
+        oldDmode=0;//temporarily holds the default display mode, while a different display read is performed
+        newDmode=0;
         while (!stop) {
             c = cmdbuf[cmdstart];
 
