@@ -1,11 +1,14 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
- * One wire search code taken from here: http://www.maxim-ic.com/appnotes.cfm/appnote_number/187
+ * One wire search code taken from here:
+ * http://www.maxim-ic.com/appnotes.cfm/appnote_number/187
  *
- * We claim no copyright on our code, but there may be different licenses for some of the code in this file.
-  *
-  * To the extent possible under law, the Bus Pirate project has
+ * We claim no copyright on our code, but there may be different licenses for
+ * some of the code in this file.
+ *
+ * To the extent possible under law, the Bus Pirate project has
  * waived all copyright and related or neighboring rights to Bus Pirate. This
  * work is published from United States.
  *
@@ -16,647 +19,1210 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+/*
+ * @todo Clean up the search functions, with better documentation.
+ * @todo Have an external table of device names and descriptions.
+ * @todo Implement BP_1WIRE_PRINT_FAMILY_DESCRIPTION on/off changes.
+ * @todo Rename string message identifiers to something more appropriate.
+ * @todo Rig up a circuit to simulate 1-Wire devices for automated tests.
+ */
+
 #include "1wire.h"
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
 
+#include <stdint.h>
+
+/**
+ * The maximum size of the saved devices roster, in entries.
+ */
+#define MAXIMUM_DEVICES_ROSTER_SIZE 50
+
+/* Check whether the current module settings are valid. */
+
+#if BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS > MAXIMUM_DEVICES_ROSTER_SIZE
+#error "BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS too big"
+#endif /* BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS > MAXIMUM_DEVICES_ROSTER_SIZE */
+
 #include "base.h"
-#include "1wire_lib.h"
+#include "binIO.h"
 #include "binIOhelpers.h"
+
+/**
+ * Binary I/O mode identifier.
+ */
+static const uint8_t ONEWIRE_MODE_IDENTIFIER[] = {'1', 'W', '0', '1'};
+
+/**
+ * Size of a 1-Wire ROM number identifier, in bytes.
+ */
+#define ROM_BYTES_SIZE 8
+
+/**
+ * Data line pin assignment.
+ */
+#define ONEWIRE_DATA_LINE BP_MOSI
+
+/**
+ * Data line pin direction assignment.
+ */
+#define ONEWIRE_DATA_DIRECTION BP_MOSI_DIR
+
+/**
+ * Identifier for the "Dump roster entries" macro entry.
+ */
+#define MACRO_ID_DUMP_ROSTER 0x00
+
+/**
+ * Identifier for the "Read ROM" macro entry.
+ */
+#define MACRO_ID_READ_ROM 0x33
+
+/**
+ * Identifier for the "Match ROM" macro entry.
+ */
+#define MACRO_ID_MATCH_ROM 0x55
+
+/**
+ * Identifier for the "Skip ROM" macro entry.
+ */
+#define MACRO_ID_SKIP_ROM 0xCC
+
+/**
+ * Identifier for the "Search Alarm" macro entry.
+ */
+#define MACRO_ID_ALARM_SEARCH 0xEC
+
+/**
+ * Identifier for the "Search ROM" macro entry.
+ */
+#define MACRO_ID_SEARCH_ROM 0xF0
+
+/**
+ * Sends and receives 1-bit values on/from the bus.
+ *
+ * This function works both for sending and receiving of a 1-bit value on the
+ * bus.  To get a bit value send a logical 1 (or HIGH), this will pulse the
+ * line as needed then release the bus and wait a few microseconds before
+ * sampling if the 1Wire device has sent any data.
+ *
+ * @param[in] bit_value the bit to send.
+ *
+ * @return either the bit that was just sent, or a bit read from the bus.
+ */
+static bool onewire_internal_bit_io(bool bit_value);
+
+/**
+ * Sends and receives 8-bits values on/from the bus.
+ *
+ * Like onewire_internal_bit_io, this function works for both sending and
+ * receiving.  1-Wire time slots are the same for sending and receiving, so only
+ * one function is needed to perform both tasks.
+ *
+ * Sending 0xFF will trigger a read from the bus (as sending HIGH to
+ * onewire_internal_bit_io will trigger a 1-bit read).
+ *
+ * @param[in] byte_value the byte to send to the bus.
+ *
+ * @return either the byte that was just sent, or a byte read from the bus.
+ */
+static uint8_t onewire_internal_byte_io(uint8_t byte_value);
+
+/**
+ * Internal macro for triggering a byte bus write.
+ *
+ * @param[in] value the value to write.
+ */
+#define ONEWIRE_WRITE_BYTE(value) onewire_internal_byte_io(value)
+
+/**
+ * Internal macro for triggering a byte bus read.
+ *
+ * @return the byte read from the bus.
+ */
+#define ONEWIRE_READ_BYTE() onewire_internal_byte_io(0xFF)
+
+/**
+ * Internal macro for triggering a bit bus write.
+ *
+ * @param[in] value the value to write.
+ */
+#define ONEWIRE_WRITE_BIT(value) onewire_internal_bit_io(value)
+
+/**
+ * Internal macro for triggering a bit bus read.
+ *
+ * @return the bit read from the bus.
+ */
+#define ONEWIRE_READ_BIT() onewire_internal_bit_io(ON)
 
 extern mode_configuration_t mode_configuration;
 extern command_t bpCommand;
 
-//the roster stores the first OW_DEV_ROSTER_SLOTS 1-wire addresses found during a ROM SEARCH command
-//these addresses are available as MACROs for quick address entry
+/**
+ * Possible results from 1-Wire bus reset.
+ */
+typedef enum {
 
-struct _OWID{
-//      unsigned char familyID; //to lazy to do it right, for now...
-        unsigned char id[8];
-//      unsigned char crc;
-};
+  /** Reset was performed successfully. */
+  ONEWIRE_BUS_RESET_OK = 0,
 
-struct _OWIDREG{
-        unsigned char num;
-        struct _OWID dev[BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS];
-} ;
+  /** A potential short was detected on the bus. */
+  ONEWIRE_BUS_RESET_SHORT,
 
-struct _OWIDREG OWroster;
+  /** No device was found on the bus. */
+  ONEWIRE_BUS_RESET_NO_DEVICE
 
-void DS1wireID(unsigned char famID);
+} onewire_bus_reset_result_t;
 
-unsigned char OWFirst(void);
-unsigned char OWNext(void);
-unsigned char OWSearch(void);
-unsigned char OWVerify(void);
-unsigned char docrc8(unsigned char value);
+/**
+ * 1-Wire protocol internal state variables container.
+ */
+typedef struct {
 
-//because 1wire uses bit times, setting the data line high or low with (_-) has no effect
-//we have to save the desired bus state, and then clock in the proper value during a clock(^)
-static unsigned char DS1wireDataState=0;//data bits are low by default.
+  /**
+   * Current CRC8 value.
+   */
+  uint8_t crc8;
 
-// global search state,
-//these lovely globals are provided courtesy of MAXIM's code
-//need to be put in a struct....
-unsigned char ROM_NO[8];
-unsigned char SearchChar=0xf0; //toggle between ROM and ALARM search types
-unsigned char LastDiscrepancy;
-unsigned char LastFamilyDiscrepancy;
-unsigned char LastDeviceFlag;
-unsigned char crc8;
+  /**
+   * Last recorded device discrepancy.
+   */
+  uint8_t last_device_discrepancy;
 
-// implementation new framework other part in busPirateCore.c
-unsigned int OWread(void)
-{       return (OWReadByte());
+  /**
+   * Last recorded family discrepancy.
+   */
+  uint8_t last_family_discrepancy;
+
+  /**
+   * ROM identifier of the last discovered device.
+   */
+  uint8_t rom_bytes[ROM_BYTES_SIZE];
+
+  /**
+   * How many entries are saved in the device roster.
+   */
+  uint8_t used_roster_entries;
+
+  /**
+   * Device roster slots.
+   */
+  uint8_t roster_entries[ROM_BYTES_SIZE][BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS];
+
+  /**
+   * The command byte to send on the bus.
+   */
+  uint8_t command_byte;
+
+  /**
+   * Current bus data state.
+   *
+   * Since 1-Wire uses timing for bits transfer, setting the data line high or
+   * low has not effect.  Therefore, it is needed to save the desired bus state,
+   * and then clock in the proper value during a clock pulse operation.
+   */
+  uint8_t data_state : 1;
+
+  /**
+   * Flag indicating if the last device found was the last one available on
+   * the bus.
+   */
+  uint8_t last_device_flag : 1;
+
+} __attribute__((packed)) onewire_state_t;
+
+/**
+ * 1-Wire protocol state.
+ */
+static onewire_state_t onewire_state = {.command_byte = MACRO_ID_SEARCH_ROM};
+
+/**
+ * Performs a 1-Wire bus reset according to the protocol specifications.
+ *
+ * @return an appropriate state from onewire_bus_reset_result_t describing
+ * the operation result.
+ */
+static onewire_bus_reset_result_t perform_bus_reset(void);
+
+/**
+ * 1-wire protocol precalculated CRC table.
+ *
+ * Taken from https://www.maximintegrated.com/en/app-notes/index.mvp/id/27
+ */
+static const uint8_t CRC_TABLE[] = {
+    0x00, 0x5E, 0xBC, 0xE2, 0x61, 0x3F, 0xDD, 0x83, 0xC2, 0x9C, 0x7E, 0x20,
+    0xA3, 0xFD, 0x1F, 0x41, 0x9D, 0xC3, 0x21, 0x7F, 0xFC, 0xA2, 0x40, 0x1E,
+    0x5F, 0x01, 0xE3, 0xBD, 0x3E, 0x60, 0x82, 0xDC, 0x23, 0x7D, 0x9F, 0xC1,
+    0x42, 0x1C, 0xFE, 0xA0, 0xE1, 0xBF, 0x5D, 0x03, 0x80, 0xDE, 0x3C, 0x62,
+    0xBE, 0xE0, 0x02, 0x5C, 0xDF, 0x81, 0x63, 0x3D, 0x7C, 0x22, 0xC0, 0x9E,
+    0x1D, 0x43, 0xA1, 0xFF, 0x46, 0x18, 0xFA, 0xA4, 0x27, 0x79, 0x9B, 0xC5,
+    0x84, 0xDA, 0x38, 0x66, 0xE5, 0xBB, 0x59, 0x07, 0xDB, 0x85, 0x67, 0x39,
+    0xBA, 0xE4, 0x06, 0x58, 0x19, 0x47, 0xA5, 0xFB, 0x78, 0x26, 0xC4, 0x9A,
+    0x65, 0x3B, 0xD9, 0x87, 0x04, 0x5A, 0xB8, 0xE6, 0xA7, 0xF9, 0x1B, 0x45,
+    0xC6, 0x98, 0x7A, 0x24, 0xF8, 0xA6, 0x44, 0x1A, 0x99, 0xC7, 0x25, 0x7B,
+    0x3A, 0x64, 0x86, 0xD8, 0x5B, 0x05, 0xE7, 0xB9, 0x8C, 0xD2, 0x30, 0x6E,
+    0xED, 0xB3, 0x51, 0x0F, 0x4E, 0x10, 0xF2, 0xAC, 0x2F, 0x71, 0x93, 0xCD,
+    0x11, 0x4F, 0xAD, 0xF3, 0x70, 0x2E, 0xCC, 0x92, 0xD3, 0x8D, 0x6F, 0x31,
+    0xB2, 0xEC, 0x0E, 0x50, 0xAF, 0xF1, 0x13, 0x4D, 0xCE, 0x90, 0x72, 0x2C,
+    0x6D, 0x33, 0xD1, 0x8F, 0x0C, 0x52, 0xB0, 0xEE, 0x32, 0x6C, 0x8E, 0xD0,
+    0x53, 0x0D, 0xEF, 0xB1, 0xF0, 0xAE, 0x4C, 0x12, 0x91, 0xCF, 0x2D, 0x73,
+    0xCA, 0x94, 0x76, 0x28, 0xAB, 0xF5, 0x17, 0x49, 0x08, 0x56, 0xB4, 0xEA,
+    0x69, 0x37, 0xD5, 0x8B, 0x57, 0x09, 0xEB, 0xB5, 0x36, 0x68, 0x8A, 0xD4,
+    0x95, 0xCB, 0x29, 0x77, 0xF4, 0xAA, 0x48, 0x16, 0xE9, 0xB7, 0x55, 0x0B,
+    0x88, 0xD6, 0x34, 0x6A, 0x2B, 0x75, 0x97, 0xC9, 0x4A, 0x14, 0xF6, 0xA8,
+    0x74, 0x2A, 0xC8, 0x96, 0x15, 0x4B, 0xA9, 0xF7, 0xB6, 0xE8, 0x0A, 0x54,
+    0xD7, 0x89, 0x6B, 0x35};
+
+/**
+ * Updates the internal CRC8 variable with the given data value.
+ *
+ * @param[in] value the new byte to update the internal CRC8 variable with.
+ * @return the updated internal CRC8 variable value.
+ */
+static uint8_t update_crc8(uint8_t value);
+
+/**
+ * Prints the 1-Wire binary protocol identifier to the serial port.
+ */
+static void print_1wire_version_string(void);
+
+/**
+ * Looks up the given model identifier and checks it against a list of known
+ * devices, then prints the model information if a match is found.
+ */
+void lookup_device_model(uint8_t model);
+
+/**
+ * Attempts to find the first device on the 1-Wire bus.
+ *
+ * The returned ROM number is saved inside onewire_state.rom_number if
+ * successful.
+ *
+ * @return true if a device was found, false otherwise.
+ */
+static bool device_find_first(void);
+
+/**
+ * Attempts to find the next device on the 1-Wire bus.
+ *
+ * The returned ROM number is saved inside onewire_state.rom_number if
+ * successful.
+ *
+ * @return true if a device was found, false otherwise.
+ */
+static bool device_find_next(void);
+
+/**
+ * Discovers the next device in the chain on a 1-Wire bus.
+ *
+ * The returned ROM number is saved inside onewire_state.rom_number if
+ * successful.
+ *
+ * The search algorithm was derived from
+ * https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
+ *
+ * @return true if a device was found, false otherwise.
+ */
+static bool perform_device_search(void);
+
+#ifdef BP_1WIRE_LOOKUP_FAMILY_ID
+
+/**
+ * Prints the given ROM address information to the screen.
+ *
+ * @param[in] roster_id the index of the entry in the roster list.
+ * @param[in] rom_address the ROM address bytes.
+ */
+static void print_device_information(size_t roster_id, uint8_t *rom_address);
+
+#endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
+
+unsigned int onewire_read(void) { return ONEWIRE_READ_BYTE(); }
+
+unsigned int onewire_write(uint16_t value) {
+  ONEWIRE_WRITE_BYTE(value & 0xFF);
+
+  return 0x100;
 }
 
-unsigned int OWwrite(unsigned int c)
-{       OWWriteByte(c);
-        return 0x100;
+bool onewire_read_bit(void) { return ONEWIRE_READ_BIT(); }
+
+void onewire_clock_pulse(void) { ONEWIRE_WRITE_BIT(onewire_state.data_state); }
+
+unsigned int onewire_data_state(void) { return onewire_state.data_state; }
+
+void onewire_data_low(void) {
+  onewire_state.data_state = LOW;
+  BPMSG1001;
 }
 
-bool OWbitr(void)
-{       return(OWReadBit());
+void onewire_data_high(void) {
+  onewire_state.data_state = HIGH;
+  BPMSG1001;
 }
 
-void OWbitclk(void)
-{       OWWriteBit(DS1wireDataState);
-        //bpEchoState(DS1wireDataState);
-}
-unsigned int OWstate(void){
-        return DS1wireDataState;
-}
+void onewire_setup(void) {
 
-void OWdatl(void)
-{       //bpWstring(OUMSG_1W_BIT_WRITE);
-        //BPMSG1000;
-        DS1wireDataState=0;
-        //bpEchoState(0);
-        //bpWline(OUMSG_1W_BIT_WRITE_NOTE);
-        BPMSG1001;
-        //OWWriteBit(DS1wireDataState);
+  /* Always start in high-impedance mode. */
+  mode_configuration.high_impedance = true;
+
+  /* Clear the saved device roster entries. */
+  onewire_state.used_roster_entries = 0;
+
+  /* Set up pins. */
+  ONEWIRE_DATA_DIRECTION = INPUT;
+  ONEWIRE_DATA_LINE = LOW;
 }
 
-void OWdath(void)
-{       //bpWstring(OUMSG_1W_BIT_WRITE);
-        //BPMSG1000;
-        DS1wireDataState=1;
-        //bpEchoState(1);
-        //bpWline(OUMSG_1W_BIT_WRITE_NOTE);
-        BPMSG1001;
-        //OWWriteBit(DS1wireDataState);
+void print_device_information(size_t roster_id, uint8_t *rom_address) {
+  size_t index;
+
+  /* Print roster entry counter. */
+  bpSP;
+  bpWdec(roster_id);
+  bp_write_string(".");
+
+  /* Print ROM address. */
+  for (index = 0; index < ROM_BYTES_SIZE; index++) {
+    bp_write_formatted_integer(rom_address[index]);
+    bpSP;
+  }
+  BPMSG1008;
+
+#ifdef BP_1WIRE_LOOKUP_FAMILY_ID
+  /* Print the device family identifier if known. */
+  lookup_device_model(rom_address[0]);
+#endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
 }
 
-void OWsetup(void)
-{       
-        mode_configuration.high_impedance=1;//yes, always HiZ
+void onewire_run_macro(uint16_t macro) {
 
-        OWroster.num=0;//clear any old 1-wire bus enumeration rosters
-        //-- Ensure pins are in high impedance mode --
-        SDA_TRIS=1;
-        //writes to the PORTs write to the LATCH
-        SDA=0;                  //B9 sda
-        //bpWline("1WIRE routines Copyright (C) 2000 Michael Pearce");
-        //bpWline("Released under GNU General Public License");
-        //BPMSG1002;
-        //BPMSG1003;
-}
+  /*
+   * Check if the macro identifier is indeed a valid device roster index
+   * rather than a predefined protocol macro.
+   */
+  if ((macro > 0) && (macro < MAXIMUM_DEVICES_ROSTER_SIZE)) {
+    size_t rom_index;
 
-void OWmacro(unsigned int macro)
-{       static unsigned char c,j;
-        static unsigned int i;
-        static unsigned char devID[8];
+    macro--;
 
-        if(macro>0 && macro<51){
-                macro--;//adjust down one for roster array index
-                if(macro>=OWroster.num){//no device #X on the bus, try ROM SEARCH (0xF0)
-                        //bpWline(OUMSG_1W_MACRO_ADDRESS_NODEVICE);
-                        BPMSG1004;
-                        return;
-                }
-                //write out the address of the device in the macro
-                //bpWstring(OUMSG_1W_MACRO_ADDRESS);//xxx WRITE BUS #X ID:
-                BPMSG1005;
-                bpWdec(macro+1);
-                bp_write_string(": ");
-                for(j=0;j<8;j++){
-                        bp_write_formatted_integer(OWroster.dev[macro].id[j]); 
-                        bpSP; 
-                        OWWriteByte(OWroster.dev[macro].id[j]);
-                } //write address
-                bpBR;
-                return;
-        }
-        switch(macro){
-                case 0://menu
-                        //bpWline(OUMSG_1W_MACRO_MENU);
-                        //bpWline(OUMSG_1W_MACRO_SEARCH_ROM_HEADER);
-                        BPMSG1006;
-                        BPMSG1007;
-                        //write out roster of devices and macros, or SEARCH ROM NOT RUN, TRY (0xf0)
-                        if(OWroster.num==0){
-                                //bpWline(OUMSG_1W_MACRO_ADDRESS_NODEVICE);
-                                BPMSG1004;
-                        }else{
-                                for(c=0;c<OWroster.num; c++){
-                                        bpSP;//space
-                                        bpWdec(c+1);
-                                        bp_write_string(".");
-                                        for(j=0;j<8;j++){bp_write_formatted_integer(OWroster.dev[c].id[j]); bpSP;}
-                                        //bpWstring("\x0D\x0A   *");
-                                        BPMSG1008;
-                                        DS1wireID(OWroster.dev[c].id[0]);       //print the device family identity (if known)
-                                }
-                        }
-                        //bpWline(OUMSG_1W_MACRO_MENU_ROM);
-                        BPMSG1009;
-                        break;
-                //1WIRE ROM COMMANDS
-                case 0xec://ALARM SEARCH
-                case 0xf0: //SEARCH ROM
-                        SearchChar=macro;
-                        if(macro==0xec){
-                                //bpWline(OUMSG_1W_MACRO_ALARMSEARCH_ROM);
-                                BPMSG1010;
-                        }else{//SEARCH ROM command...
-                                //bpWline(OUMSG_1W_MACRO_SEARCH_ROM);
-                                BPMSG1011;
-                        }
+    if (macro >= onewire_state.used_roster_entries) {
+      /* Alert the user if the device is not in the roster. */
+      BPMSG1004;
+      return;
+    }
 
-                        //bpWline(OUMSG_1W_MACRO_SEARCH_ROM_HEADER);
-                        BPMSG1007;
-                        // find ALL devices
-                        j = 0;
-                        c = OWFirst();
-                        OWroster.num=0;
-                        while (c){
-                                //the roster number is the shortcut macro
-                                bpSP;
-                                bpWdec(j+1);
-                                bp_write_string(".");
-                
-                                // print address
-                                for (i = 0; i <8; i++){
-                                        bp_write_formatted_integer(ROM_NO[i]);
-                                        bpSP;
-                                }
-                                //bpWstring("\x0D\x0A   *");
-                                BPMSG1008;
-                                DS1wireID(ROM_NO[0]);   //print the device family identity (if known)
-                                
-                                //keep the first X number of one wire IDs in a roster
-                                //so we can refer to them by macro, rather than ID
-                                if(j<BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS){//only as many as we have room for
-                                        for(i=0;i<8;i++) OWroster.dev[OWroster.num].id[i]=ROM_NO[i];
-                                        OWroster.num++;//increment the roster count
-                                }
+    /*
+     * Print the device information taken from the roster on the serial port,
+     * and send the ROM address of the device over the 1-Wire bus as well.
+     */
 
-                                j++;    
-                
-                                c = OWNext();
-                        }
+    BPMSG1005;
+    bpWdec(macro + 1);
+    bp_write_string(": ");
+    for (rom_index = 0; rom_index < ROM_BYTES_SIZE; rom_index++) {
+      bp_write_formatted_integer(
+          onewire_state.roster_entries[macro][rom_index]);
+      bpSP;
+      ONEWIRE_WRITE_BYTE(onewire_state.roster_entries[macro][rom_index]);
+    }
+    bpBR;
+    return;
+  }
 
-                        //bpWline(OUMSG_1W_MACRO_SEARCH_ROM_NOTE);
-                        BPMSG1012;              
-                        break;
-                case 0x33://READ ROM
-                        DS1wireReset();
-                        //bpWstring(OUMSG_1W_MACRO_READ_ROM);
-                        BPMSG1013;
-                        OWWriteByte(0x33);
-                        for(i=0; i<8; i++){
-                                devID[i]=OWReadByte();
-                                bp_write_formatted_integer(devID[i]);
-                                bpSP;   
-                        }
-                        bpBR;  
-                        DS1wireID(devID[0]);
-                        break;
-                case 0x55://MATCH ROM
-                        DS1wireReset();
-                        //bpWline(OUMSG_1W_MACRO_MATCH_ROM);
-                        BPMSG1014;
-                        OWWriteByte(0x55);
-                        break;
-                case 0xcc://SKIP ROM
-                        DS1wireReset();
-                        //bpWline(OUMSG_1W_MACRO_SKIP_ROM);
-                        BPMSG1015;
-                        OWWriteByte(0xCC);
-                        break;
-                default:
-                        //bpWmessage(MSG_ERROR_MACRO);
-                        BPMSG1016;
-        }
-}
+  /* Run the requested macro. */
 
-void OWpins(void) {
-	#if defined(BUSPIRATEV4)
-        BPMSG1259; //bpWline("-\t-\t-\tOWD");
-        #else
-       	BPMSG1229; //bpWline("-\tOWD\t-\t-");
-        #endif
-}
+  switch (macro) {
 
-void DS1wireReset(void){
-        unsigned char c;
+  case MACRO_ID_DUMP_ROSTER: {
+    size_t index;
 
-        c=OWReset();
-        //bpWstring(OUMSG_1W_RESET);
-        BPMSG1017;      
-        if(c==0){
-                //bpWline(OUMSG_1W_RESET_OK);                   
-                //BPMSG1018; //remove?
-                BPMSG1185;
-        }else{
-                //bpWstring(OUMSG_1W_RESET_ERROR);
-                BPMSG1019;
-                if(c&0b1)  BPMSG1020;           //bpWstring(OUMSG_1W_RESET_SHORT);      
-                if(c&0b10) BPMSG1021;           //bpWstring(OUMSG_1W_RESET_NODEV);
-                bpBR;
-        }
-}
+    BPMSG1006;
+    BPMSG1007;
 
-void DS1wireID(unsigned char famID){
-        //some devices, according to:
-        //http://owfs.sourceforge.net/commands.html
-        #define DS2404 0x04
-        #define DS18S20 0x10
-        #define DS1822 0x22
-        #define DS18B20 0x28
-        #define DS2431 0x2D
-        switch(famID){//check for device type
-                case DS18S20:
-                        //bpWline("DS18S20 High Pres Dig Therm");
-                        BPMSG1022;
-                        break;
-                case DS18B20:
-                        //bpWline("DS18B20 Prog Res Dig Therm");
-                        BPMSG1023;
-                        break;
-                case DS1822:
-                        //bpWline("DS1822 Econ Dig Therm");
-                        BPMSG1024;
-                        break;
-                case DS2404:
-                        //bpWline("DS2404 Econram time Chip");
-                        BPMSG1025;
-                        break;
-                case DS2431:
-                        //bpWline("DS2431 1K EEPROM");
-                        BPMSG1026;
-                        break;
-                default:
-                        //bpWline("Unknown device");
-                        BPMSG1027;
+    /*
+     * Print roster entries, or let the user know that a search needs to be
+     * performed first.
+     */
 
-        }
-}
+    if (onewire_state.used_roster_entries == 0) {
+      BPMSG1004;
+    } else {
+      for (index = 0; index < onewire_state.used_roster_entries; index++) {
+        print_device_information(index + 1,
+                                 &onewire_state.roster_entries[index][0]);
+      }
+    }
 
+    BPMSG1009;
+    break;
+  }
 
-//the 1-wire search algo taken from:
-//http://www.maxim-ic.com/appnotes.cfm/appnote_number/187
-//#define TRUE 1 //if !=0
-//#define FALSE 0
+  case MACRO_ID_ALARM_SEARCH:
+  case MACRO_ID_SEARCH_ROM: {
+    bool device_found;
+    size_t index;
 
-//--------------------------------------------------------------------------
-// Find the 'first' devices on the 1-Wire bus
-// Return TRUE  : device found, ROM number in ROM_NO buffer
-//        FALSE : no device present
-//
-unsigned char OWFirst()
-{
-   // reset the search state
-   LastDiscrepancy = 0;
-   LastDeviceFlag = false;
-   LastFamilyDiscrepancy = 0;
+    onewire_state.command_byte = macro;
+    if (macro == MACRO_ID_ALARM_SEARCH) {
+      BPMSG1010;
+    } else {
+      BPMSG1011;
+    }
 
-   return OWSearch();
-}
+    BPMSG1007;
 
-//--------------------------------------------------------------------------
-// Find the 'next' devices on the 1-Wire bus
-// Return TRUE  : device found, ROM number in ROM_NO buffer
-//        FALSE : device not found, end of search
-//
-unsigned char OWNext()
-{
-   // leave the search state alone
-   return OWSearch();
-}
+    /* Find all devices on the bus. */
 
-//--------------------------------------------------------------------------
-// Perform the 1-Wire Search Algorithm on the 1-Wire bus using the existing
-// search state.
-// Return TRUE  : device found, ROM number in ROM_NO buffer
-//        FALSE : device not found, end of search
-//
-unsigned char OWSearch()
-{
-   unsigned char id_bit_number;
-   unsigned char last_zero, rom_byte_number, search_result;
-   unsigned char id_bit, cmp_id_bit;
-   unsigned char rom_byte_mask, search_direction;
+    index = 0;
+    device_found = device_find_first();
+    onewire_state.used_roster_entries = 0;
 
-   // initialize for search
-   id_bit_number = 1;
-   last_zero = 0;
-   rom_byte_number = 0;
-   rom_byte_mask = 1;
-   search_result = 0;
-   crc8 = 0;
+    while (device_found) {
 
-   // if the last call was not the last one
-   if (!LastDeviceFlag)
-   {
-      // 1-Wire reset
-      if (OWReset())
-      {
-         // reset the search
-         LastDiscrepancy = 0;
-         LastDeviceFlag = false;
-         LastFamilyDiscrepancy = 0;
-         return false;
+      /* Print device information. */
+
+      print_device_information(index + 1, &onewire_state.rom_bytes[0]);
+
+      /* Save the device if there is enough space. */
+
+      if (index < BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS) {
+        memcpy(onewire_state.roster_entries[onewire_state.used_roster_entries],
+               onewire_state.rom_bytes, sizeof(onewire_state.rom_bytes));
+        onewire_state.used_roster_entries++;
       }
 
-      // issue the search command 
-      OWWriteByte(SearchChar);  //!!!!!!!!!!!!!!!
+      index++;
 
-      // loop to do the search
-      do
-      {
-         // read a bit and its complement
-         id_bit = OWReadBit();
-         cmp_id_bit = OWReadBit();
+      device_found = device_find_next();
+    }
 
-         // check for no devices on 1-wire
-         if ((id_bit == 1) && (cmp_id_bit == 1))
-            break;
-         else
-         {
-            // all devices coupled have 0 or 1
-            if (id_bit != cmp_id_bit)
-               search_direction = id_bit;  // bit write value for search
-            else
-            {
-               // if this discrepancy if before the Last Discrepancy
-               // on a previous next then pick the same as last time
-               if (id_bit_number < LastDiscrepancy)
-                  search_direction = ((ROM_NO[rom_byte_number] & rom_byte_mask) > 0);
-               else
-                  // if equal to last pick 1, if not then pick 0
-                  search_direction = (id_bit_number == LastDiscrepancy);
+    BPMSG1012;
+    break;
+  }
 
-               // if 0 was picked then record its position in LastZero
-               if (search_direction == 0)
-               {
-                  last_zero = id_bit_number;
+  case MACRO_ID_READ_ROM: {
+    uint8_t device_address[ROM_BYTES_SIZE];
+    size_t index;
 
-                  // check for Last discrepancy in family
-                  if (last_zero < 9)
-                     LastFamilyDiscrepancy = last_zero;
-               }
-            }
+    onewire_reset();
+    BPMSG1013;
+    ONEWIRE_WRITE_BYTE(MACRO_ID_READ_ROM);
+    for (index = 0; index < ROM_BYTES_SIZE; index++) {
+      device_address[index] = ONEWIRE_READ_BYTE();
+      bp_write_formatted_integer(device_address[index]);
+      bpSP;
+    }
+    bpBR;
+    lookup_device_model(device_address[0]);
+    break;
+  }
 
-            // set or clear the bit in the ROM byte rom_byte_number
-            // with mask rom_byte_mask
-            if (search_direction == 1)
-              ROM_NO[rom_byte_number] |= rom_byte_mask;
-            else
-              ROM_NO[rom_byte_number] &= ~rom_byte_mask;
+  case MACRO_ID_MATCH_ROM:
+    onewire_reset();
+    BPMSG1014;
+    ONEWIRE_WRITE_BYTE(MACRO_ID_MATCH_ROM);
+    break;
 
-            // serial number search direction write bit
-            OWWriteBit(search_direction);
+  case MACRO_ID_SKIP_ROM:
+    onewire_reset();
+    BPMSG1015;
+    ONEWIRE_WRITE_BYTE(MACRO_ID_SKIP_ROM);
+    break;
 
-            // increment the byte counter id_bit_number
-            // and shift the mask rom_byte_mask
-            id_bit_number++;
-            rom_byte_mask <<= 1;
-
-            // if the mask is 0 then go to new SerialNum byte rom_byte_number and reset mask
-            if (rom_byte_mask == 0)
-            {
-                docrc8(ROM_NO[rom_byte_number]);  // accumulate the CRC
-                rom_byte_number++;
-                rom_byte_mask = 1;
-            }
-         }
-      }
-      while(rom_byte_number < 8);  // loop until through all ROM bytes 0-7
-
-      // if the search was successful then
-      if (!((id_bit_number < 65) || (crc8 != 0)))
-      {
-         // search successful so set LastDiscrepancy,LastDeviceFlag,search_result
-         LastDiscrepancy = last_zero;
-
-         // check for last device
-         if (LastDiscrepancy == 0)
-            LastDeviceFlag = true;
-         
-         search_result = true;
-      }
-   }
-
-   // if no device found then reset counters so next 'search' will be like a first
-   if (!search_result || !ROM_NO[0])
-   {
-      LastDiscrepancy = 0;
-      LastDeviceFlag = false;
-      LastFamilyDiscrepancy = 0;
-      search_result = false;
-   }
-
-   return search_result;
+  default:
+    BPMSG1016;
+  }
 }
 
-//--------------------------------------------------------------------------
-// Verify the device with the ROM number in ROM_NO buffer is present.
-// Return TRUE  : device verified present
-//        FALSE : device not present
-//
-unsigned char OWVerify()
-{
-   unsigned char rom_backup[8];
-   unsigned char i,rslt,ld_backup,ldf_backup,lfd_backup;
+void onewire_pins_state(void) {
+#ifdef BUSPIRATEV4
+  BPMSG1259;
+#else
+  BPMSG1229;
+#endif /* BUSPIRATEV4 */
+}
 
-   // keep a backup copy of the current state
-   for (i = 0; i < 8; i++)
-      rom_backup[i] = ROM_NO[i];
-   ld_backup = LastDiscrepancy;
-   ldf_backup = LastDeviceFlag;
-   lfd_backup = LastFamilyDiscrepancy;
+void onewire_reset(void) {
+  onewire_bus_reset_result_t reset_result;
 
-   // set search to find the same device
-   LastDiscrepancy = 64;
-   LastDeviceFlag = false;
+  reset_result = perform_bus_reset();
+  BPMSG1017;
 
-   if (OWSearch())
-   {
-      // check if same device found
-      rslt = true;
-      for (i = 0; i < 8; i++)
-      {
-         if (rom_backup[i] != ROM_NO[i])
-         {
-            rslt = false;
-            break;
-         }
+  if (reset_result == ONEWIRE_BUS_RESET_OK) {
+    BPMSG1185;
+    return;
+  }
+
+  BPMSG1019;
+  if (reset_result == ONEWIRE_BUS_RESET_SHORT) {
+    BPMSG1020;
+  } else {
+    BPMSG1021;
+  }
+
+  bpBR;
+}
+
+onewire_bus_reset_result_t perform_bus_reset(void) {
+  onewire_bus_reset_result_t result;
+  size_t delay;
+
+  result = ONEWIRE_BUS_RESET_OK;
+
+  /* Pull the bus line LOW. */
+
+  ONEWIRE_DATA_DIRECTION = INPUT;
+  ONEWIRE_DATA_LINE = LOW;
+  ONEWIRE_DATA_DIRECTION = OUTPUT;
+
+  /*
+   * According to specification a minimum of 480us need to be waited before
+   * reading the line.
+   *
+   * @todo: why not bp_delay_us(490); instead? Need to test on an analyzer.
+   *
+   * On the old code it was mentioned that looping 34 times, including
+   * compensating the loop code being executed, pauses the board for exactly
+   * 491us.
+   */
+  for (delay = 0; delay < 34; delay++) {
+    bp_delay_us(10);
+  }
+
+  /* Release the bus. */
+  ONEWIRE_DATA_DIRECTION = INPUT;
+  bp_delay_us(65);
+
+  /* Read the data line. */
+  if (ONEWIRE_DATA_LINE) {
+    /* If the data line is still high, no device is available on the bus. */
+    result = ONEWIRE_BUS_RESET_NO_DEVICE;
+  }
+
+  /* Wait for 506us. */
+  for (delay = 0; delay < 35; delay++) {
+    bp_delay_us(10);
+  }
+
+  /* Read the data line. */
+  if (ONEWIRE_DATA_LINE == LOW) {
+    /* If the data line was not pulled high now, there is a short on the bus. */
+    result = ONEWIRE_BUS_RESET_SHORT;
+  }
+
+  return result;
+}
+
+#ifdef BP_1WIRE_LOOKUP_FAMILY_ID
+
+/* TODO: Expand this table from the data at
+ * http://owfs.org/index.php?page=family-code-list */
+
+#define DS2404 0x04
+#define DS18S20 0x10
+#define DS1822 0x22
+#define DS18B20 0x28
+#define DS2431 0x2D
+
+void lookup_device_model(uint8_t model) {
+  switch (model) {
+  case DS18S20:
+    BPMSG1022;
+    break;
+
+  case DS18B20:
+    BPMSG1023;
+    break;
+
+  case DS1822:
+    BPMSG1024;
+    break;
+
+  case DS2404:
+    BPMSG1025;
+    break;
+
+  case DS2431:
+    BPMSG1026;
+    break;
+
+  default:
+    BPMSG1027;
+  }
+}
+
+#endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
+
+bool device_find_first() {
+  onewire_state.last_device_discrepancy = 0;
+  onewire_state.last_family_discrepancy = 0;
+  onewire_state.last_device_flag = false;
+
+  return perform_device_search();
+}
+
+bool device_find_next() { return perform_device_search(); }
+
+bool perform_device_search() {
+  bool id_bit;
+  bool cmp_id_bit;
+
+  uint8_t id_bit_number;
+  uint8_t last_zero;
+  uint8_t rom_byte_offset;
+  uint8_t search_result;
+  uint8_t rom_byte_mask;
+  uint8_t search_direction;
+
+  id_bit_number = 1;
+  last_zero = 0;
+  rom_byte_offset = 0;
+  rom_byte_mask = 1;
+  search_result = 0;
+  onewire_state.crc8 = 0;
+
+  /* Check if the bus enumeration is still in progress. */
+
+  if (!onewire_state.last_device_flag) {
+
+    /* The last device on the bus was not yet found. */
+
+    if (perform_bus_reset()) {
+      onewire_state.last_device_discrepancy = 0;
+      onewire_state.last_family_discrepancy = 0;
+      onewire_state.last_device_flag = false;
+
+      return false;
+    }
+
+    /* Issue search command. */
+
+    ONEWIRE_WRITE_BYTE(onewire_state.command_byte);
+
+    do {
+
+      /* Read a bit and its complement. */
+
+      id_bit = ONEWIRE_READ_BIT();
+      cmp_id_bit = ONEWIRE_READ_BIT();
+
+      if ((id_bit == ON) && (cmp_id_bit == ON)) {
+
+        /* No devices on the line, bail out. */
+
+        break;
       }
-   }
-   else
-     rslt = false;
 
-   // restore the search state 
-   for (i = 0; i < 8; i++)
-      ROM_NO[i] = rom_backup[i];
-   LastDiscrepancy = ld_backup;
-   LastDeviceFlag = ldf_backup;
-   LastFamilyDiscrepancy = lfd_backup;
+      if (id_bit != cmp_id_bit) {
+        search_direction = id_bit;
+      } else {
 
-   // return the result of the verify
-   return rslt;
+        /*
+         * Determine the search direction from the last recorded discrepancy
+         * index.
+         */
+
+        if (id_bit_number < onewire_state.last_device_discrepancy) {
+          search_direction =
+              (onewire_state.rom_bytes[rom_byte_offset] & rom_byte_mask) > 0;
+        } else {
+
+          /* Determine search direction. */
+
+          search_direction =
+              (id_bit_number == onewire_state.last_device_discrepancy);
+        }
+
+        /* If a 0 was read, then record its position. */
+
+        if (search_direction == 0) {
+          last_zero = id_bit_number;
+
+          /* Check for the last bit discrepancy in the family byte. */
+
+          if (last_zero < 9) {
+            onewire_state.last_family_discrepancy = last_zero;
+          }
+        }
+      }
+
+      /*
+       * Set or clear the current ROM address bit according to the search
+       * direction.
+       */
+      if (search_direction == 1) {
+        onewire_state.rom_bytes[rom_byte_offset] |= rom_byte_mask;
+      } else {
+        onewire_state.rom_bytes[rom_byte_offset] &= ~rom_byte_mask;
+      }
+
+      /* Write the serial number search direction bit. */
+
+      ONEWIRE_WRITE_BIT(search_direction);
+
+      /* Advance by one bit. */
+
+      id_bit_number++;
+      rom_byte_mask <<= 1;
+
+      /* If 8 bits have been read, update CRC and move to the next byte. */
+
+      if (rom_byte_mask == 0) {
+
+        /* Calculate CRC. */
+
+        update_crc8(onewire_state.rom_bytes[rom_byte_offset]);
+        rom_byte_offset++;
+        rom_byte_mask = 1;
+      }
+
+      /* Get all 8 bytes. */
+
+    } while (rom_byte_offset < ROM_BYTES_SIZE);
+
+    /* Checks the result of the search. */
+
+    if (!((id_bit_number < 65) || (onewire_state.crc8 != 0))) {
+
+      /* Update search state values. */
+
+      onewire_state.last_device_discrepancy = last_zero;
+
+      if (onewire_state.last_device_discrepancy == 0) {
+        onewire_state.last_device_flag = true;
+      }
+
+      /* Found a device. */
+
+      search_result = true;
+    }
+  }
+
+  /* No device was found, so reset search state to a clean slate. */
+
+  if (!search_result || !onewire_state.rom_bytes[0]) {
+    onewire_state.last_device_discrepancy = 0;
+    onewire_state.last_family_discrepancy = 0;
+    onewire_state.last_device_flag = false;
+    search_result = false;
+  }
+
+  return search_result;
 }
 
-// TEST BUILD
-static const unsigned char dscrc_table[] = {
-        0, 94,188,226, 97, 63,221,131,194,156,126, 32,163,253, 31, 65,
-      157,195, 33,127,252,162, 64, 30, 95,  1,227,189, 62, 96,130,220,
-       35,125,159,193, 66, 28,254,160,225,191, 93,  3,128,222, 60, 98,
-      190,224,  2, 92,223,129, 99, 61,124, 34,192,158, 29, 67,161,255,
-       70, 24,250,164, 39,121,155,197,132,218, 56,102,229,187, 89,  7,
-      219,133,103, 57,186,228,  6, 88, 25, 71,165,251,120, 38,196,154,
-      101, 59,217,135,  4, 90,184,230,167,249, 27, 69,198,152,122, 36,
-      248,166, 68, 26,153,199, 37,123, 58,100,134,216, 91,  5,231,185,
-      140,210, 48,110,237,179, 81, 15, 78, 16,242,172, 47,113,147,205,
-       17, 79,173,243,112, 46,204,146,211,141,111, 49,178,236, 14, 80,
-      175,241, 19, 77,206,144,114, 44,109, 51,209,143, 12, 82,176,238,
-       50,108,142,208, 83, 13,239,177,240,174, 76, 18,145,207, 45,115,
-      202,148,118, 40,171,245, 23, 73,  8, 86,180,234,105, 55,213,139,
-       87,  9,235,181, 54,104,138,212,149,203, 41,119,244,170, 72, 22,
-      233,183, 85, 11,136,214, 52,106, 43,117,151,201, 74, 20,246,168,
-      116, 42,200,150, 21, 75,169,247,182,232, 10, 84,215,137,107, 53};
-
-//--------------------------------------------------------------------------
-// Calculate the CRC8 of the byte value provided with the current 
-// global 'crc8' value. 
-// Returns current global crc8 value
-//
-unsigned char docrc8(unsigned char value)
-{
-   // See Application Note 27
-   // TEST BUILD
-   crc8 = dscrc_table[crc8 ^ value];
-   return crc8;
+uint8_t update_crc8(uint8_t value) {
+  onewire_state.crc8 = CRC_TABLE[onewire_state.crc8 ^ value];
+  return onewire_state.crc8;
 }
 
+/**
+ * Binary I/O 1-Wire Action command.
+ *
+ * This is for further actions dealing with simple operations like bus reset,
+ * and so on.
+ *
+ * Current form is as follows:
+ *
+ * MSB
+ * 0000xxxx
+ *     ||||
+ *     ++++--> The action index, see below.
+ *
+ * @see BINARY_IO_ONEWIRE_ACTION_EXIT
+ * @see BINARY_IO_ONEWIRE_ACTION_VERSION_STRING
+ * @see BINARY_IO_ONEWIRE_ACTION_BUS_RESET
+ * @see BINARY_IO_ONEWIRE_ACTION_READ_BYTE
+ * @see BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO
+ * @see BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_ACTION 0x00
 
-/*
-binary1WIRE mode:
-# 00000000 - reset to BBIO
-# 00000001 ? mode version string (1W01)
-# 00000010 ? 1wire reset
-# 00000100 - read byte
-# 00001000 - ROM search macro (0xf0)
-# 00001001 - ALARM search macro (0xec)
-# 0001xxxx ? Bulk transfer, send 1-16 bytes (0=1byte!)
-# 0100wxyz ? Configure peripherals w=power, x=pullups, y=AUX, z=CS (
-# 0101wxyz ? read peripherals (planned, not implemented)
-*/
-void bin1WIREversionString(void);
+/**
+ * Binary I/O 1-Wire Bulk transfer command.
+ *
+ * Once this command is received by the board, it will read up to the needed
+ * amount of bytes from the serial port and write those same bytes to the 1-Wire
+ * bus - in the same order as they were received.  After every byte received on
+ * the serial port, the Bus Pirate board will output a SUCCESS value on the
+ * port, signaling that the incoming data has been processed.
+ *
+ * Current command format is as follows:
+ *
+ * MSB
+ * 0001xxxx
+ *     ||||
+ *     ++++--> How many bytes to send minus 1.  This means that passing 0 will
+ *             trigger a 1 byte transfer, and passing 15 will trigger a 16 bytes
+ *             transfer.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC          -> 0b0001xxxx
+ * Bus Pirate  <- 0b00000001 (SUCCESS)
+ * PC          -> Byte #0
+ * Bus Pirate  <- 0b00000001 (SUCCESS)
+ * PC          -> Byte #1
+ * Bus Pirate  <- 0b00000001 (SUCCESS)
+ * ...
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_BULK_TRANSFER 0x01
 
-void bin1WIREversionString(void){bp_write_string("1W01");}
+/**
+ * Binary I/O 1-Wire Peripherals configuration command.
+ *
+ * This command will set up the board in a particular fashion to accommodate the
+ * needs of the device currently being manipulated.  Once this command is
+ * received by the board, it will respond with a SUCCESS value.
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 0100xxxx
+ *     ||||
+ *     |||+--> The state of the CS line.
+ *     ||+---> The state of the AUX line.
+ *     |+----> The state of pull-ups.
+ *     +-----> The power on/off flag.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC         -> 9b0100xxxx
+ * Bus Pirate <- 0b00000001 (SUCCESS)
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS 0x04
 
-void bin1WIRE(void){
-        static unsigned char inByte, rawCommand, i,c;
-        
-        SDA_TRIS=1; //pin to input
-        SDA=0;  //pin to ground
+/**
+ * Binary I/O 1-Wire Peripherals read command.
+ *
+ * Available only on Bus Pirate v4.  It currently manipulates the state of the
+ * pull-ups on the board.
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 010100xx
+ *       ||
+ *       |+--> Flag for +3.3v pull-up - set to 1 to turn on.
+ *       +---> Flag for +5v pull-up - set to 1 to turn on.
+ *
+ * Setting both +3.3v and +5v pull-ups on at the same time is equivalent to
+ * turning both +3.3v and +5v pull-ups off.
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_READ_PERIPHERALS 0x05
 
-        BP_CS_DIR=0;                    //set CS pin direction to output on setup
+/**
+ * Binary I/O 1-Wire Action command to exit 1-Wire mode.
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 00000000
+ * ||||||||
+ * ||||++++--> Exit 1-Wire mode action.
+ * ++++------> Action command.
+ */
+#define BINARY_IO_ONEWIRE_ACTION_EXIT 0x00
 
-        mode_configuration.high_impedance=1;//yes, always hiz, sets CS to open drain state 
-        mode_configuration.lsbEN=0;//just in case!
+/**
+ * Binary I/O 1-Wire Action command to print out the mode version string to the
+ * serial port.
+ *
+ * Right now the 1-Wire mode command set is identified by the bytes '1', 'W',
+ * '0', '1'.
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 00000001
+ * ||||||||
+ * ||||++++--> Print mode version string action.
+ * ++++------> Action command.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC         -> 0b00000001
+ * Bus Pirate <- 0b00110001 0b00010111 0b00110000 0b00110001 ('1W01')
+ */
+#define BINARY_IO_ONEWIRE_ACTION_VERSION_STRING 0x01
 
-        bin1WIREversionString();//reply string
+/**
+ * Binary I/O 1-Wire Action command to perform a 1-Wire bus reset.
+ *
+ * The board will respond with a SUCCESS value once the bus is reset.
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 00000010
+ * ||||||||
+ * ||||++++--> Bus reset action.
+ * ++++------> Action command.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC         -> 0b00000010
+ * Bus Pirate <- 0b00000001 (SUCCESS)
+ */
+#define BINARY_IO_ONEWIRE_ACTION_BUS_RESET 0x02
 
-        while(1){
+/**
+ * Binary I/O 1-Wire Action command to read a byte from the bus.
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 00000100
+ * ||||||||
+ * ||||++++--> Read byte action.
+ * ++++------> Action command.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC         -> 0b00000100
+ * Bus Pirate <- 0bxxxxxxxx (Byte read from the bus)
+ */
+#define BINARY_IO_ONEWIRE_ACTION_READ_BYTE 0x04
 
-                // JTR usb port while(UART1RXRdy == 0);//wait for a byte
-                inByte=UART1RX(); /// JTR usb port; */ //grab it
-                rawCommand=(inByte>>4);//get command bits in seperate variable
-                
-                switch(rawCommand){
-                        case 0://reset/setup/config commands
-                                switch(inByte){
-                                        case 0://0, reset exit
-                                                //cleanup!!!!!!!!!!
-                                                return; //exit
-                                                break;
-                                        case 1://id reply string
-                                                bin1WIREversionString();//reply string
-                                                break;
-                                        case 2://reset (might want to do something with c in the future)
-                                                c=OWReset();
-                                                UART1TX(1);
-                                                break;
-                                        case 4://read byte
-                                                UART1TX(OWReadByte());
-                                                break;
-                                        case 8://1wire search macro results
-                                        case 9://alarm search
-                                                UART1TX(1);
-                                                
-                                                if(inByte==9)SearchChar=0xec; //search alarm
-                                                else SearchChar=0xf0; //search ROM
+/**
+ * Binary I/O 1-Wire Action command to invoke the "ROM search" macro.
+ *
+ * This action will perform a ROM search action, by enumerating all devices
+ * on the bus.  Once a device is found, its information is sent back to the
+ * serial port.  A sequence of eight (8) 0xFF bytes indicates that the search
+ * has terminated.  Right after receiving the ROM search action command, the
+ * board will return a SUCCESS value indicating that it will start the devices
+ * scan.  The search algorithm is described in
+ * https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 00001000
+ * ||||||||
+ * ||||++++--> ROM search action.
+ * ++++------> Action command.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC         -> 0b00001000
+ * Bus Pirate <- 0b00000001 (SUCCESS)
+ * Bus Pirate <- 0bxxxxxxxx 0bxxxxxxxx ... (Device information)
+ * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
+ * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
+ */
+#define BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO 0x08
 
-                                                // find ALL devices
-                                                c = OWFirst();
-                                                while (c){
-                                                        // print address
-                                                        for (i = 0; i <8; i++) UART1TX(ROM_NO[i]);
-                                                        c = OWNext();
-                                                }
+/**
+ * Binary I/O 1-Wire Action command to invoke the "ALARM search" macro.
+ *
+ * This action will perform an ALARM search action, by enumerating all devices
+ * on the bus that are in ALARM state.  Once a device is found, its information
+ * is sent back to the
+ * serial port.  A sequence of eight (8) 0xFF bytes indicates that the search
+ * has terminated.  Right after receiving the ROM search action command, the
+ * board will return a SUCCESS value indicating that it will start the devices
+ * scan.  The search algorithm is described in
+ * https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
+ *
+ * Current format is as follows:
+ *
+ * MSB
+ * 00001001
+ * ||||||||
+ * ||||++++--> ALARM search action.
+ * ++++------> Action command.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC         -> 0b00001001
+ * Bus Pirate <- 0b00000001 (SUCCESS)
+ * Bus Pirate <- 0bxxxxxxxx 0bxxxxxxxx ... (Device information)
+ * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
+ * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
+ */
+#define BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO 0x09
 
-                                                //send 8x 0xff  
-                                                for(i=0; i<8; i++) UART1TX(0xff);
+void print_1wire_version_string(void) {
+  bp_write_buffer(&ONEWIRE_MODE_IDENTIFIER[0], sizeof(ONEWIRE_MODE_IDENTIFIER));
+}
 
-                                                break;
-                                        default:
-                                                UART1TX(0);
-                                                break;
-                                }       
-                                break;
+void binary_io_enter_1wire_mode(void) {
+  uint8_t input_byte;
+  uint8_t command;
 
-                        case 0b0001://get x+1 bytes
-                                inByte&=(~0b11110000); //clear command portion
-                                inByte++; //increment by 1, 0=1byte
-                                UART1TX(1);//send 1/OK          
+  ONEWIRE_DATA_DIRECTION = INPUT;
+  ONEWIRE_DATA_LINE = LOW;
+  BP_CS_DIR = OUTPUT;
 
-                                for(i=0;i<inByte;i++){
-                                        // JTR usb port while(UART1RXRdy == 0);//wait for a byte
-                                        OWWriteByte(UART1RX()); //  send byte
-                                        UART1TX(1);//0x01 for success
-                                }
+  /* Set CS to open drain. */
 
-                                break;
+  mode_configuration.high_impedance = true;
 
-                        case 0b0100: //configure peripherals w=power, x=pullups, y=AUX, z=CS
-                                binIOperipheralset(inByte);
-                                UART1TX(1);//send 1/OK          
-                                break;
+  /* Just in case. */
 
-				#ifdef BUSPIRATEV4
-								case 0b0101:
-										UART1TX(binBBpullVoltage(inByte));
-										break;
-				#endif
-                        default:
-                                UART1TX(0x00);//send 0/Error
-                                break;
-                }//command switch
-        }//while loop
+  mode_configuration.lsbEN = false;
 
+  /* Send version string. */
+
+  print_1wire_version_string();
+
+  for (;;) {
+
+    input_byte = UART1RX();
+    command = input_byte >> 4;
+
+    switch (command) {
+    case BINARY_IO_ONEWIRE_COMMAND_ACTION:
+      switch (input_byte) {
+      case BINARY_IO_ONEWIRE_ACTION_EXIT:
+        return;
+
+      case BINARY_IO_ONEWIRE_ACTION_VERSION_STRING:
+        print_1wire_version_string();
+        break;
+
+      case BINARY_IO_ONEWIRE_ACTION_BUS_RESET:
+        perform_bus_reset();
+        UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+        break;
+
+      case BINARY_IO_ONEWIRE_ACTION_READ_BYTE:
+        UART1TX(ONEWIRE_READ_BYTE());
+        break;
+
+      case BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO:
+      case BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO: {
+        bool next;
+        size_t index;
+
+        UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+
+        onewire_state.command_byte =
+            (input_byte == BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO)
+                ? MACRO_ID_ALARM_SEARCH
+                : MACRO_ID_SEARCH_ROM;
+
+        /* Find all devices. */
+
+        next = device_find_first();
+        while (next) {
+          /* Print address. */
+          bp_write_buffer(&onewire_state.rom_bytes[0],
+                          sizeof(onewire_state.rom_bytes));
+          next = device_find_next();
+        }
+
+        /* Send 8x 0xFF bytes. */
+
+        for (index = 0; index < 8; index++) {
+          UART1TX(0xFF);
+        }
+
+        break;
+      }
+
+      default:
+        UART1TX(BP_BINARY_IO_RESULT_FAILURE);
+        break;
+      }
+      break;
+
+    case BINARY_IO_ONEWIRE_COMMAND_BULK_TRANSFER: {
+      size_t index;
+
+      input_byte = (input_byte & 0x0F) + 1;
+      UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+
+      for (index = 0; index < input_byte; index++) {
+        ONEWIRE_WRITE_BYTE(UART1RX());
+        UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+      }
+
+      break;
+    }
+
+    case BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS:
+      bp_binary_io_peripherals_set(input_byte);
+      UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+      break;
+
+#ifdef BUSPIRATEV4
+    case BINARY_IO_ONEWIRE_COMMAND_READ_PERIPHERALS:
+      UART1TX(bp_binary_io_pullup_control(input_byte));
+      break;
+#endif /* BUSPIRATEV4 */
+
+    default:
+      UART1TX(BP_BINARY_IO_RESULT_FAILURE);
+      break;
+    }
+  }
+}
+
+bool onewire_internal_bit_io(bool bit_value) {
+  ONEWIRE_DATA_DIRECTION = INPUT;
+  ONEWIRE_DATA_LINE = LOW;
+  ONEWIRE_DATA_DIRECTION = OUTPUT;
+
+  bp_delay_us(4);
+  if (bit_value) {
+    ONEWIRE_DATA_DIRECTION = INPUT;
+  }
+  bp_delay_us(8);
+
+  /*
+   * This is where the magic happens. If a bit_value value of 1 is sent to this
+   * function, well thats the same timing needed to get a value (not just send
+   * it) so why not perform both?  So sending 1 will not only send one bit;
+   * it will also read one bit.  It all depends on what the iDevice is in the
+   * mood to do.  If it is in send mode then it will sends its data, if it is in
+   * receive mode, then we will send ours.  Magical, I know. :)
+   */
+
+  if (bit_value) {
+    bit_value = ONEWIRE_DATA_LINE;
+    bp_delay_us(32);
+  } else {
+    bp_delay_us(25);
+    ONEWIRE_DATA_DIRECTION = INPUT;
+    bp_delay_us(7);
+  }
+
+  /* Adjust timing to take 70us per bit. */
+
+  bp_delay_us(5);
+
+  return bit_value;
+}
+
+uint8_t onewire_internal_byte_io(uint8_t byte_value) {
+  uint8_t bit_index;
+  uint8_t current_bit;
+
+  current_bit = 0;
+
+  /*
+   * Nothing much to say about this function, it is pretty standard; do this 8
+   * times and collect results.  Except that sends and GETS data.  Sending a
+   * value of 0xFF will have the onewire_internal_bit_io function return bits;
+   * this will collect those returns and spit them out.  Same with send.  It all
+   * depends on what the iDevice is looking for at the time this command is
+   * sent.
+   */
+
+  for (bit_index = 0; bit_index < 8; bit_index++) {
+    current_bit = onewire_internal_bit_io(byte_value & 0x01);
+    byte_value >>= 1;
+    if (current_bit) {
+      byte_value |= 0x80;
+    }
+  }
+
+  bp_delay_us(8);
+
+  return byte_value;
 }
 
 #endif /* BP_ENABLE_1WIRE_SUPPORT */

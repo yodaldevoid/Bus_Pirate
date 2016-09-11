@@ -755,13 +755,13 @@ void binSPI(void) {
 
                 break;
             case 0b0100: //configure peripherals w=power, x=pullups, y=AUX, z=CS
-                binIOperipheralset(inByte);
+                bp_binary_io_peripherals_set(inByte);
                 UART1TX(1); //send 1/OK
                 break;
 
 #ifdef BUSPIRATEV4
 				case 0b0101:
-					UART1TX(binBBpullVoltage(inByte));
+					UART1TX(bp_binary_io_pullup_control(inByte));
 					break;
 #endif
             case 0b0110://set speed

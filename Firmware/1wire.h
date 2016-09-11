@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -22,24 +23,97 @@
 #ifdef BP_ENABLE_1WIRE_SUPPORT
 
 #include <stdbool.h>
+#include <stdint.h>
 
-void DS1wireProcess(void);
-unsigned char PROBE_CHECKSUM (unsigned char *BYTE, int size_of_BYTE);
-void bin1WIRE(void);
+/**
+ * Enters binary I/O mode for sending 1-Wire commands directly.
+ */
+void binary_io_enter_1wire_mode(void);
 
-unsigned int OWread(void);
-unsigned int OWwrite(unsigned int c);
-bool OWbitr(void);
-void OWbitclk(void);
-void OWdatl(void);
-void OWdath(void);
-void OWsetup(void);
-void OWmacro(unsigned int macro);
-void OWpins(void);
-unsigned int OWstate(void);
+/**
+ * Reads some data from the bus.
+ *
+ * @return the data being read from the bus.
+ */
+uint16_t onewire_read(void);
 
-// from m_1wire123.h anything to make the compiler.linker happy *zucht*
-void DS1wireReset(void);
+/**
+ * Sends the given data to the bus.
+ *
+ * @param[in] data the data to send to the bus.
+ *
+ * @return the data being read from the bus if any has to be read, or
+ *         0 otherwise.
+ */
+uint16_t onewire_write(uint16_t data);
+
+/**
+ * Reads one bit from the data bus.
+ *
+ * @return the bit read from the bus.
+ *
+ * @see bus_pirate_protocol_t.protocol_read_bit
+ */
+bool onewire_read_bit(void);
+
+/**
+ * Pulses the clock line, if one is present.
+ *
+ * @see bus_pirate_protocol_t.protocol_clock_pulse
+ */
+void onewire_clock_pulse(void);
+
+/**
+ * Pulls the bus data line LOW.
+ *
+ * @see bus_pirate_protocol_t.protocol_data_low
+ */
+void onewire_data_low(void);
+
+/**
+ * Pulls the bus data line HIGH.
+ *
+ * @see bus_pirate_protocol_t.protocol_data_high
+ */
+void onewire_data_high(void);
+
+/**
+ * Prepares the protocol for operating on the bus.
+ *
+ * @see bus_pirate_protocol_t.protocol_setup
+ * @see bus_pirate_protocol_t.protocol_get_ready
+ */
+void onewire_setup(void);
+
+/**
+ * Runs the macro identified by the given marker.
+ *
+ * @param[in] macro the macro identifier.
+ *
+ * @see bus_pirate_protocol_t.protocol_run_macro
+ */
+void onewire_run_macro(uint16_t macro);
+
+/**
+ * Prints the current state of hardware pins when in the current protocol mode.
+ *
+ * @see bus_pirate_protocol_t.protocol_print_pins_state
+ */
+void onewire_pins_state(void);
+
+/**
+ * Reads the state of the data line, if one is present.
+ *
+ * @return the state on the data line.
+ *
+ * @see bus_pirate_protocol_t.protocol_data_state
+ */
+unsigned int onewire_data_state(void);
+
+/**
+ * Resets the bus.
+ */
+void onewire_reset(void);
 
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
 

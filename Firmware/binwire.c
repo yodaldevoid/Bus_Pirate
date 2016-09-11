@@ -396,13 +396,13 @@ void binwire(void) {
                 //case 0b0101: //# 0101xxxx - Bulk read, read 1-16bytes (0=1byte!)
 
             case 0b0100: //configure peripherals w=power, x=pullups, y=AUX, z=CS
-                binIOperipheralset(inByte);
+                bp_binary_io_peripherals_set(inByte);
                 UART1TX(1); //send 1/OK
                 break;
 
 #ifdef BUSPIRATEV4
 				case 0b0101:
-					UART1TX(binBBpullVoltage(inByte));
+					UART1TX(bp_binary_io_pullup_control(inByte));
 					break;
 #endif
 

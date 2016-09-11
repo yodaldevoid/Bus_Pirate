@@ -137,50 +137,92 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
-bus_pirate_protocol_t protos[MAXPROTO] = {{null_operation_callback,
+bus_pirate_protocol_t protos[MAXPROTO] = {{/* protocol_start */
                                            null_operation_callback,
+                                           /* protocol_start_with_read */
                                            null_operation_callback,
+                                           /* protocol_stop */
                                            null_operation_callback,
+                                           /* protocol_stop_from_read */
+                                           null_operation_callback,
+                                           /* protocol_send */
                                            null_send_callback,
+                                           /* protocol_read */
                                            null_data_read_callback,
+                                           /* protocol_clock_high */
                                            null_operation_callback,
+                                           /* protocol_clock_low */
                                            null_operation_callback,
+                                           /* protocol_data_high */
                                            null_operation_callback,
+                                           /* protocol_data_low */
                                            null_operation_callback,
+                                           /* protocol_data_state */
                                            null_data_read_callback,
+                                           /* protocol_clock_pulse */
                                            null_operation_callback,
+                                           /* protocol_read_bit */
                                            null_bit_read_callback,
+                                           /* protocol_periodic_update */
                                            null_bit_read_callback,
+                                           /* protocol_run_macro */
                                            null_macro_callback,
+                                           /* protocol_setup */
                                            reset_mode_to_8_bits,
+                                           /* protocol_get_ready */
                                            reset_mode_to_8_bits,
+                                           /* protocol_cleanup */
                                            reset_mode_to_8_bits,
+                                           /* protocol_print_pins_state */
                                            hiz_print_pins_state,
+                                           /* protocol_print_settings */
                                            empty_print_settings_implementation,
+                                           /* name */
                                            "HiZ"}
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
                                           ,
-                                          {DS1wireReset,
-                                           DS1wireReset,
+                                          {/* protocol_start */
+                                           onewire_reset,
+                                           /* protocol_start_with_read */
+                                           onewire_reset,
+                                           /* protocol_stop */
                                            null_operation_callback,
+                                           /* protocol_stop_from_read */
                                            null_operation_callback,
-                                           OWwrite,
-                                           OWread,
+                                           /* protocol_send */
+                                           onewire_write,
+                                           /* protocol_read */
+                                           onewire_read,
+                                           /* protocol_clock_high */
                                            null_operation_callback,
+                                           /* protocol_clock_low */
                                            null_operation_callback,
-                                           OWdath,
-                                           OWdatl,
-                                           OWstate,
-                                           OWbitclk,
-                                           OWbitr,
+                                           /* protocol_data_high */
+                                           onewire_data_high,
+                                           /* protocol_data_low */
+                                           onewire_data_low,
+                                           /* protocol_data_state */
+                                           onewire_data_state,
+                                           /* protocol_clock_pulse */
+                                           onewire_clock_pulse,
+                                           /* protocol_read_bit */
+                                           onewire_read_bit,
+                                           /* protocol_periodic_update */
                                            null_bit_read_callback,
-                                           OWmacro,
-                                           OWsetup,
-                                           OWsetup,
+                                           /* protocol_run_macro */
+                                           onewire_run_macro,
+                                           /* protocol_setup */
+                                           onewire_setup,
+                                           /* protocol_get_ready */
+                                           onewire_setup,
+                                           /* protocol_cleanup */
                                            reset_mode_to_8_bits,
-                                           OWpins,
+                                           /* protocol_print_pins_state */
+                                           onewire_pins_state,
+                                           /* protocol_print_settings */
                                            empty_print_settings_implementation,
+                                           /* name */
                                            "1-WIRE"}
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
 

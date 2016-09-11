@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -39,14 +40,14 @@
 
 /**
  * #define BP_ENABLE_1WIRE_SUPPORT
- * 
+ *
  * Enable 1-Wire protocol support in the built firmware.
- * 
+ *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
- * 
+ *
  * From https://en.wikipedia.org/wiki/1-Wire :
- * 
+ *
  * 1-Wire is a device communications bus system designed by Dallas
  * Semiconductor Corp. that provides low-speed data, signaling, and power over
  * a single conductor.  1-Wire is similar in concept to I2C, but with lower
@@ -61,32 +62,32 @@
 
 /**
  * #define BP_ENABLE_BASIC_SUPPORT
- * 
+ *
  * Enable a cut-down BASIC interpreter to automate tasks in a more structured
  * way than macros alone.
- * 
+ *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
  */
 
 /**
  * #define BP_ENABLE_DIO_SUPPORT
- * 
+ *
  * Enable Direct I/O control over the hardware pins using the binary
  * communication protocol.
- * 
+ *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
  */
 
 /**
  * #define BP_ENABLE_HD44780_SUPPORT
- * 
+ *
  * Enable controlling a HD44780 LCD controller connected via an expansion board.
  *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
- * 
+ *
  * This module allows interaction with a HD44780-based expansion board like this
  * one: http://dangerousprototypes.com/docs/Bus_Pirate_LCD_adapter_v2 or this
  * one: http://dangerousprototypes.com/docs/Bus_Pirate_v4_LCD_adapter .
@@ -94,14 +95,14 @@
 
 /**
  * #define BP_ENABLE_I2C_SUPPORT
- * 
+ *
  * Enable I2C protocol support in the built firmware.
- * 
+ *
  * @note BPv3 default firmware status: INCLUDED
  * @note BPv3 default firmware status: INCLUDED
- * 
+ *
  * From https://en.wikipedia.org/wiki/I%B2C :
- * 
+ *
  * I2C (Inter-Integrated Circuit), pronounced I-squared-C, is a multi-master,
  * multi-slave, single-ended, serial computer bus invented by Philips
  * Semiconductor (now NXP Semiconductors). It is typically used for attaching
@@ -124,55 +125,56 @@
 
 /**
  * #define BP_ENABLE_PIC_SUPPORT
- * 
+ *
  * Enable support for programming PIC microcontrollers by using the PIC
- * programming software described at http://dangerousprototypes.com/docs/Pirate_PIC_Programmer
- * 
+ * programming software described at
+ * http://dangerousprototypes.com/docs/Pirate_PIC_Programmer
+ *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
- * 
+ *
  * Current support is for PIC10, PIC12, PIC14, PIC16, and PIC18 MCU families.
  */
 
 /**
  * #define BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
- * 
+ *
  * Enable support for reading scancodes from a PC-AT keyboard bus.
- * 
+ *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
  */
 
 /**
  * #define BP_ENABLE_RAW_2WIRE_SUPPORT
- * 
+ *
  * Enable support for controlling two I/O pins in an arbitrary way to implement
  * custom binary protocols.
- * 
+ *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
  */
 
 /**
  * #define BP_ENABLE_RAW_3WIRE_SUPPORT
- * 
+ *
  * Enable support for controlling three I/O pins in an arbitrary way to
  * implement custom binary protocols.
- * 
+ *
  * @note BPv3 default firmware status: OPTIONAL
  * @note BPv4 default firmware status: INCLUDED
  */
 
 /**
  * #define BP_ENABLE_SPI_SUPPORT
- * 
+ *
  * Enable SPI protocol support in the built firmware.
- * 
+ *
  * @note BPv3 default firmware status: INCLUDED
  * @note BPv3 default firmware status: INCLUDED
- * 
+ *
  * From https://en.wikipedia.org/wiki/Serial_Peripheral_Interface_Bus :
- * 
+ *
  * The Serial Peripheral Interface (SPI) bus is a synchronous serial
  * communication interface specification used for short distance communication,
  * primarily in embedded systems.  The interface was developed by Motorola and
@@ -191,14 +193,14 @@
 
 /**
  * #define BP_ENABLE_UART_SUPPORT
- * 
+ *
  * Enable UART I/O support in the built firmware.
- * 
+ *
  * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
- * 
+ *
  * From https://en.wikipedia.org/wiki/UART :
- * 
+ *
  * A universal asynchronous receiver/transmitter, abbreviated UART, is a
  * computer hardware device that translates data between characters (usually
  * bytes) in a computer and an asynchronous serial communication format that
@@ -219,25 +221,26 @@
 
 /**
  * #define BP_ENABLE_SUMP_SUPPORT
- * 
+ *
  * Enables support for SUMP-compatible logic analyzer programs, using the
  * Bus Pirate as a signal acquisition device.
- * 
+ *
  * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
- * 
- * More information can be obtained at http://www.sump.org/projects/analyzer/protocol/
+ *
+ * More information can be obtained at
+ * http://www.sump.org/projects/analyzer/protocol/
  */
 
 /**
  * #define BP_ENABLE_JTAG_SUPPORt
- * 
+ *
  * Enables support for JTAG control programs, using the Bus Pirate as a hardware
  * debug module on the device under test.
- * 
+ *
  * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
- * 
+ *
  * OpenOCD support is not yet available on v4 boards, however plans are
  * underway to get this working.
  */
@@ -261,8 +264,16 @@
 #endif /* BUSPIRATEV4 */
 
 #ifdef BUSPIRATEV3
+#undef BP_ENABLE_1WIRE_SUPPORT
+#undef BP_ENABLE_BASIC_SUPPORT
+#undef BP_ENABLE_DIO_SUPPORT
+#undef BP_ENABLE_HD44780_SUPPORT
 #define BP_ENABLE_I2C_SUPPORT
 #define BP_ENABLE_JTAG_SUPPORT
+#undef BP_ENABLE_PIC_SUPPORT
+#undef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
+#undef BP_ENABLE_RAW_2WIRE_SUPPORT
+#undef BP_ENABLE_RAW_3WIRE_SUPPORT
 #define BP_ENABLE_SPI_SUPPORT
 #define BP_ENABLE_SUMP_SUPPORT
 #define BP_ENABLE_UART_SUPPORT
@@ -295,6 +306,21 @@
  */
 #define BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS 10
 
+/**
+ * Lookup family ID and print that information when searching devices.
+ */
+#define BP_1WIRE_LOOKUP_FAMILY_ID
+
+#ifdef BP_1WIRE_LOOKUP_FAMILY_ID
+
+/**
+ * Print a description of the found device along with the device model when
+ * searching devices.
+ */
+#define BP_1WIRE_PRINT_FAMILY_DESCRIPTION
+
+#endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
+
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
 
 /* I2C module configuration definitions. */
@@ -305,7 +331,7 @@
 
 /**
  * Enable usage of the on-board hardware I2C bus.
- * 
+ *
  * This is mandatory on Bus Pirate v4 hardware, optional on v3.
  */
 #define BP_I2C_USE_HW_BUS
@@ -323,7 +349,7 @@
 /**
  * Enable storing and retrieving saved BASIC scripts on the on-board 8 kilobytes
  * EEPROM that is available on Bus Pirate v4 boards.
- * 
+ *
  * Disabled by default as the code involved has not been tested yet.
  */
 
@@ -355,7 +381,7 @@
 
 /**
  * Allow OpenOCD to interact with the Bus Pirate board for JTAG operations.
- * 
+ *
  * This is not yet supported on v4 boards.
  */
 #define BP_JTAG_OPENOCD_SUPPORT
@@ -366,9 +392,9 @@
 
 /**
  * Enable support for XSVF JTAG commands.
- * 
+ *
  * This is not enabled on v3 boards due to taking up too much memory.
- * 
+ *
  * More information at https://en.wikipedia.org/wiki/Serial_Vector_Format
  */
 #define BP_JTAG_XSVF_SUPPORT
@@ -417,7 +443,7 @@
 
 /**
  * How big the serial command buffer can be, in bytes.
- * 
+ *
  * @warning This must be set to a power of two, ie. 256, 128, 64, 32, etc.
  */
 #ifdef BUSPIRATEV3
@@ -428,8 +454,8 @@
 
 /**
  * How big the serial terminal buffer can be, in bytes.
- * 
- * @todo Make sure that no hardcoded buffer sizes are present.
+ *
+ * @todo Make sure that no hard-coded buffer sizes are present.
  */
 #define BP_TERMINAL_BUFFER_SIZE 4096
 

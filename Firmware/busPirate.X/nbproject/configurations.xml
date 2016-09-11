@@ -18,7 +18,6 @@
       <itemPath>../dio.h</itemPath>
       <itemPath>../hardwarev3.h</itemPath>
       <itemPath>../hardwarev4a.h</itemPath>
-      <itemPath>../1wire_lib.h</itemPath>
       <itemPath>../pc_at_keyboard.h</itemPath>
       <itemPath>../pic.h</itemPath>
       <itemPath>../dp_usb/picusb.h</itemPath>
@@ -75,7 +74,6 @@
       <itemPath>../jtag/lenval.c</itemPath>
       <itemPath>../jtag/micro.c</itemPath>
       <itemPath>../jtag/ports.c</itemPath>
-      <itemPath>../1wire_lib.c</itemPath>
       <itemPath>../main.c</itemPath>
       <itemPath>../pc_at_keyboard.c</itemPath>
       <itemPath>../pic.c</itemPath>
