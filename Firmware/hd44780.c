@@ -18,7 +18,7 @@
 
 #ifdef BP_ENABLE_HD44780_SUPPORT
 
-#include "SPI.h"
+#include "spi.h"
 #include "base.h"
 #include "procMenu.h"
 
