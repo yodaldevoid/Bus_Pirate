@@ -75,9 +75,6 @@ enum {
 void binwire(void) {
     static unsigned char inByte, rawCommand, i, c, wires, picMode = PIC614;
     static unsigned int cmds, cmdw, cmdr, j;
-	#ifdef BUSPIRATEV4
-		static unsigned int V_out;
-	#endif
 
     mode_configuration.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
     mode_configuration.lsbEN = 0; //just in case!
@@ -431,26 +428,33 @@ void binwire(void) {
                 bbCS(1); //takes care of custom HiZ settings too
                 UART1TX(1); //send 1/OK
                 break;
+
+#ifdef BP_ENABLE_SMPS_SUPPORT
 #ifdef BUSPIRATEV4
-			case 0b1111: // SMPS commands
+            case 0b1111: // SMPS commands
                 switch (inByte) {
-					case 0xf0:
-						smpsADC();	// Send raw ADC reading
-						break;
-					case 0xf1:
-						smpsStop();	// Stop SMPS operation
-						UART1TX(1); // Send 1/OK
-						break;
-					default:
-						V_out = inByte & 0x0f;
-						V_out <<= 8;
-						V_out |= UART1RX();
-						smpsStart(V_out);
-						UART1TX(1); // Send 1/OK
-						break;
-				}
-				break;
-#endif
+                    case 0xf0:
+                        smps_adc();    // Send raw ADC reading
+                        break;
+                    case 0xf1:
+                        smps_stop();    // Stop SMPS operation
+                        UART1TX(1); // Send 1/OK
+                        break;
+                    default: {
+                        unsigned int V_out;
+
+                        V_out = inByte & 0x0f;
+                        V_out <<= 8;
+                        V_out |= UART1RX();
+                        smps_start(V_out);
+                        UART1TX(1); // Send 1/OK
+                        break;
+                    }
+                }
+                break;
+#endif /* BUSPIRATEV4 */
+#endif /* BP_ENABLE_SMPS_SUPPORT */
+
             default:
                 UART1TX(0x00); //send 0/Error
                 break;

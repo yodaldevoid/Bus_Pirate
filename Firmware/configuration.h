@@ -233,7 +233,7 @@
  */
 
 /**
- * #define BP_ENABLE_JTAG_SUPPORt
+ * #define BP_ENABLE_JTAG_SUPPORT
  *
  * Enables support for JTAG control programs, using the Bus Pirate as a hardware
  * debug module on the device under test.
@@ -243,6 +243,43 @@
  *
  * OpenOCD support is not yet available on v4 boards, however plans are
  * underway to get this working.
+ */
+
+/**
+ * #define BP_ENABLE_SMPS_SUPPORT
+ *
+ * Enables support for driving a switched mode power supply via binary I/O
+ * commands.
+ *
+ * @note BPv3 default firmware status: DISABLED
+ * @note BPv4 default firmware status: INCLUDED
+ *
+ * The schematic for such an interface board can be found at
+ * http://dangerousprototypes.com/docs/Bus_Pirate_SMPS - although it is not
+ * clear whether this design is compatible with the current code.  In the
+ * DangerousPrototypes' repository, support for the SMPS board was limited to
+ * Bus Pirate v4 boards, whilst the information on that page is dated from 2010.
+ *
+ * From https://en.wikipedia.org/wiki/Switched-mode_power_supply :
+ *
+ * A switched-mode power supply (switching-mode power supply, switch-mode power
+ * supply, switched power supply, SMPS, or switcher) is an electronic power
+ * supply that incorporates a switching regulator to convert electrical power
+ * efficiently. Like other power supplies, an SMPS transfers power from a DC or
+ * AC source (often mains power), to DC loads, such as a personal computer,
+ * while converting voltage and current characteristics. Unlike a linear power
+ * supply, the pass transistor of a switching-mode supply continually switches
+ * between low-dissipation, full-on and full-off states, and spends very little
+ * time in the high dissipation transitions, which minimizes wasted energy.
+ * Ideally, a switched-mode power supply dissipates no power. Voltage regulation
+ * is achieved by varying the ratio of on-to-off time. In contrast, a linear
+ * power supply regulates the output voltage by continually dissipating power in
+ * the pass transistor. This higher power conversion efficiency is an important
+ * advantage of a switched-mode power supply. Switched-mode power supplies may
+ * also be substantially smaller and lighter than a linear supply due to the
+ * smaller transformer size and weight.
+ *
+ * @todo Clarify whether this code can still be used.
  */
 
 #ifndef BP_CUSTOM_FEATURE_SET
@@ -258,6 +295,7 @@
 #define BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
 #define BP_ENABLE_RAW_2WIRE_SUPPORT
 #define BP_ENABLE_RAW_3WIRE_SUPPORT
+#define BP_ENABLE_SMPS_SUPPORT
 #define BP_ENABLE_SPI_SUPPORT
 #define BP_ENABLE_SUMP_SUPPORT
 #define BP_ENABLE_UART_SUPPORT
@@ -274,6 +312,7 @@
 #undef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
 #undef BP_ENABLE_RAW_2WIRE_SUPPORT
 #undef BP_ENABLE_RAW_3WIRE_SUPPORT
+#undef BP_ENABLE_SMPS_SUPPORT
 #define BP_ENABLE_SPI_SUPPORT
 #define BP_ENABLE_SUMP_SUPPORT
 #define BP_ENABLE_UART_SUPPORT
@@ -292,6 +331,7 @@
 #define BP_ENABLE_PIC_SUPPORT
 #define BP_ENABLE_RAW_2WIRE_SUPPORT
 #define BP_ENABLE_RAW_3WIRE_SUPPORT
+#define BP_ENABLE_SMPS_SUPPORT
 #define BP_ENABLE_SPI_SUPPORT
 #define BP_ENABLE_SUMP_SUPPORT
 #define BP_ENABLE_UART_SUPPORT
@@ -389,6 +429,18 @@
 #endif /* BUSPIRATEV3 */
 
 #ifdef BUSPIRATEV4
+
+/* SMPS module configuration definitions. */
+
+#ifdef BP_ENABLE_SMPS_SUPPORT
+
+#ifdef BUSPIRATEV3
+
+#error "SMPS support is not available on Bus Pirate v3 boards."
+
+#endif /* BUSPIRATEV3 */
+
+#endif /* BP_ENABLE_SMPS_SUPPORT */
 
 /**
  * Enable support for XSVF JTAG commands.
