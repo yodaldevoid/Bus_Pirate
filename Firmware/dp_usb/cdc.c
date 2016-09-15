@@ -231,22 +231,62 @@ void cdc_set_control_line_state_status(void) {
     usb_unset_in_handler(0);
 }
 
-/*****************************************************************************/
-void WaitOutReady() // JTR2 added reduced overhead
-{
-    while ((CDC_Outbdp->BDSTAT & UOWN));
+void WaitOutReady() {    
+#if __XC16_VERSION__ == 1026
+    
+    /* 
+     * XC16 1.26 generates invalid code for this function when applying
+     * optimisations.
+     * 
+     * See also https://github.com/BusPirate/Bus_Pirate/issues/11
+     */
+    
+    asm volatile (
+        "_WaitOutReadyCompilerFix:          \n"
+        "                                   \n"
+        "\tmov.w _CDC_Outbdp, w0            \n"
+        /* BDSTAT is at offset 1 */
+        "\tmov.b [w0+1], w0                 \n"
+        "\tcp0.b w0                         \n"
+        "\tbra N, _WaitOutReadyCompilerFix  \n"
+    );
+    
+#else
+    
+    while (CDC_Outbdp->BDSTAT & UOWN) {};
+    
+#endif /* __XC16_VERSION__ == 1026 */
+}
+
+void WaitInReady() {
+#if __XC16_VERSION__ == 1026
+    
+    /* 
+     * XC16 1.26 generates invalid code for this function when applying
+     * optimisations.
+     * 
+     * See also https://github.com/BusPirate/Bus_Pirate/issues/11
+     */
+    
+    asm volatile (
+        "_WaitInReadyCompilerFix:           \n"
+        "                                   \n"
+        "\tmov.w _CDC_Inbdp, w0             \n"
+        /* BDSTAT is at offset 1 */
+        "\tmov.b [w0+1], w0                 \n"
+        "\tcp0.b w0                         \n"
+        "\tbra N, _WaitInReadyCompilerFix   \n"
+    );
+    
+#else
+    
+    while (CDC_Inbdp->BDSTAT & UOWN) {};
+    
+#endif /* __XC16_VERSION__ == 1026 */
 }
 
 /******************************************************************************/
-
-void WaitInReady() // JTR2 added reduced overhead
-{
-    while ((CDC_Inbdp->BDSTAT & UOWN));
-}//end WaitInReady
-
-/******************************************************************************/
 BYTE getOutReady(void) {
-
     return !(CDC_Outbdp->BDSTAT & UOWN); // Do we have a packet from host?
 }
 
