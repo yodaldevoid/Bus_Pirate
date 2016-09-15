@@ -141,7 +141,7 @@ int evaluate(void);
 void interpreter(void);
 void printstat(char *s);
 void list(void);
-void initpgmspace(void);
+void bp_clear_basic_program_area(void);
 void basiccmdline(void);
 
 void directory(void);

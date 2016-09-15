@@ -24,7 +24,7 @@ extern unsigned int cmdstart;
 extern bool command_error;
 
 //prints version, used internally and in main.c
-void versionInfo(void); 
+void print_version_info(void); 
 
 void serviceuser(void);
 

@@ -14,6 +14,25 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_HARDWAREV4A_H
+#define BP_HARDWAREV4A_H
+
+#pragma config JTAGEN    = OFF
+#pragma config GCP       = OFF
+#pragma config GWRP      = OFF
+#pragma config COE       = OFF
+#pragma config FWDTEN    = OFF
+#pragma config ICS       = PGx2
+#pragma config IESO      = OFF
+#pragma config FCKSM     = CSDCMD
+#pragma config OSCIOFNC  = ON
+#pragma config POSCMOD   = HS
+#pragma config FNOSC     = PRIPLL
+#pragma config PLLDIV    = DIV3
+#pragma config IOL1WAY   = ON
+#pragma config PLL_96MHZ = ON
+#pragma config DISUVREG  = OFF
+
 #define BP_VERSION_STRING "Bus Pirate v4"
 #define BP_VERSION "v4"
 
@@ -264,3 +283,5 @@
 
 #define PIC_REV_A3              0x0001
 #define PIC_REV_A5              0x0003
+
+#endif /* !BP_HARDWAREV4A_H */

@@ -35,7 +35,7 @@
 #define ISO78133ATR_PARSE 2
 
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 extern bool command_error;
 
 void r2wMacro_78133Read(void);

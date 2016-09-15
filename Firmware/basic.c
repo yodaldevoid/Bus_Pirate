@@ -31,7 +31,7 @@
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 extern bus_pirate_protocol_t protos[MAXPROTO];
 
 int vars[26];					// var a-z
@@ -1379,7 +1379,7 @@ void basiccmdline(void)
 			}
 		}
 		else if(compare("NEW"))
-		{	initpgmspace();
+		{	bp_clear_basic_program_area();
 		}
 		else
 		{	//bpWline("Syntax error");
@@ -1389,7 +1389,7 @@ void basiccmdline(void)
 //	cmdstart=cmdend;
 }
 
-void initpgmspace(void)
+void bp_clear_basic_program_area(void)
 {	int i;
 
 	for(i=0; i<PGMSIZE ;i++)

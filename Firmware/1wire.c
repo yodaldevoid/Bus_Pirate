@@ -157,7 +157,7 @@ static uint8_t onewire_internal_byte_io(uint8_t byte_value);
 #define ONEWIRE_READ_BIT() onewire_internal_bit_io(ON)
 
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 
 /**
  * Possible results from 1-Wire bus reset.

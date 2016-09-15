@@ -27,7 +27,7 @@
 #define KBDIO 			BP_MOSI
 
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 
 void kbSetup(void);
 void KEYBsetup_exc(void);

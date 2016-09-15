@@ -25,7 +25,7 @@
 #include "procMenu.h"		// for the userinteraction subs
 
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 extern bool command_error;
 
 void UARTgetbaud_InitTimer(void);

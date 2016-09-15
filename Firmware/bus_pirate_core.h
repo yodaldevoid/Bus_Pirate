@@ -232,7 +232,19 @@ typedef enum {
   MAXPROTO
 } bus_pirate_available_protocols_t;
 
-typedef enum { HEX = 0, DEC, BIN, RAW } bus_pirate_display_mode_t;
+/**
+ * The numeric base in which to display numbers to the user.
+ */
+typedef enum {
+  /** Display numbers in base-16. */
+  HEX = 0,
+  /** Display numbers in base-10. */
+  DEC,
+  /** Display numbers in base-2. */
+  BIN,
+  /** Display numbers as raw bytes. */
+  RAW
+} bus_pirate_display_mode_t;
 
 typedef struct {
   uint8_t *terminal_input;

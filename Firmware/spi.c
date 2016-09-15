@@ -44,7 +44,7 @@
 #define SPICS_RPIN		BP_CS_RPIN
 
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 extern bus_pirate_configuration_t bus_pirate_configuration; //we use the big buffer
 extern bool command_error;
 

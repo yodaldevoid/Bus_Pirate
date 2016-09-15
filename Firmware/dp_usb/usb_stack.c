@@ -185,7 +185,7 @@ void usb_handler(void) {
 
     if (USB_IDLE_FLAG) {
         /* Idle - suspend */
-        USBSuspend(); // // Must be defined in user code.
+        usb_suspend(); // // Must be defined in user code.
         ClearUsbInterruptFlag(USB_IDLE);
     }
 

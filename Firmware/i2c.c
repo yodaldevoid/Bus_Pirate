@@ -57,7 +57,7 @@ i2c_state_t i2c_state = { 0 };
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 extern bool command_error;
 
 void hwi2cSetup(void);

@@ -30,7 +30,7 @@
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 extern bus_pirate_protocol_t protos[MAXPROTO];
 
 #ifdef BUSPIRATEV4
@@ -496,7 +496,7 @@ end:
                     print_help();
                     break;
                 case 'i': //bpWline("-Status info");
-                    versionInfo(); //display hardware and firmware version string
+                    print_version_info(); //display hardware and firmware version string
                     if (bus_pirate_configuration.bus_mode != BP_HIZ) {
                         statusInfo();
                     }
@@ -628,7 +628,7 @@ end:
 #ifdef BUSPIRATEV4
                     bp_write_string("RESET\r\n");
 bpv4reset:
-                    versionInfo();
+                    print_version_info();
 #else
                     BPMSG1093;
                     while (0 == UART1TXEmpty()); //wait untill TX finishes
@@ -1449,7 +1449,7 @@ again: // need to do it proper with whiles and ifs..
 
 //print version info (used in menu and at startup in main.c)
 
-void versionInfo(void) {
+void print_version_info(void) {
     unsigned int i;
 
 #ifdef BUSPIRATEV3 //we can tell if it's v3a or v3b, show it here

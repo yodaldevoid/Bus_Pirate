@@ -150,7 +150,7 @@ void usb_handle_transaction(void);
 void usb_handler(void);
 void usb_RequestError(void);
 void USBWakeFromSuspend(void);
-void USBSuspend(void);
+void usb_suspend(void);
 void usb_ack_dat1(int bdcnt); // JTR added standard for both STD and CLASS
 void usb_handle_error(void);
 void usb_handle_reset(void);

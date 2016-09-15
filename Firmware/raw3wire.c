@@ -34,7 +34,7 @@
 #define R3WCS 			BP_CS 
 
 extern mode_configuration_t mode_configuration;
-extern command_t bpCommand;
+extern command_t last_command;
 extern bool command_error;
 
 void R3Wsetup_exc(void);

@@ -13,7 +13,22 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-//this profile is for the Bus Pirate v3 hardware from dangerousprototypes.com
+
+#ifndef BP_HARDWAREV3_H
+#define BP_HARDWAREV3_H
+
+// Internal FRC OSC = 8MHz
+#pragma config FNOSC     = FRCPLL
+#pragma config OSCIOFNC  = ON 
+#pragma config POSCMOD   = NONE
+#pragma config I2C1SEL   = PRI
+#pragma config JTAGEN    = OFF
+#pragma config GCP       = OFF
+#pragma config GWRP      = OFF
+#pragma config COE       = OFF
+#pragma config FWDTEN    = OFF
+#pragma config ICS       = PGx1
+
 #define BP_VERSION_STRING "Bus Pirate v3"// (Seeed Studio)"
 #define BP_VERSION "v3"
 
@@ -175,3 +190,4 @@
 #define PIC_REV_B5	0x3043
 #define PIC_REV_B8	0x3046
 
+#endif /* !BP_HARDWAREV3_H */
