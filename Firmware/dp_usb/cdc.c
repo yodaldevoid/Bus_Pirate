@@ -243,9 +243,10 @@ void WaitOutReady() {
     
     /* BDSTAT is at offset 1 */
     asm volatile (
+        ".loopOut:               \n"
         "\tmov.w _CDC_Outbdp, w0 \n"
         "\tcp0.b [++w0]          \n"
-        "\tbra N, _WaitOutReady  \n"
+        "\tbra N, .loopOut       \n"
     );
     
 #else
@@ -267,9 +268,10 @@ void WaitInReady() {
     
     /* BDSTAT is at offset 1 */
     asm volatile (
+        ".loopIn:               \n"
         "\tmov.w _CDC_Inbdp, w0 \n"
         "\tcp0.b [++w0]         \n"
-        "\tbra N, _WaitInReady  \n"
+        "\tbra N, .loopIn       \n"
     );
     
 #else
