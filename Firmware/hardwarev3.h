@@ -17,18 +17,6 @@
 #ifndef BP_HARDWAREV3_H
 #define BP_HARDWAREV3_H
 
-// Internal FRC OSC = 8MHz
-#pragma config FNOSC     = FRCPLL
-#pragma config OSCIOFNC  = ON 
-#pragma config POSCMOD   = NONE
-#pragma config I2C1SEL   = PRI
-#pragma config JTAGEN    = OFF
-#pragma config GCP       = OFF
-#pragma config GWRP      = OFF
-#pragma config COE       = OFF
-#pragma config FWDTEN    = OFF
-#pragma config ICS       = PGx1
-
 #define BP_VERSION_STRING "Bus Pirate v3"// (Seeed Studio)"
 #define BP_VERSION "v3"
 

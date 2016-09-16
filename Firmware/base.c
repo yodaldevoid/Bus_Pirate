@@ -20,6 +20,38 @@
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 
+#ifdef BUSPIRATEV3
+// Internal FRC OSC = 8MHz
+#pragma config FNOSC     = FRCPLL
+#pragma config OSCIOFNC  = ON 
+#pragma config POSCMOD   = NONE
+#pragma config I2C1SEL   = PRI
+#pragma config JTAGEN    = OFF
+#pragma config GCP       = OFF
+#pragma config GWRP      = OFF
+#pragma config COE       = OFF
+#pragma config FWDTEN    = OFF
+#pragma config ICS       = PGx1
+#endif /* BUSPIRATEV3 */
+
+#ifdef BUSPIRATEV4
+#pragma config JTAGEN    = OFF
+#pragma config GCP       = OFF
+#pragma config GWRP      = OFF
+#pragma config COE       = OFF
+#pragma config FWDTEN    = OFF
+#pragma config ICS       = PGx2
+#pragma config IESO      = OFF
+#pragma config FCKSM     = CSDCMD
+#pragma config OSCIOFNC  = ON
+#pragma config POSCMOD   = HS
+#pragma config FNOSC     = PRIPLL
+#pragma config PLLDIV    = DIV3
+#pragma config IOL1WAY   = ON
+#pragma config PLL_96MHZ = ON
+#pragma config DISUVREG  = OFF
+#endif /* BUSPIRATEV4 */
+
 /**
  * Clear mode configuration on mode change.
  */

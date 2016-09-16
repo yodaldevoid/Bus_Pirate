@@ -30,7 +30,7 @@
  * This function is marked as inline since EEPROM port initialization is
  * supposed to happen exactly once at boot stage.
  */
-void inline __attribute__((always_inline)) eeprom_initialize(void);
+void inline eeprom_initialize(void);
 
 /**
  * Tests the on-board 8 kilobytes EEPROM.

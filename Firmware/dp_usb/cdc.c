@@ -241,14 +241,11 @@ void WaitOutReady() {
      * See also https://github.com/BusPirate/Bus_Pirate/issues/11
      */
     
+    /* BDSTAT is at offset 1 */
     asm volatile (
-        "_WaitOutReadyCompilerFix:          \n"
-        "                                   \n"
-        "\tmov.w _CDC_Outbdp, w0            \n"
-        /* BDSTAT is at offset 1 */
-        "\tmov.b [w0+1], w0                 \n"
-        "\tcp0.b w0                         \n"
-        "\tbra N, _WaitOutReadyCompilerFix  \n"
+        "\tmov.w _CDC_Outbdp, w0 \n"
+        "\tcp0.b [++w0]          \n"
+        "\tbra N, _WaitOutReady  \n"
     );
     
 #else
@@ -268,14 +265,11 @@ void WaitInReady() {
      * See also https://github.com/BusPirate/Bus_Pirate/issues/11
      */
     
+    /* BDSTAT is at offset 1 */
     asm volatile (
-        "_WaitInReadyCompilerFix:           \n"
-        "                                   \n"
-        "\tmov.w _CDC_Inbdp, w0             \n"
-        /* BDSTAT is at offset 1 */
-        "\tmov.b [w0+1], w0                 \n"
-        "\tcp0.b w0                         \n"
-        "\tbra N, _WaitInReadyCompilerFix   \n"
+        "\tmov.w _CDC_Inbdp, w0 \n"
+        "\tcp0.b [++w0]         \n"
+        "\tbra N, _WaitInReady  \n"
     );
     
 #else
