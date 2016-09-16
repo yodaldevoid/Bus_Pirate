@@ -231,7 +231,7 @@ void cdc_set_control_line_state_status(void) {
     usb_unset_in_handler(0);
 }
 
-void WaitOutReady() {    
+void __attribute__((noinline)) WaitOutReady() {
 #if __XC16_VERSION__ == 1026
     
     /* 
@@ -256,7 +256,7 @@ void WaitOutReady() {
 #endif /* __XC16_VERSION__ == 1026 */
 }
 
-void WaitInReady() {
+void __attribute__((noinline)) WaitInReady() {
 #if __XC16_VERSION__ == 1026
     
     /* 
