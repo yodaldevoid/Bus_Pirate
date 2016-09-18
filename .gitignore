@@ -20,3 +20,10 @@
 /BPv4-bootloader/firmware-v1/bpv4-bootloader.X/nbproject/Package-default.bash
 /Firmware/busPirate.X/build/BusPirate_v3/
 /Firmware/busPirate.X/build/BusPirate_v4/
+/Firmware-Demos/ADC2UART/ADC2UART.X/nbproject/private/
+/Firmware-Demos/ADC2UART/ADC2UART.X/build/default/
+/Firmware-Demos/ADC2UART/ADC2UART.X/dist/default/
+/Firmware-Demos/Blink_MODE_LED/Blink_MODE_LED.X/nbproject/private/
+/Firmware-Demos/Blink_MODE_LED/Blink_MODE_LED.X/dist/default/
+/Firmware-Demos/BusPirateADCDemo/Bus Pirate ADC Demo.X/nbproject/private/
+/Firmware-Demos/BusPirateUARTDEMOTEST/UARTdemo.X/nbproject/private/
