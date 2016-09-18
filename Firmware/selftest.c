@@ -111,7 +111,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
   /* Check whether the LED line goes HIGH when requested. */
 
   BP_LEDMODE = HIGH;
-  BP_LEDMODE_DIR = INPUT;
+  BP_LEDMODE_DIR = OUTPUT;
   BPMSG1166;
   check_result(BP_LEDMODE, HIGH);
   BP_LEDMODE = LOW;
