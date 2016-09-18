@@ -148,11 +148,9 @@ void spi_init(void)
 
         delay_ms(20); // discharge MOSI/SCK
 
-        //if (spi_in_sw==0){
                 /* Enable SPI, Master, set clock rate fck/16 */
                 spi_set_sck_duration(sck_dur);
                 // now SCK and MOSI are under control of SPI
-        //}
 
         SPICS=0; // reset = low, stay active
         delay_ms(20); // stab delay
@@ -162,9 +160,6 @@ void spi_init(void)
 // send 8 bit, return received byte
 unsigned char spi_mastertransmit(unsigned char data)
 {
-        unsigned char i=128;
-        unsigned char rval=0;
-        //if (spi_in_sw==0){
                 /* Start transmission in hardware*/
                	SPI1BUF = data;
                 /* Wait for transmission complete */
@@ -172,29 +167,6 @@ unsigned char spi_mastertransmit(unsigned char data)
 				data=SPI1BUF;
 				IFS0bits.SPI1IF = 0;
 				return data;
-        //}
-        // software spi, slow
-/*
-        cbi(PORTB,PB5); // SCK low
-        while(i){
-                // MOSI 
-                if (data&i){
-                        sbi(PORTB,PB3); 
-                }else{
-                        cbi(PORTB,PB3); 
-                }
-                _delay_ms(0.10);
-                // read MISO
-//                if( bit_is_set(PINB,PINB4)){
-                        rval|= i;
-                }
-                sbi(PORTB,PB5); // SCK high
-                _delay_ms(0.10);
-                cbi(PORTB,PB5); // SCK low
-                i=i>>1;
-        }
-        return(rval);
-*/
 }
 
 // send 16 bit, return last rec byte

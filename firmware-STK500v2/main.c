@@ -5,6 +5,27 @@
 * * Ported to PIC24/Bus Pirate by Ian Lesnet, http://dangerousprototypes.com, 2009
 * Copyright: GPL
 **********************************************/
+
+#pragma config POSCMOD = NONE
+#pragma config I2C1SEL = PRI
+#pragma config IOL1WAY = ON
+#pragma config OSCIOFNC = ON
+#pragma config FCKSM = CSDCMD
+#pragma config FNOSC = FRCPLL
+#pragma config SOSCSEL = SOSC
+#pragma config WUTSEL = LEG
+#pragma config IESO = ON   
+#pragma config WDTPS = PS32768
+#pragma config FWPSA = PR128
+#pragma config WINDIS = ON
+#pragma config FWDTEN = OFF
+#pragma config ICS = PGx1
+#pragma config GWRP = OFF
+#pragma config GCP = OFF
+#pragma config JTAGEN = OFF
+
+#include <xc.h>
+
 #include "base.h"
 #include "UART.h"
 #include "SPI.h"
@@ -35,10 +56,6 @@ uint8_t CONFIG_PARAM_SW_MINOR;
 #define MSG_WAIT_TOKEN 4
 #define MSG_WAIT_MSG 5
 #define MSG_WAIT_CKSUM 6
-
-//set custom configuration for PIC 24F
-_CONFIG2(FNOSC_FRCPLL & OSCIOFNC_ON &POSCMOD_NONE & I2C1SEL_PRI)		// Internal FRC OSC = 8MHz
-_CONFIG1(JTAGEN_OFF & GCP_OFF & GWRP_OFF & COE_OFF & FWDTEN_OFF & ICS_PGx1) //turn off junk we don't need
 
 static unsigned char msg_buf[295];
 static unsigned char param_reset_polarity=1; // 1=avr (reset active=low), 0=at89 (not supported by this avrusb500)

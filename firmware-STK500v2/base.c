@@ -13,13 +13,10 @@ void Initialize(void){
 	IODIR|=(AUX+MOSI+CLK+MISO+CS);//AUX, MOSI, CLK, MISO, CS pins to input
 	IOLAT&=(~AUX+MOSI+CLK+MISO+CS); //low pin
 
-	//modify setup behavior according to defines in base.h
-	#ifdef BUSPIRATEV2 //only for v2 and v3, not v1a or v0a
-		#if defined(ENABLE_PULLUP_RESISTORS)
-			BP_PULLUP_ON();	//enable pullups
-		#else
-			BP_PULLUP_OFF();//disable pullups
-		#endif
+	#if defined(ENABLE_PULLUP_RESISTORS)
+		BP_PULLUP_ON();	//enable pullups
+	#else
+		BP_PULLUP_OFF();//disable pullups
 	#endif
 
 	#if defined(ENABLE_VREG)
