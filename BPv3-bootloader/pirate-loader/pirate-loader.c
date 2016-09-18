@@ -608,8 +608,8 @@ int parseCommandLine(int argc, const char** argv)
 		//print usage
 		puts("pirate-loader usage:\n");
 		puts(" ./pirate-loader --dev=/path/to/device --hello");
-		puts(" ./pirate-loader --dev=/path/to/device --hex=/path/to/hexfile.hex [ --verbose");
-		puts(" ./pirate-loader --simulate --hex=/path/to/hexfile.hex [ --verbose");
+		puts(" ./pirate-loader --dev=/path/to/device --hex=/path/to/hexfile.hex [ --verbose ]");
+		puts(" ./pirate-loader --simulate --hex=/path/to/hexfile.hex [ --verbose ]");
 		puts("");
 		
 		return 0;
