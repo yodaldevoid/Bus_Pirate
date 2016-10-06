@@ -635,6 +635,30 @@ _bp_messages:
 	; BPMSG1236
 	.pascii "execute : "
 
+	; BPMSG1237
+	.pascii " TIMEOUT"
+
+	; BPMSG1238
+	.pascii " 0. Macro menu\r\n 1. Live input monitor"
+
+	; BPMSG1239
+	.pascii "Input monitor, any key exits"
+
+	; BPMSG1240
+	.pascii " *startbit error"
+
+	; BPMSG1241
+	.pascii " *parity error"
+
+	; BPMSG1242
+	.pascii " *stopbit error"
+
+	; BPMSG1243
+	.pascii " NONE"
+
+	; BPMSG1244
+	.pascii " UNKNOWN ERROR"
+
 	; BPMSG1245
 	.pascii " autorange "
 
