@@ -197,6 +197,42 @@ _bp_messages:
 	; BPMSG1071
 	.pascii "Sniffer"
 
+	; BPMSG1072
+	.pascii "Commandmode?\r\n1. 6b/14b\r\n2. 4b/16b"
+
+	; BPMSG1073
+	.pascii "Delay?"
+
+	; BPMSG1074
+	.pascii "PIC(mod dly)=("
+
+	; BPMSG1075
+	.pascii "CMD"
+
+	; BPMSG1076
+	.pascii "DTA"
+
+	; BPMSG1077
+	.pascii "no read"
+
+	; BPMSG1078
+	.pascii "unknown mode"
+
+	; BPMSG1079
+	.pascii "(1) get devID"
+
+	; BPMSG1080
+	.pascii "DevID = "
+
+	; BPMSG1081
+	.pascii " Rev = "
+
+	; BPMSG1082
+	.pascii "Not implemented (yet)"
+
+	; BPMSG1083
+	.pascii "Please exit PIC programming mode"
+
 	; BPMSG1084
 	.pascii "(BASIC)"
 
