@@ -31,8 +31,8 @@
 #define R2WDIO 			BP_MOSI
 
 #define MENU 0
-#define ISO78133ATR 1
-#define ISO78133ATR_PARSE 2
+#define ISO78163ATR 1
+#define ISO78163ATR_PARSE 2
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
@@ -46,8 +46,8 @@ extern bool command_error;
  */
 static uint8_t reverse_byte(uint8_t value);
 
-void r2wMacro_78133Read(void);
-void r2wMacro_78133Write(void);
+void r2wMacro_78163Read(void);
+void r2wMacro_78163Write(void);
 
 unsigned int R2Wread(void)
 {	return (bbReadByte());
@@ -166,12 +166,12 @@ void R2Wmacro(unsigned int macro) {
 			BPMSG1144;
 			break;
 
-		case ISO78133ATR:
-			r2wMacro_78133Write();
+		case ISO78163ATR:
+			r2wMacro_78163Write();
 			/* Intentional pass-through. */
 
-		case ISO78133ATR_PARSE:
-			r2wMacro_78133Read();
+		case ISO78163ATR_PARSE:
+			r2wMacro_78163Read();
 			break;
 
 		default:
@@ -194,10 +194,10 @@ void R2Wpins(void) {
 //
 // R2W macros
 
-//ISO 7813-3 Answer to reset macro for smartcards
+//ISO 7816-3 Answer to reset macro for smartcards
 // syntax: a0%255@^a
 // now uses CS pin instead of AUX pin because 1,2,3 have build in pullups on CS but not AUX
-void r2wMacro_78133Write(void){
+void r2wMacro_78163Write(void){
 
 	//bpWline("ISO 7816-3 ATR (RESET on CS)");
 	//bpWline("RESET HIGH, CLOCK TICK, RESET LOW");
@@ -217,7 +217,7 @@ void r2wMacro_78133Write(void){
 	bbCS(0); //bpAuxLow();
 }
 	
-void r2wMacro_78133Read(void){	
+void r2wMacro_78163Read(void){	
 	unsigned char m[4];//macro buffer...
 	unsigned char c;
 	unsigned int i;
@@ -225,8 +225,9 @@ void r2wMacro_78133Read(void){
 	//bpWstring("ISO 7816-3 reply (uses current LSB setting): ");
 	BPMSG1146;
 
-	//read and display ISO 7813-3 bytes
+	//read and display ISO 7816-3 bytes
 	for(i=0; i<4; i++){
+        m[i] = bbReadByte();
 		if (mode_configuration.lsbEN) {
 			m[i] = reverse_byte(m[i]);
 		}
@@ -235,7 +236,7 @@ void r2wMacro_78133Read(void){
 	}
 	bpBR;
     
-	//parse the first two bytes for 7813-3 atr header info
+	//parse the first two bytes for 7816-3 atr header info
 	//bits8:5 8=serial, 9=3wire, 10=2wire 0xf=RFU
 	//c=(m[0]>>4);
 	//bpWstring("Protocol: ");
