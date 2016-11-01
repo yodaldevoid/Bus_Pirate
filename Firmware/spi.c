@@ -20,6 +20,7 @@
 
 #include "base.h"
 #include "bus_pirate_core.h"
+#include "binIO.h"
 #include "binIOhelpers.h"
 
 #include "procMenu.h"		// for the userinteraction subs
@@ -69,6 +70,14 @@ static const uint8_t spi_bus_speed[] = {
     0b00011000, /* 125 kHz - Primary prescaler 64:1 / Secondary prescaler 2:1 */
     0b00011100, /* 250 kHz - Primary prescaler 64:1 / Secondary prescaler 1:1 */
     0b00011101, /*   1 MHz - Primary prescaler 16:1 / Secondary prescaler 1:1 */
+    0b00001100, /*  50 kHz - Primary prescaler 64:1 / Secondary prescaler 5:1 */
+    0b00010110, /* 1.3 MHz - Primary prescaler  4:1 / Secondary prescaler 3:1 */
+    0b00011010, /*   2 MHz - Primary prescaler  4:1 / Secondary prescaler 2:1 */
+    0b00001011, /* 2.6 MHz - Primary prescaler  1:1 / Secondary prescaler 6:1 */
+    0b00001111, /* 3.2 MHz - Primary prescaler  1:1 / Secondary prescaler 5:1 */
+    0b00011110, /*   4 MHz - Primary prescaler  4:1 / Secondary prescaler 1:1 */
+    0b00010111, /* 5.3 MHz - Primary prescaler  1:1 / Secondary prescaler 3:1 */
+    0b00011011  /*   8 MHz - Primary prescaler  1:1 / Secondary prescaler 2:1 */
 };
 
 void SPIstartr(void) {
@@ -210,7 +219,7 @@ void SPIsetup(void) {
         //bpWline(OUMSG_SPI_SPEED);
         BPMSG1187;
         //modeConfig.speed=(bpUserNumberPrompt(1, 4, 1)-1);
-        mode_configuration.speed = getnumber(1, 1, 4, 0) - 1;
+        mode_configuration.speed = getnumber(1, 1, 12, 0) - 1;
 
         //bpWstring("Clock polarity:\x0D\x0A 1. Idle low *default\x0D\x0A 2. Idle high\x0D\x0A");
         //bpWmessage(MSG_OPT_CKP);
@@ -247,7 +256,7 @@ void SPIsetup(void) {
 void SPIsetup_exc(void)
 {
     //do SPI peripheral setup
-    spiSetup(spi_bus_speed[mode_configuration.speed]);
+    spi_setup(spi_bus_speed[mode_configuration.speed]);
 
     // set cs the way the user wants
     SPICS = spiSettings.csl; 
@@ -313,7 +322,7 @@ void SPIpins(void) {
         #endif
 }
 
-void spiSetup(unsigned char spiSpeed) {
+void spi_setup(uint8_t spi_speed) {
     SPI1STATbits.SPIEN = 0; //disable, just in case...
 
     //use open drain control register to
@@ -345,10 +354,14 @@ void spiSetup(unsigned char spiSpeed) {
     SPIMOSI_TRIS = 0; //B9 SDO output
 
     /* CKE=1, CKP=0, SMP=0 */
-    SPI1CON1 = spiSpeed; //(SPIspeed[modeConfig.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
+    //(SPIspeed[modeConfig.speed]);
+    SPI1CON1 = spi_speed;  
     SPI1CON1bits.MSTEN = 1;
+    // CKP idle low
     SPI1CON1bits.CKP = spiSettings.ckp;
+    // CKE (output edge) active to idle
     SPI1CON1bits.CKE = spiSettings.cke;
+    // SMP data sampled middle of output time
     SPI1CON1bits.SMP = spiSettings.smp;
     SPI1CON2 = 0;
     SPI1STAT = 0; // clear SPI
@@ -465,7 +478,7 @@ spiSnifferStart:
     }
     spiSlaveDisable();
 
-    spiSetup(spi_bus_speed[mode_configuration.speed]);
+    spi_setup(spi_bus_speed[mode_configuration.speed]);
 }
 
 //configure both SPI units for slave mode on different pins
@@ -556,15 +569,13 @@ rawSPI mode:
  * Sniffers
  * 0001xxxx � Bulk SPI transfer, send 1-16 bytes (0=1byte!)
  * 0100wxyz � Configure peripherals, w=power, x=pullups, y=AUX, z=CS
- * 01100xxx � Set SPI speed, 30, 125, 250khz; 1, 2, 2.6, 4, 8MHz
+ * 0110xxxx � Set SPI speed, see spi_bus_speed
  * 1000wxyz � SPI config, w=output type, x=idle, y=clock edge, z=sample
  * 00000110 - AVR Extended Commands
  * 00000000 - Null operation - verifies extended commands are available.
  * 00000001 - Return version (2 bytes)
  * 00000010 - Bulk Memory Read from Flash
-	
  */
-static const unsigned char binSPIspeed[]={0b00000,0b11000,0b11100,0b11101,0b00011,0b01011,0b10011,0b11011}; //00=30,01=125,10=250,11=1000khz, 100=2mhz,101=2.667mhz,  110=4mhz, 111=8mhz; datasheet pg 142
 
 void binSPIversionString(void) {
     bp_write_string("SPI1");
@@ -584,7 +595,7 @@ void binSPI(void) {
     spiSettings.cke = 1;
     spiSettings.smp = 0;
     mode_configuration.high_impedance = 1;
-    spiSetup(binSPIspeed[mode_configuration.speed]); //start with 250khz (30,125,250,1000khz)
+    spi_setup(spi_bus_speed[mode_configuration.speed]);
     binSPIversionString(); //1 - SPI setup and reply string
 
     while (1) {
@@ -765,9 +776,13 @@ void binSPI(void) {
 					break;
 #endif
             case 0b0110://set speed
-                inByte &= (~0b11111000); //clear command portion
+                inByte &= (~0b11110000); //clear command portion
+                if (inByte > sizeof(spi_bus_speed)) {
+                    UART1TX(BP_BINARY_IO_RESULT_FAILURE);
+                    break;
+                }
                 mode_configuration.speed = inByte;
-                spiSetup(binSPIspeed[mode_configuration.speed]); //resetup SPI
+                spi_setup(spi_bus_speed[mode_configuration.speed]); //resetup SPI
                 UART1TX(1); //send 1/OK
                 break;
             case 0b1000: //set SPI config
@@ -780,7 +795,7 @@ void binSPI(void) {
                 if (inByte & 0b10) spiSettings.cke = 1; //set edge
                 if (inByte & 0b1) spiSettings.smp = 1; //set sample time
                 if ((inByte & 0b1000) == 0) mode_configuration.high_impedance = 1; //hiz output if this bit is 1
-                spiSetup(binSPIspeed[mode_configuration.speed]); //resetup SPI
+                spi_setup(spi_bus_speed[mode_configuration.speed]); //resetup SPI
                 UART1TX(1); //send 1/OK
                 break;
             default:

@@ -37,8 +37,6 @@ extern bus_pirate_protocol_t protos[MAXPROTO];
 extern volatile BYTE cdc_Out_len;
 #endif /* BUSPIRATEV4 */
 
-void walkdungeon(void);
-
 void setMode(void); //change protocol/bus mode
 void setDisplayMode(void); //user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
 void setPullups(void); //pullup resistor dialog

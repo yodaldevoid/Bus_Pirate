@@ -528,7 +528,7 @@ _bp_messages:
 	.pascii " FAIL"
 
 	; BPMSG1187
-	.pascii "Set speed:\r\n 1. 30KHz\r\n 2. 125KHz\r\n 3. 250KHz\r\n 4. 1MHz"
+	.pascii "Set speed:\r\n 1.  30KHz\r\n 2. 125KHz\r\n 3. 250KHz\r\n 4.   1MHz\r\n 5.  50KHz\r\n 6. 1.3MHz\r\n 7.   2MHz\r\n 8. 2.6MHz\r\n 9. 3.2MHz\r\n10.   4MHz\r\n11. 5.3MHz\r\n12.   8MHz"
 
 	; BPMSG1188
 	.pascii "Clock polarity:\r\n 1. Idle low *default\r\n 2. Idle high"
