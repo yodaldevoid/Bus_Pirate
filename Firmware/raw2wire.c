@@ -38,6 +38,14 @@ extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bool command_error;
 
+/**
+ * Reverses the bits in the given byte.
+ * 
+ * @param value the value whose bits need to be reversed.
+ * @return the input byte with its bits reversed.
+ */
+static uint8_t reverse_byte(uint8_t value);
+
 void r2wMacro_78133Read(void);
 void r2wMacro_78133Write(void);
 
@@ -151,21 +159,25 @@ void R2Wsetup_exc(void)
 	bbSetup(2, mode_configuration.speed);    
 }    
 
-void R2Wmacro(unsigned int c)
-{
-	switch(c)
-	{	case MENU:
+void R2Wmacro(unsigned int macro) {
+	switch(macro) {
+		case MENU:
 			//bpWstring(OUMSG_R2W_MACRO_MENU);
 			BPMSG1144;
 			break;
+
 		case ISO78133ATR:
 			r2wMacro_78133Write();
+			/* Intentional pass-through. */
+
 		case ISO78133ATR_PARSE:
 			r2wMacro_78133Read();
 			break;
+
 		default:
 			//bpWmessage(MSG_ERROR_MACRO);
 			BPMSG1016;
+			break;
 	}
 }
 
@@ -184,7 +196,6 @@ void R2Wpins(void) {
 
 //ISO 7813-3 Answer to reset macro for smartcards
 // syntax: a0%255@^a
-// **depricated, some cards are MSB first** forces LSB format for easy use
 // now uses CS pin instead of AUX pin because 1,2,3 have build in pullups on CS but not AUX
 void r2wMacro_78133Write(void){
 
@@ -216,14 +227,14 @@ void r2wMacro_78133Read(void){
 
 	//read and display ISO 7813-3 bytes
 	for(i=0; i<4; i++){
-		m[i]=bbReadByte();
+		if (mode_configuration.lsbEN) {
+			m[i] = reverse_byte(m[i]);
+		}
 		bpWhex(m[i]);
 		bpSP;
 	}
 	bpBR;
-
-	//modeConfig.lsbEN=c;//return to previous LSB setting
-
+    
 	//parse the first two bytes for 7813-3 atr header info
 	//bits8:5 8=serial, 9=3wire, 10=2wire 0xf=RFU
 	//c=(m[0]>>4);
@@ -292,6 +303,20 @@ void r2wMacro_78133Read(void){
 	for(m[0]=0;m[0]<c;m[0]++)i*=2;//multiply by two each time
 	bpWdec(i);
 	bpBR;
+}
+
+uint8_t reverse_byte(uint8_t value) {
+	uint8_t reversed = 0;
+	uint8_t bitmask;
+
+	for (bitmask = 0b00000001; bitmask != 0; bitmask = bitmask << 1) {
+		reversed = reversed << 1;    
+		if (value & bitmask) {
+			reversed |= 0b00000001;
+		}
+	}
+
+	return reversed;
 }
 
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
