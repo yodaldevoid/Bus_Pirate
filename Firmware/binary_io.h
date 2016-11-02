@@ -27,4 +27,12 @@ void binBB(void);
 uint8_t binBBpindirectionset(uint8_t inByte);
 uint8_t binBBpinset(uint8_t inByte);
 
+void bp_binary_io_peripherals_set(uint8_t input_byte);
+
+#ifdef BUSPIRATEV4
+bool bp_binary_io_pullup_control(uint8_t control_byte);
+#endif /* BUSPIRATEV4 */
+
+void binwire(void);
+
 #endif /* !BP_BINIO_H */

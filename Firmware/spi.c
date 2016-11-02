@@ -20,8 +20,7 @@
 
 #include "base.h"
 #include "bus_pirate_core.h"
-#include "binIO.h"
-#include "binIOhelpers.h"
+#include "binary_io.h"
 
 #include "procMenu.h"		// for the userinteraction subs
 

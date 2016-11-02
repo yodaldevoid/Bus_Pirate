@@ -9,9 +9,6 @@
       <itemPath>../base.h</itemPath>
       <itemPath>../baseIO.h</itemPath>
       <itemPath>../basic.h</itemPath>
-      <itemPath>../binIO.h</itemPath>
-      <itemPath>../binIOhelpers.h</itemPath>
-      <itemPath>../binwire.h</itemPath>
       <itemPath>../bitbang.h</itemPath>
       <itemPath>../dp_usb/cdc.h</itemPath>
       <itemPath>../descriptors.h</itemPath>
@@ -41,6 +38,7 @@
       <itemPath>../messages_v4.h</itemPath>
       <itemPath>../messages.h</itemPath>
       <itemPath>../bus_pirate_core.h</itemPath>
+      <itemPath>../binary_io.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -64,9 +62,6 @@
       <itemPath>../base.c</itemPath>
       <itemPath>../baseIO.c</itemPath>
       <itemPath>../basic.c</itemPath>
-      <itemPath>../binIO.c</itemPath>
-      <itemPath>../binIOhelpers.c</itemPath>
-      <itemPath>../binwire.c</itemPath>
       <itemPath>../bitbang.c</itemPath>
       <itemPath>../dp_usb/cdc.c</itemPath>
       <itemPath>../dio.c</itemPath>
@@ -96,6 +91,7 @@
       <itemPath>../messages_v4.s</itemPath>
       <itemPath>../messages.c</itemPath>
       <itemPath>../bus_pirate_core.c</itemPath>
+      <itemPath>../binary_io.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -131,6 +127,8 @@
           <parseOnProdLoad>false</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
         </loading>
+        <subordinates>
+        </subordinates>
       </compileType>
       <makeCustomizationType>
         <makeCustomizationPreStepEnabled>false</makeCustomizationPreStepEnabled>
@@ -767,6 +765,8 @@
           <parseOnProdLoad>false</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
         </loading>
+        <subordinates>
+        </subordinates>
       </compileType>
       <makeCustomizationType>
         <makeCustomizationPreStepEnabled>false</makeCustomizationPreStepEnabled>

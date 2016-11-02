@@ -19,7 +19,7 @@
 #ifdef BP_ENABLE_DIO_SUPPORT
 
 #include "base.h"
-#include "binIO.h"
+#include "binary_io.h"
 
 /**
  * Bit #9 indicates whether it is to set the pin state or the pin direction.

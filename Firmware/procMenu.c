@@ -24,7 +24,7 @@
 #include "bus_pirate_core.h"
 #include "procMenu.h" //need our public versionInfo() function
 #include "selftest.h"
-#include "binIO.h"
+#include "binary_io.h"
 #include "sump.h"
 #include "basic.h"
 

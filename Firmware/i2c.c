@@ -20,8 +20,8 @@
 
 #include "base.h"
 #include "bitbang.h"
+#include "binary_io.h"
 #include "bus_pirate_core.h"//need access to bpConfig
-#include "binIOhelpers.h"
 #include "AUXpin.h"
 
 #include "procMenu.h"		// for the userinteraction subs

@@ -45,8 +45,7 @@
 #endif /* BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS > MAXIMUM_DEVICES_ROSTER_SIZE */
 
 #include "base.h"
-#include "binIO.h"
-#include "binIOhelpers.h"
+#include "binary_io.h"
 
 /**
  * Binary I/O mode identifier.

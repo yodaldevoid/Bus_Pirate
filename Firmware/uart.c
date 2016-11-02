@@ -19,8 +19,8 @@
 #ifdef BP_ENABLE_UART_SUPPORT
 
 #include "base.h"
+#include "binary_io.h"
 #include "uart2io.h"
-#include "binIOhelpers.h"
 
 #include "procMenu.h"		// for the userinteraction subs
 

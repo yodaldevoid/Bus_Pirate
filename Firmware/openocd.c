@@ -9,7 +9,7 @@
 #include "base.h"
 #include "baseIO.h"
 #include "bus_pirate_core.h"
-#include "binIOhelpers.h"
+#include "binary_io.h"
 
 extern mode_configuration_t mode_configuration;
 extern bus_pirate_configuration_t bus_pirate_configuration;
