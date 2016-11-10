@@ -133,6 +133,11 @@ static uint16_t null_data_read_callback(void);
  */
 static bool null_bit_read_callback(void);
 
+/**
+ * Predefined callback for running an operation without any expected I/O.
+ */
+static void silent_null_operation_callback(void);
+
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
@@ -418,26 +423,47 @@ bus_pirate_protocol_t protos[MAXPROTO] = {{/* protocol_start */
 
 #ifdef BP_ENABLE_DIO_SUPPORT
                                           ,
-                                          {null_operation_callback,
+                                          {/* protocol_start */
                                            null_operation_callback,
+                                           /* protocol_start_with_read */
                                            null_operation_callback,
+                                           /* protocol_stop */
                                            null_operation_callback,
+                                           /* protocol_stop_from_read */
+                                           null_operation_callback,
+                                           /* protocol_send */
                                            dio_write,
+                                           /* protocol_read */
                                            dio_read,
+                                           /* protocol_clock_high */
                                            null_operation_callback,
+                                           /* protocol_clock_low */
                                            null_operation_callback,
+                                           /* protocol_data_high */
                                            null_operation_callback,
+                                           /* protocol_data_low */
                                            null_operation_callback,
+                                           /* protocol_data_state */
                                            null_data_read_callback,
+                                           /* protocol_clock_pulse */
                                            null_operation_callback,
+                                           /* protocol_read_bit */
                                            null_bit_read_callback,
+                                           /* protocol_periodic_update */
                                            null_bit_read_callback,
+                                           /* protocol_run_macro */
                                            null_macro_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
+                                           /* protocol_setup */
+                                           silent_null_operation_callback,
+                                           /* protocol_get_ready */
+                                           silent_null_operation_callback,
+                                           /* protocol_cleanup */
                                            reset_mode_to_8_bits,
+                                           /* protocol_print_pins_state */
                                            hiz_print_pins_state,
+                                           /* protocol_print_settings */
                                            empty_print_settings_implementation,
+                                           /* name */
                                            "DIO"}
 #endif /* BP_ENABLE_DIO_SUPPORT */
 };
@@ -471,6 +497,8 @@ void null_macro_callback(uint16_t value) {
 }
 
 void empty_print_settings_implementation(void) { bpBR; }
+
+void silent_null_operation_callback(void) { command_error = false; }
 
 void hiz_print_pins_state(void) {
 #ifdef BUSPIRATEV4
