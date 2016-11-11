@@ -21,7 +21,7 @@
 
 #include "basic.h"
 #include "bus_pirate_core.h"
-#include "procMenu.h"
+#include "proc_menu.h"
 #include "selftest.h"
 
 #ifdef BUSPIRATEV4

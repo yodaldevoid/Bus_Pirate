@@ -22,7 +22,7 @@
 #include "bitbang.h"
 #include "baseIO.h"
 #include "bus_pirate_core.h"
-#include "procMenu.h"		// for the userinteraction subs
+#include "proc_menu.h"		// for the userinteraction subs
 #include "AUXpin.h"
 
 extern bus_pirate_configuration_t bus_pirate_configuration;

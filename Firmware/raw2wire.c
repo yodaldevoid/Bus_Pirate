@@ -22,7 +22,7 @@
 #include "bitbang.h"
 #include "AUXpin.h"
 
-#include "procMenu.h"		// for the userinteraction subs
+#include "proc_menu.h"		// for the userinteraction subs
 
 #define R2WCLK_TRIS 	BP_CLK_DIR
 #define R2WCLK 			BP_CLK 

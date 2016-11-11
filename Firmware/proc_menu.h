@@ -14,6 +14,9 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#ifndef BP_PROC_MENU_H
+#define BP_PROC_MENU_H
+
 #define BELL	0x07
 
 #define CMDLENMSK	(BP_COMMAND_BUFFER_SIZE-1)
@@ -39,7 +42,8 @@ int cmdhistory(void);
 #endif /* BP_ENABLE_COMMAND_HISTORY */
 
 int getnumber(int def, int min, int max, int x);	
-#if defined(BUSPIRATEV4)
+#ifdef BUSPIRATEV4
 long getlong(long def, int min, long max, int x);
 #endif /* BUSPIRATEV4 */
 
+#endif /* !BP_PROC_MENU_H */

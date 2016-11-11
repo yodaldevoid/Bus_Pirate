@@ -26,7 +26,7 @@
 #include "base.h"
 #include "AUXpin.h"
 #include "bus_pirate_core.h"
-#include "procMenu.h"
+#include "proc_menu.h"
 #include "bitbang.h"
 
 extern bus_pirate_configuration_t bus_pirate_configuration;

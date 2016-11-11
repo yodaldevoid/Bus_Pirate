@@ -18,7 +18,6 @@
       <itemPath>../pc_at_keyboard.h</itemPath>
       <itemPath>../pic.h</itemPath>
       <itemPath>../dp_usb/picusb.h</itemPath>
-      <itemPath>../procMenu.h</itemPath>
       <itemPath>../raw2wire.h</itemPath>
       <itemPath>../raw3wire.h</itemPath>
       <itemPath>../selftest.h</itemPath>
@@ -39,6 +38,7 @@
       <itemPath>../messages.h</itemPath>
       <itemPath>../bus_pirate_core.h</itemPath>
       <itemPath>../binary_io.h</itemPath>
+      <itemPath>../proc_menu.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -72,7 +72,6 @@
       <itemPath>../main.c</itemPath>
       <itemPath>../pc_at_keyboard.c</itemPath>
       <itemPath>../pic.c</itemPath>
-      <itemPath>../procMenu.c</itemPath>
       <itemPath>../raw2wire.c</itemPath>
       <itemPath>../raw3wire.c</itemPath>
       <itemPath>../selftest.c</itemPath>
@@ -92,6 +91,7 @@
       <itemPath>../messages.c</itemPath>
       <itemPath>../bus_pirate_core.c</itemPath>
       <itemPath>../binary_io.c</itemPath>
+      <itemPath>../proc_menu.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

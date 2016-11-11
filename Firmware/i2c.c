@@ -24,7 +24,7 @@
 #include "bus_pirate_core.h"//need access to bpConfig
 #include "AUXpin.h"
 
-#include "procMenu.h"		// for the userinteraction subs
+#include "proc_menu.h"		// for the userinteraction subs
 
 #if defined(BUSPIRATEV4) && !defined(BP_I2C_USE_HW_BUS)
 #error "Bus Pirate v4 must be able to use the hardware I2C interface!"

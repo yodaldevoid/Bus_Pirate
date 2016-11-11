@@ -22,7 +22,7 @@
 #include "bus_pirate_core.h"
 #include "binary_io.h"
 
-#include "procMenu.h"		// for the userinteraction subs
+#include "proc_menu.h"		// for the userinteraction subs
 
 //direction registers
 #define SPIMOSI_TRIS 	BP_MOSI_DIR	
