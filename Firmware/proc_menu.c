@@ -468,7 +468,7 @@ end:
 
 #ifdef BP_ENABLE_BASIC_SUPPORT
         if (bus_pirate_configuration.basic) {
-            basiccmdline();
+            bp_basic_enter_interactive_interpreter();
             //bpWline("Ready.");
             BPMSG1085;
             stop = 1;

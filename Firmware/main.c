@@ -218,7 +218,7 @@ void initialize_board(void) {
   mode_configuration.numbits = 8;
 
 #ifdef BP_ENABLE_BASIC_SUPPORT
-  bp_clear_basic_program_area();
+  bp_basic_initialize();
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 
   /* Move to page #0. */
