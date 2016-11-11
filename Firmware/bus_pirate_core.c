@@ -146,7 +146,7 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
-bus_pirate_protocol_t protos[MAXPROTO] = {{/* protocol_start */
+bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {{/* protocol_start */
                                            null_operation_callback,
                                            /* protocol_start_with_read */
                                            null_operation_callback,

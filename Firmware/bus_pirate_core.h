@@ -229,7 +229,7 @@ typedef enum {
   BP_DIO,
 #endif /* BP_ENABLE_DIO_SUPPORT */
 
-  MAXPROTO
+  ENABLED_PROTOCOLS_COUNT
 } bus_pirate_available_protocols_t;
 
 /**
