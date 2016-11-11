@@ -101,11 +101,6 @@
 #define STAT_DUTY	"DUTY"
 #define STAT_MACRO	"MACRO"
 
-// runtime vars
-#define PGMSIZE		1024
-#define FORMAX		4
-#define GOSUBMAX	10
-
 // errors
 #define NOERROR		1
 #define NOLEN		2
@@ -116,13 +111,6 @@
 #define STACKERROR	7
 #define RETURNERROR 8
 #define DATAERROR	9
-
-// structs
-struct forloop {
-	int	forstart;
-	int var;
-	int to;
-};
 
 struct token 
 {	char *statement;

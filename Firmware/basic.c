@@ -23,6 +23,25 @@
 #undef BP_BASIC_I2C_FILESYSTEM
 #endif /* BP_BASIC_I2C_FILESYSTEM */
 
+#if BP_BASIC_PROGRAM_SPACE <= 0
+#error "Invalid BASIC program space value"
+#endif /* BP_BASIC_PROGRAM_SPACE <= 0 */
+
+#if BP_BASIC_NESTED_FOR_LOOP_COUNT <= 1
+#error "Invalid nested BASIC FOR-LOOP count"
+#endif /* BP_BASIC_NESTED_FOR_LOOP_COUNT <= 1 */
+
+#if BP_BASIC_STACK_FRAMES_DEPTH <= 1
+#error "Invalid BASIC stack depth"
+#endif /* BP_BASIC_STACK_FRAMES_DEPTH <= 1*/
+
+/**
+ * How many variables the BASIC interpreter can handle.
+ * 
+ * Currently set to 26 to handle variables identified from 'A' to 'Z'.
+ */
+#define BP_BASIC_VARIABLES_COUNT 26
+
 #include "base.h"
 #include "AUXpin.h"
 #include "bus_pirate_core.h"
@@ -34,16 +53,21 @@ extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bus_pirate_protocol_t protos[MAXPROTO];
 
-int vars[26];					// var a-z
-int stack_[GOSUBMAX];				// max 5 gosubs
-struct forloop forloops[FORMAX];			// max 2 nested forloop
-int pc;							//programcounter
-int fors;						// current for
-int gosubs;						// current gosubs
-int datapos;					// read pointer.
+typedef struct {
+	unsigned int from;
+	unsigned int var;
+	unsigned int to;
+} basic_for_loop_t;
 
+static int basic_variables[BP_BASIC_VARIABLES_COUNT];
+static int basic_stack[BP_BASIC_STACK_FRAMES_DEPTH];
+static basic_for_loop_t basic_nested_for_loops[BP_BASIC_NESTED_FOR_LOOP_COUNT];
+static unsigned int basic_program_counter;
+static unsigned int basic_current_nested_for_index;
+static unsigned int basic_current_stack_frame;
+static unsigned int basic_data_read_pointer;
 
-char *tokens[NUMTOKEN+1]=
+static char *tokens[NUMTOKEN+1]=
 {	STAT_LET,		//0x80
 	STAT_IF,		//0x81
 	STAT_THEN,		//0x82
@@ -81,11 +105,7 @@ char *tokens[NUMTOKEN+1]=
 	STAT_END,		//0xa1
 };
 
-
-
-
-// insert your favarite basicprogram here:
-unsigned char pgmspace[PGMSIZE]; /*={	// 1kb basic memory
+static uint8_t basic_program_area[BP_BASIC_PROGRAM_SPACE]; /*={
 
 // basic basic test :D
 #ifdef BASICTEST
@@ -323,15 +343,13 @@ TOK_LEN+ 1, 0, 190, TOK_END,
 };
 */
 
-
-
-// basicinterpreter starts here
+// basic interpreter starts here
 
 void handleelse(void)
-{	if(pgmspace[pc]==TOK_ELSE)
-	{	pc++;
-		while(pgmspace[pc]<=TOK_LEN)
-		{	pc++;
+{	if(basic_program_area[basic_program_counter]==TOK_ELSE)
+	{	basic_program_counter++;
+		while(basic_program_area[basic_program_counter]<=TOK_LEN)
+		{	basic_program_counter++;
 		}
 	}
 }
@@ -347,11 +365,11 @@ int searchlineno(unsigned int line)
 	//UART1TX('?');
 
 	while(1)
-	{	if(pgmspace[i]<=TOK_LEN)
+	{	if(basic_program_area[i]<=TOK_LEN)
 		{	return -1;
 		}
-		len=pgmspace[i]-TOK_LEN;
-		lineno=(pgmspace[i+1]<<8)+pgmspace[i+2];
+		len=basic_program_area[i]-TOK_LEN;
+		lineno=(basic_program_area[i+1]<<8)+basic_program_area[i+2];
 //		if(i>PGMSIZE)
 //		{	return -1;
 //		}
@@ -365,27 +383,28 @@ int searchlineno(unsigned int line)
 	return -1;
 }
 
-int getnumvar(void)
-{	int temp;
+int getnumvar(void) {
+    int temp;
+    
 	temp=0;
 
-	if((pgmspace[pc]=='('))
+	if((basic_program_area[basic_program_counter]=='('))
     {
-		pc++;
+		basic_program_counter++;
 		temp=assign();
 //        temp=evaluate();
-		if((pgmspace[pc]==')'))
-		{	pc++;
+		if((basic_program_area[basic_program_counter]==')'))
+		{	basic_program_counter++;
 		}
 	}
-	else if((pgmspace[pc]>='A')&&(pgmspace[pc]<='Z'))
+	else if((basic_program_area[basic_program_counter]>='A')&&(basic_program_area[basic_program_counter]<='Z'))
 	{	//bpWstring("var ");
 		//bpWhex(pgmspace[pc]);
 		//bpSP;
-		return vars[pgmspace[pc++]-'A'];				//increment pc
+		return basic_variables[basic_program_area[basic_program_counter++]-'A'];				//increment pc
 	}
-	else if(pgmspace[pc]>TOKENS)			// looks for tokens like aux, clk and dat
-	{	switch(pgmspace[pc++])					// increment pc
+	else if(basic_program_area[basic_program_counter]>TOKENS)			// looks for tokens like aux, clk and dat
+	{	switch(basic_program_area[basic_program_counter++])					// increment pc
 		{	case TOK_RECEIVE:	//temp=protoread();
 							temp=protos[bus_pirate_configuration.bus_mode].protocol_read();
 							break;
@@ -416,10 +435,10 @@ int getnumvar(void)
 		}
 	}
 	else
-	{	while((pgmspace[pc]>='0')&&(pgmspace[pc]<='9'))
+	{	while((basic_program_area[basic_program_counter]>='0')&&(basic_program_area[basic_program_counter]<='9'))
 		{	temp*=10;
-			temp+=pgmspace[pc]-'0';
-			pc++;
+			temp+=basic_program_area[basic_program_counter]-'0';
+			basic_program_counter++;
 		}
 	}
 	//bpWstring("int ");
@@ -432,14 +451,14 @@ int getmultdiv(void)
 {	int temp;
 	temp=getnumvar();
     while (1) {
-		if((pgmspace[pc]!='*')&&(pgmspace[pc]!='/')&&(pgmspace[pc]!='&')&&(pgmspace[pc]!='|'))
+		if((basic_program_area[basic_program_counter]!='*')&&(basic_program_area[basic_program_counter]!='/')&&(basic_program_area[basic_program_counter]!='&')&&(basic_program_area[basic_program_counter]!='|'))
 		{	return temp;
 		}
 		else									// assume operand
 		{	//bpWstring("op ");
 			//UART1TX(pgmspace[pc]);
 			//bpSP;
-			switch(pgmspace[pc++])
+			switch(basic_program_area[basic_program_counter++])
 			{	case '*': 	//UART1TX('*');
 							temp*=getnumvar();
 							break;
@@ -467,14 +486,14 @@ int assign(void)
 	temp=getmultdiv();
 
     while (1) {
-		if((pgmspace[pc]!='-')&&(pgmspace[pc]!='+')&&(pgmspace[pc]!='<')&&(pgmspace[pc]!='>')&&(pgmspace[pc]!='='))
+		if((basic_program_area[basic_program_counter]!='-')&&(basic_program_area[basic_program_counter]!='+')&&(basic_program_area[basic_program_counter]!='<')&&(basic_program_area[basic_program_counter]!='>')&&(basic_program_area[basic_program_counter]!='='))
 		{	return temp;
 		}
 		else									// assume operand
 		{	//bpWstring("op ");
 			//UART1TX(pgmspace[pc]);
 			//bpSP;
-			switch(pgmspace[pc++])
+			switch(basic_program_area[basic_program_counter++])
 			{	case '-': 	//UART1TX('-');
 							temp-=getmultdiv();
 							break;
@@ -482,22 +501,22 @@ int assign(void)
 							temp+=getmultdiv();
 							break;
 				case '>':	//UART1TX('+');
-							if(pgmspace[pc+1]=='=')
+							if(basic_program_area[basic_program_counter+1]=='=')
 							{	temp=(temp>=getmultdiv()?1:0);
-								pc++;
+								basic_program_counter++;
 							}
 							else
 							{	temp=(temp>getmultdiv()?1:0);
 							}
 							break;
 				case '<':	//UART1TX('+');
-							if(pgmspace[pc+1]=='>')
+							if(basic_program_area[basic_program_counter+1]=='>')
 							{	temp=(temp!=getmultdiv()?1:0);
-								pc++;
+								basic_program_counter++;
 							}
-							else if(pgmspace[pc+1]=='=')
+							else if(basic_program_area[basic_program_counter+1]=='=')
 							{	temp=(temp<=getmultdiv()?1:0);
-								pc++;
+								basic_program_counter++;
 							}
 							else
 							{	temp=(temp<getmultdiv()?1:0);
@@ -572,27 +591,27 @@ void interpreter(void)
 	int temp;
 
 	// init
-	pc=0;
+	basic_program_counter=0;
 	stop=0;
 	pcupdated=0;
 	ifstat=0;
-	fors=0;
-	gosubs=0;
-	datapos=0;
+	basic_current_nested_for_index=0;
+	basic_current_stack_frame=0;
+	basic_data_read_pointer=0;
 	lineno=0;
 	bus_pirate_configuration.quiet=1;				// turn echoing off
 
-	for(i=0; i<26; i++) vars[i]=0;
+	for(i=0; i<26; i++) basic_variables[i]=0;
 
 	while(!stop)
 	{	if(!ifstat)
-		{	if(pgmspace[pc]<TOK_LEN)
+		{	if(basic_program_area[basic_program_counter]<TOK_LEN)
 			{	stop=NOLEN;
 				break;
 			}
 
-			len=pgmspace[pc]-TOK_LEN;
-			lineno=((pgmspace[pc+1]<<8)|pgmspace[pc+2]);
+			len=basic_program_area[basic_program_counter]-TOK_LEN;
+			lineno=((basic_program_area[basic_program_counter+1]<<8)|basic_program_area[basic_program_counter+2]);
 
 	/*		bpBR;
 			bpWintdec(pc);
@@ -605,7 +624,7 @@ void interpreter(void)
 
 		ifstat=0;
 
-		switch(pgmspace[pc+3])					// first token
+		switch(basic_program_area[basic_program_counter+3])					// first token
 		{	case TOK_LET:	//bpWstring(STAT_LET);
 							//bpSP;
 							//for(i=4; i<len+3; i++)
@@ -613,9 +632,9 @@ void interpreter(void)
 							//}
 
 							pcupdated=1;
-							pc+=6;		// 4(len lineno lineno token) +2 ("A=")
+							basic_program_counter+=6;		// 4(len lineno lineno token) +2 ("A=")
 
-							vars[pgmspace[pc-2]-0x41]=assign();
+							basic_variables[basic_program_area[basic_program_counter-2]-0x41]=assign();
 							handleelse();
 							
 							//bpBR;
@@ -647,28 +666,28 @@ void interpreter(void)
 							//}
 
 							pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 		
 							//temp=pc;
 		
 							//if(evaluate())
 							if(assign())
 							{	//bpWline("TRUE");	// execute statement then
-								if(pgmspace[pc++]==TOK_THEN)
+								if(basic_program_area[basic_program_counter++]==TOK_THEN)
 								{	//bpWstring ("THEN");
 									ifstat=1;
-									pc-=3;					// simplest way (for now)
+									basic_program_counter-=3;					// simplest way (for now)
 								}
 							}
 							else
 							{	//bpWline("FALSE");
-								while((pgmspace[pc]!=TOK_ELSE)&&(pgmspace[pc]<=TOK_LEN))
-								{	pc++;
+								while((basic_program_area[basic_program_counter]!=TOK_ELSE)&&(basic_program_area[basic_program_counter]<=TOK_LEN))
+								{	basic_program_counter++;
 								}
-								if(pgmspace[pc]==TOK_ELSE)
+								if(basic_program_area[basic_program_counter]==TOK_ELSE)
 								{	//bpWstring ("ELSE");
 									ifstat=1;
-									pc-=2;					// simplest way (for now)
+									basic_program_counter-=2;					// simplest way (for now)
 								}
 							}
 	
@@ -681,13 +700,13 @@ void interpreter(void)
 							//} 
 
 							pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 	
 							//bpConfig.quiet=0;
 							temp=searchlineno(assign());
 							//bpSP; bpWintdec(temp); bpSP;
 							if(temp!=-1)
-							{	pc=temp;
+							{	basic_program_counter=temp;
 							}
 							else
 							{	stop=GOTOERROR;
@@ -702,15 +721,15 @@ void interpreter(void)
 							//} 
 
 							pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 	
-							if(gosubs<GOSUBMAX)
-							{	stack_[gosubs]=pc+len-1;
-								gosubs++;
+							if(basic_current_stack_frame<BP_BASIC_STACK_FRAMES_DEPTH)
+							{	basic_stack[basic_current_stack_frame]=basic_program_counter+len-1;
+								basic_current_stack_frame++;
 								temp=searchlineno(assign());
 								//bpSP; bpWinthex(temp); bpSP;
 								if(temp!=-1)
-								{	pc=temp;
+								{	basic_program_counter=temp;
 								}
 								else
 								{	stop=GOTOERROR;
@@ -725,8 +744,8 @@ void interpreter(void)
 			case TOK_RETURN:	bp_write_string(STAT_RETURN);
 						
 							pcupdated=1;
-							if(gosubs)
-							{	pc=stack_[--gosubs];
+							if(basic_current_stack_frame)
+							{	basic_program_counter=basic_stack[--basic_current_stack_frame];
 							}
 							else
 							{	stop=RETURNERROR; 
@@ -741,7 +760,7 @@ void interpreter(void)
 							//bpBR;
 
 							pcupdated=1;
-							pc+=len+3;
+							basic_program_counter+=len+3;
 							break;
 			case TOK_PRINT:	//bpWstring(STAT_PRINT);
 							//bpSP;
@@ -750,28 +769,28 @@ void interpreter(void)
 							//} 
 
 							pcupdated=1;
-							pc+=4;
-							while((pgmspace[pc]<TOK_LEN)&&(pgmspace[pc]!=TOK_ELSE))
-							{	if(pgmspace[pc]=='\"')						// is it a string?
-								{	pc++;
-									while(pgmspace[pc]!='\"')
+							basic_program_counter+=4;
+							while((basic_program_area[basic_program_counter]<TOK_LEN)&&(basic_program_area[basic_program_counter]!=TOK_ELSE))
+							{	if(basic_program_area[basic_program_counter]=='\"')						// is it a string?
+								{	basic_program_counter++;
+									while(basic_program_area[basic_program_counter]!='\"')
 									{	bus_pirate_configuration.quiet=0;
-										UART1TX(pgmspace[pc++]);
+										UART1TX(basic_program_area[basic_program_counter++]);
 										bus_pirate_configuration.quiet=1;
 									}
-									pc++;
+									basic_program_counter++;
 								}
-								else if(((pgmspace[pc]>='A')&&(pgmspace[pc]<='Z'))||((pgmspace[pc]>=TOKENS)&&(pgmspace[pc]<TOK_LEN)))
+								else if(((basic_program_area[basic_program_counter]>='A')&&(basic_program_area[basic_program_counter]<='Z'))||((basic_program_area[basic_program_counter]>=TOKENS)&&(basic_program_area[basic_program_counter]<TOK_LEN)))
 								{	temp=assign();
 									bus_pirate_configuration.quiet=0;
 									bpWintdec(temp);
 									bus_pirate_configuration.quiet=1;
 								}
-								else if(pgmspace[pc]==';')						// spacer
-								{	pc++;
+								else if(basic_program_area[basic_program_counter]==';')						// spacer
+								{	basic_program_counter++;
 								}
 							}
-							if(pgmspace[pc-1]!=';')
+							if(basic_program_area[basic_program_counter-1]!=';')
 							{	bus_pirate_configuration.quiet=0;
 								bpBR;
 								bus_pirate_configuration.quiet=1;
@@ -786,24 +805,24 @@ void interpreter(void)
 
 							pcupdated=1;
 							bus_pirate_configuration.quiet=0;		// print prompt
-							pc+=4;
+							basic_program_counter+=4;
 	
-							if(pgmspace[pc]=='\"')						// is it a string?
-							{	pc++;
-								while(pgmspace[pc]!='\"')
-								{	UART1TX(pgmspace[pc++]);
+							if(basic_program_area[basic_program_counter]=='\"')						// is it a string?
+							{	basic_program_counter++;
+								while(basic_program_area[basic_program_counter]!='\"')
+								{	UART1TX(basic_program_area[basic_program_counter++]);
 								}
-								pc++;
+								basic_program_counter++;
 							}
-							if(pgmspace[pc]==',')
-							{	pc++;
+							if(basic_program_area[basic_program_counter]==',')
+							{	basic_program_counter++;
 							}
 							else
 							{	stop=SYNTAXERROR;
 							}
 	
-							vars[pgmspace[pc]-'A']=getnumber(0, 0, 0x7FFF, 0);
-							pc++;
+							basic_variables[basic_program_area[basic_program_counter]-'A']=getnumber(0, 0, 0x7FFF, 0);
+							basic_program_counter++;
 							handleelse();
 							bus_pirate_configuration.quiet=1;
 							break;
@@ -826,31 +845,31 @@ void interpreter(void)
 							//}
 
 							pcupdated=1;
-							pc+=4;
-							if(fors<FORMAX)
-							{	fors++;	
+							basic_program_counter+=4;
+							if(basic_current_nested_for_index<BP_BASIC_NESTED_FOR_LOOP_COUNT)
+							{	basic_current_nested_for_index++;	
 							}
 							else
 							{	stop=FORERROR;				// to many nested fors
 							}
-							forloops[fors].var=(pgmspace[pc++]-'A')+1;
+							basic_nested_for_loops[basic_current_nested_for_index].var=(basic_program_area[basic_program_counter++]-'A')+1;
 	
-							if(pgmspace[pc]=='=')
-							{	pc++;
-								vars[(forloops[fors].var)-1]=assign();
+							if(basic_program_area[basic_program_counter]=='=')
+							{	basic_program_counter++;
+								basic_variables[(basic_nested_for_loops[basic_current_nested_for_index].var)-1]=assign();
 							}
 							else
 							{	stop=SYNTAXERROR;
 							}
-							if(pgmspace[pc++]==TOK_TO)
+							if(basic_program_area[basic_program_counter++]==TOK_TO)
 							{	//bpWstring(STAT_TO);
-								forloops[fors].to=assign();
+								basic_nested_for_loops[basic_current_nested_for_index].to=assign();
 							}
 							else
 							{	stop=SYNTAXERROR;
 							}
-							if(pgmspace[pc]>=TOK_LEN)
-							{	forloops[fors].forstart=pc;
+							if(basic_program_area[basic_program_counter]>=TOK_LEN)
+							{	basic_nested_for_loops[basic_current_nested_for_index].from=basic_program_counter;
 							}
 							else
 							{	stop=SYNTAXERROR;
@@ -871,19 +890,19 @@ void interpreter(void)
 							//}
 
 							pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 	
-							temp=(pgmspace[pc++]-'A')+1;
+							temp=(basic_program_area[basic_program_counter++]-'A')+1;
 							stop=NEXTERROR;
 	
-							for(i=0; i<=fors; i++)
-							{	if(forloops[i].var==temp)
-								{	if(vars[temp-1]<forloops[i].to)
-									{	vars[temp-1]++;
-										pc=forloops[i].forstart;
+							for(i=0; i<=basic_current_nested_for_index; i++)
+							{	if(basic_nested_for_loops[i].var==temp)
+								{	if(basic_variables[temp-1]<basic_nested_for_loops[i].to)
+									{	basic_variables[temp-1]++;
+										basic_program_counter=basic_nested_for_loops[i].from;
 									}
 									else
-									{	fors--;
+									{	basic_current_nested_for_index--;
 									}
 									stop=0;
 								}
@@ -891,17 +910,17 @@ void interpreter(void)
 							handleelse();
 							break;
 			case TOK_READ:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
-							if(datapos==0)
+							if(basic_data_read_pointer==0)
 							{	i=0;
-								while((pgmspace[i+3]!=TOK_DATA)&&(pgmspace[i]!=0x00))
-								{	i+=(pgmspace[i]-TOK_LEN)+3;
+								while((basic_program_area[i+3]!=TOK_DATA)&&(basic_program_area[i]!=0x00))
+								{	i+=(basic_program_area[i]-TOK_LEN)+3;
 									//bpWinthex(i); bpSP;
 								}
 								//bpWinthex(pgmspace[i]);
-								if(pgmspace[i])
-								{	datapos=i+4;
+								if(basic_program_area[i])
+								{	basic_data_read_pointer=i+4;
 								}
 								else
 								{	stop=DATAERROR;
@@ -910,21 +929,21 @@ void interpreter(void)
 							//bpWstring("datapos ");
 							//bpWinthex(datapos); bpSP; 
 							//UART1TX(pgmspace[datapos]); bpSP;
-							temp=pc;
-							pc=datapos;
-							vars[pgmspace[temp]-'A']=getnumvar();
-							datapos=pc;
-							pc=temp+1;
+							temp=basic_program_counter;
+							basic_program_counter=basic_data_read_pointer;
+							basic_variables[basic_program_area[temp]-'A']=getnumvar();
+							basic_data_read_pointer=basic_program_counter;
+							basic_program_counter=temp+1;
 	
-							if(pgmspace[datapos]==',')
-							{	datapos++;
+							if(basic_program_area[basic_data_read_pointer]==',')
+							{	basic_data_read_pointer++;
 							}
-							if(pgmspace[datapos]>TOK_LEN)
-							{	if(pgmspace[datapos+3]!=TOK_DATA)
-								{	datapos=0;							// rolover
+							if(basic_program_area[basic_data_read_pointer]>TOK_LEN)
+							{	if(basic_program_area[basic_data_read_pointer+3]!=TOK_DATA)
+								{	basic_data_read_pointer=0;							// rolover
 								}
 								else
-								{	datapos+=4;
+								{	basic_data_read_pointer+=4;
 								}
 							}						
 	
@@ -932,48 +951,48 @@ void interpreter(void)
 
 							break;
 			case TOK_DATA:	pcupdated=1;
-							pc+=len+3;
+							basic_program_counter+=len+3;
 							break;
 
 
 // buspirate subs
 
 			case TOK_START:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 		
 							protos[bus_pirate_configuration.bus_mode].protocol_start();
 							handleelse();
 							//protostart();
 							break;
 			case TOK_STARTR:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 		
 							protos[bus_pirate_configuration.bus_mode].protocol_start_with_read();
 							//protostartr();
 							handleelse();
 							break;
 			case TOK_STOP:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 		
 							protos[bus_pirate_configuration.bus_mode].protocol_stop();
 							//protostop();
 							handleelse();
 							break;
 			case TOK_STOPR:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 		
 							protos[bus_pirate_configuration.bus_mode].protocol_stop_from_read();
 							//protostopr();
 							handleelse();
 							break;
 			case TOK_SEND:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 							//protowrite(getnumvar());
 							protos[bus_pirate_configuration.bus_mode].protocol_send((int)assign());
 							handleelse();
 							break;
 			case TOK_AUX:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 							if(assign())
 							{	//protoauxh();
@@ -987,7 +1006,7 @@ void interpreter(void)
 							
 							break;
 			case TOK_PSU:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 							if(assign())
 							{	//protopsuon();
@@ -1004,7 +1023,7 @@ void interpreter(void)
 							break;
 
 			case TOK_AUXPIN:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 							if(assign())
 							{	mode_configuration.altAUX=1;
@@ -1016,7 +1035,7 @@ void interpreter(void)
 						
 							break;
 			case TOK_FREQ:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 							PWMfreq=assign();
 							if(PWMfreq<0)	PWMfreq=0;
@@ -1029,7 +1048,7 @@ void interpreter(void)
 
 							break;
 			case TOK_DUTY:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 							PWMduty=assign();
 							if(PWMfreq<0)	PWMfreq=0;
@@ -1044,7 +1063,7 @@ void interpreter(void)
 
 
 			case TOK_DAT:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 							if(assign())
 							{	//protodath();
@@ -1058,7 +1077,7 @@ void interpreter(void)
 						
 							break;
 			case TOK_CLK:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 							switch(assign())
 							{	case 0:	//protoclkl();
@@ -1075,7 +1094,7 @@ void interpreter(void)
 						
 							break;
 			case TOK_PULLUP:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 
 //#if(0)
 							if(assign())
@@ -1092,14 +1111,14 @@ void interpreter(void)
 
 							break;
 			case TOK_DELAY:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 							temp=assign();
 							bp_delay_ms(temp);
 							handleelse();
 
 							break;
 			case TOK_MACRO:	pcupdated=1;
-							pc+=4;
+							basic_program_counter+=4;
 							temp=assign();
 							protos[bus_pirate_configuration.bus_mode].protocol_run_macro(temp);
 							handleelse();
@@ -1112,7 +1131,7 @@ void interpreter(void)
 		}
 
 		if(!pcupdated)
-		{	pc+=len+3;
+		{	basic_program_counter+=len+3;
 			//bpBR;
 		}
 		pcupdated=0;
@@ -1129,7 +1148,7 @@ void interpreter(void)
 		bpWintdec(lineno);
 		//bpWstring(" @pgmspace:");
 		BPMSG1049;
-		bpWintdec(pc);
+		bpWintdec(basic_program_counter);
 		bpBR;
 	}
 
@@ -1149,18 +1168,18 @@ void list(void)
 {	unsigned char c;
 	unsigned int lineno;
 
-	pc=0;
+	basic_program_counter=0;
 
-	while(pgmspace[pc])
-	{	c=pgmspace[pc];
+	while(basic_program_area[basic_program_counter])
+	{	c=basic_program_area[basic_program_counter];
 		if(c<TOK_LET)
 		{	UART1TX(c);
 		}
 		else if(c>TOK_LEN)
 		{	bpBR;
 			//bpWintdec(pc); bpSP;
-			lineno=(pgmspace[pc+1]<<8)+pgmspace[pc+2];
-			pc+=2;
+			lineno=(basic_program_area[basic_program_counter+1]<<8)+basic_program_area[basic_program_counter+2];
+			basic_program_counter+=2;
 			bpWintdec(lineno);
 			bpSP;
 		}
@@ -1169,10 +1188,10 @@ void list(void)
 			bp_write_string(tokens[c-TOKENS]);
 			bpSP;
 		}
-		pc++;
+		basic_program_counter++;
 	}
 	bpBR;
-	bpWintdec(pc-1);
+	bpWintdec(basic_program_counter-1);
 	//bpWline(" bytes.");
 	BPMSG1050;
 }
@@ -1241,16 +1260,16 @@ void basiccmdline(void)
 		if(pos!=-1)							// if it already exist remove it first
 		{	//bpWstring("replace/remove line @");
 			//bpWintdec(pos); bpBR
-			len=(pgmspace[pos]-TOK_LEN)+3;
+			len=(basic_program_area[pos]-TOK_LEN)+3;
 			//bpWstring("pos=");
 			//bpWintdec(pos); bpSP; 
-			for(i=pos; i<PGMSIZE-len; i++)
-			{	pgmspace[i]=pgmspace[i+len];	// move everyhting from pos len bytes down
+			for(i=pos; i<BP_BASIC_PROGRAM_SPACE-len; i++)
+			{	basic_program_area[i]=basic_program_area[i+len];	// move everyhting from pos len bytes down
 			}
 			//bpWstring("i=");
 			//bpWintdec(i); bpBR;
-			for( ; i<PGMSIZE; i++)
-			{	pgmspace[i]=0x00;
+			for( ; i<BP_BASIC_PROGRAM_SPACE; i++)
+			{	basic_program_area[i]=0x00;
 			}
 		}
 
@@ -1305,12 +1324,12 @@ void basiccmdline(void)
 		pos=0;
 		
 		while(!end)
-		{	if(pgmspace[i]>TOK_LEN)			// valid line
-			{	len=pgmspace[i]-TOK_LEN;
+		{	if(basic_program_area[i]>TOK_LEN)			// valid line
+			{	len=basic_program_area[i]-TOK_LEN;
 				//bpWstring("len=");
 				//bpWintdec(len); bpSP;
 
-				lineno1=(pgmspace[i+1]<<8)+pgmspace[i+2];
+				lineno1=(basic_program_area[i+1]<<8)+basic_program_area[i+2];
 				lineno2=(line[1]<<8)+line[2];
 				if(lineno1<lineno2)
 				{	pos=i+len+3;
@@ -1323,7 +1342,7 @@ void basiccmdline(void)
 			{	end=i;				// we found the end! YaY!  
 			}
 
-			temp=(pgmspace[i+1]<<8)+pgmspace[i+2];
+			temp=(basic_program_area[i+1]<<8)+basic_program_area[i+2];
 			//bpWstring("#");
 			//bpWintdec(temp); bpSP;
 			//bpWstring("i=");
@@ -1341,10 +1360,10 @@ void basiccmdline(void)
 
 		//for(i=end+temp; i>=pos; i--)
 		for(i=end; i>=pos; i--)
-		{	pgmspace[i+temp]=pgmspace[i];		// move every thing from pos temp 
+		{	basic_program_area[i+temp]=basic_program_area[i];		// move every thing from pos temp 
 		}
 		for(i=0; i<temp; i++)					// insert line
-		{	pgmspace[pos+i]=line[i];
+		{	basic_program_area[pos+i]=line[i];
 		}
 
 		//cmdstart=cmdend;
@@ -1372,9 +1391,9 @@ void basiccmdline(void)
 		}
 #endif /* BP_BASIC_I2C_FILESYSTEM */
 		else if(compare("DEBUG"))
-		{	for(i=0; i<PGMSIZE; i+=16)
+		{	for(i=0; i<BP_BASIC_PROGRAM_SPACE; i+=16)
 			{	for(j=0; j<16; j++)
-				{	bpWhex(pgmspace[i+j]); bpSP;
+				{	bpWhex(basic_program_area[i+j]); bpSP;
 				}
 			}
 		}
@@ -1389,19 +1408,13 @@ void basiccmdline(void)
 //	cmdstart=cmdend;
 }
 
-void bp_clear_basic_program_area(void)
-{	int i;
-
-	for(i=0; i<PGMSIZE ;i++)
-	{	pgmspace[i]=0;
-	}
-	pgmspace[0]=TOK_LEN+1;
-	pgmspace[1]=0xFF;
-	pgmspace[2]=0xFF;
-	pgmspace[3]=TOK_END;
+void bp_clear_basic_program_area(void) {
+	basic_program_area[0] = TOK_LEN + 1;
+	basic_program_area[1] = 0xFF;
+	basic_program_area[2] = 0xFF;
+	basic_program_area[3] = TOK_END;
+    memset(basic_program_area, 4, BP_BASIC_PROGRAM_SPACE - 4);
 }
-
-
 
 #ifdef BP_BASIC_I2C_FILESYSTEM
 
@@ -1618,7 +1631,7 @@ void save(void)
 		basi2cwrite((slot+i)>>8);
 		basi2cwrite((slot+i)&0x0FF);
 		for(j=0; j<EEPROMPAGE; j++)
-		{	basi2cwrite(pgmspace[i+j]);
+		{	basi2cwrite(basic_program_area[i+j]);
 		}
 		basi2cstop();
 		UART1TX('.');
@@ -1665,7 +1678,7 @@ void load(void)
 
 	for(i=0; i<PGMSIZE; i++)
 	{	if(!(i%EEPROMPAGE))	UART1TX('.');		// pure estetic
-		pgmspace[i]=basi2cread(1);
+		basic_program_area[i]=basi2cread(1);
 	}
 }
 
