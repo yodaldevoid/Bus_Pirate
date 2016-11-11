@@ -29,4 +29,4 @@ void enter_sump_mode(void);
 
 #endif /* BP_ENABLE_SUMP_SUPPORT */
 
-#endif /* BP_SUMP_H */
+#endif /* !BP_SUMP_H */

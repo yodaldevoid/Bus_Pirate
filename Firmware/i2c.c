@@ -21,7 +21,7 @@
 #include "base.h"
 #include "bitbang.h"
 #include "binary_io.h"
-#include "bus_pirate_core.h"//need access to bpConfig
+#include "core.h"//need access to bpConfig
 #include "AUXpin.h"
 
 #include "proc_menu.h"		// for the userinteraction subs

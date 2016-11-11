@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "base.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 
 static const uint8_t HEX_PREFIX[] = {
     '0', 'x'

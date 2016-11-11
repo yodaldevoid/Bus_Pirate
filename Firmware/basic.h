@@ -35,4 +35,4 @@ void bp_basic_enter_interactive_interpreter(void);
 
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 
-#endif /* BP_BASIC_H */
+#endif /* !BP_BASIC_H */

@@ -15,7 +15,7 @@
  */
 
 #include "base.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;

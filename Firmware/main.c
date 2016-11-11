@@ -20,7 +20,7 @@
 #include "base.h"
 
 #include "basic.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 #include "proc_menu.h"
 #include "selftest.h"
 

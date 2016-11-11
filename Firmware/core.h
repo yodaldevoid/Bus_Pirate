@@ -15,8 +15,8 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef BP_BUS_PIRATE_CORE_H
-#define BP_BUS_PIRATE_CORE_H
+#ifndef BP_CORE_H
+#define BP_CORE_H
 
 #include "configuration.h"
 
@@ -265,4 +265,4 @@ typedef struct {
 // bridge UART input in UART mode
 void busPirateAsyncUARTService(void);
 
-#endif /* !BP_BUS_PIRATE_CORE_H */
+#endif /* !BP_CORE_H */

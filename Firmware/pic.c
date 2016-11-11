@@ -21,7 +21,7 @@
 
 #include "bitbang.h"
 #include "baseIO.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 #include "proc_menu.h"		// for the userinteraction subs
 #include "AUXpin.h"
 

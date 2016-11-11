@@ -46,7 +46,7 @@
 #include "AUXpin.h"
 #include "base.h"
 #include "bitbang.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 #include "proc_menu.h"
 
 #define TOKENS 0x80

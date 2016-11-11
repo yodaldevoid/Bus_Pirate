@@ -21,7 +21,7 @@
 
 #include "base.h"
 #include "AUXpin.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 #include "proc_menu.h" //need our public versionInfo() function
 #include "selftest.h"
 #include "binary_io.h"

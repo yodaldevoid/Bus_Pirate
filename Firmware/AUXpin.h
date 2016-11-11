@@ -13,6 +13,10 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+
+#ifndef BP_AUX_PIN_H
+#define BP_AUX_PIN_H
+
 void bpFreq(void);
 unsigned long bpBinFreq(void);
 void bpPWM(void);
@@ -28,3 +32,4 @@ void bpServo(void);
 extern int PWMfreq;
 extern int PWMduty;
 
+#endif /* !BP_AUX_PIN_H */

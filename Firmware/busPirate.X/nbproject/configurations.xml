@@ -36,9 +36,9 @@
       <itemPath>../messages_v3.h</itemPath>
       <itemPath>../messages_v4.h</itemPath>
       <itemPath>../messages.h</itemPath>
-      <itemPath>../bus_pirate_core.h</itemPath>
       <itemPath>../binary_io.h</itemPath>
       <itemPath>../proc_menu.h</itemPath>
+      <itemPath>../core.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -89,9 +89,9 @@
       <itemPath>../messages_v3.s</itemPath>
       <itemPath>../messages_v4.s</itemPath>
       <itemPath>../messages.c</itemPath>
-      <itemPath>../bus_pirate_core.c</itemPath>
       <itemPath>../binary_io.c</itemPath>
       <itemPath>../proc_menu.c</itemPath>
+      <itemPath>../core.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

@@ -19,7 +19,7 @@
 #ifdef BP_ENABLE_SPI_SUPPORT
 
 #include "base.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 #include "binary_io.h"
 
 #include "proc_menu.h"		// for the userinteraction subs

@@ -18,7 +18,7 @@
 #include "configuration.h"
 
 #include "base.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
 #include "1wire.h"

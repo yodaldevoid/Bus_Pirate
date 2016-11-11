@@ -33,4 +33,4 @@
  */
 uint8_t perform_selftest(bool show_progress, bool jumper_test);
 
-#endif /* BP_SELFTEST_H */
+#endif /* !BP_SELFTEST_H */

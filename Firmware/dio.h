@@ -44,4 +44,4 @@ unsigned int dio_write(unsigned int value);
 
 #endif /* BP_ENABLE_DIO_SUPPORT */
 
-#endif /* BP_DIO_H */
+#endif /* !BP_DIO_H */

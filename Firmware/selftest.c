@@ -21,7 +21,7 @@
 #include "selftest.h"
 
 #include "base.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 
 /**
  * How many milliseconds to wait before reading all pins once set.
