@@ -1413,7 +1413,7 @@ void bp_clear_basic_program_area(void) {
 	basic_program_area[1] = 0xFF;
 	basic_program_area[2] = 0xFF;
 	basic_program_area[3] = TOK_END;
-    memset(basic_program_area, 4, BP_BASIC_PROGRAM_SPACE - 4);
+    memset(basic_program_area + 4, 0, BP_BASIC_PROGRAM_SPACE - 4);
 }
 
 #ifdef BP_BASIC_I2C_FILESYSTEM
