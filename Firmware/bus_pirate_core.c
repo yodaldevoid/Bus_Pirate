@@ -133,10 +133,14 @@ static uint16_t null_data_read_callback(void);
  */
 static bool null_bit_read_callback(void);
 
+#ifdef BP_ENABLE_DIO_SUPPORT
+
 /**
  * Predefined callback for running an operation without any expected I/O.
  */
 static void silent_null_operation_callback(void);
+
+#endif /* BP_ENABLE_DIO_SUPPORT */
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
@@ -498,7 +502,11 @@ void null_macro_callback(uint16_t value) {
 
 void empty_print_settings_implementation(void) { bpBR; }
 
+#ifdef BP_ENABLE_DIO_SUPPORT
+
 void silent_null_operation_callback(void) { command_error = false; }
+
+#endif /* BP_ENABLE_DIO_SUPPORT */
 
 void hiz_print_pins_state(void) {
 #ifdef BUSPIRATEV4
