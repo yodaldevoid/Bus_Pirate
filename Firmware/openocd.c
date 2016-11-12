@@ -8,7 +8,7 @@
 
 #include "base.h"
 #include "baseIO.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 #include "binary_io.h"
 
 extern mode_configuration_t mode_configuration;
