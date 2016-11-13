@@ -29,4 +29,4 @@ void KEYBmacro(unsigned int c);
 
 #endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
 
-#endif /* BP_PC_AT_KEYBOARD_H */
+#endif /* !BP_PC_AT_KEYBOARD_H */

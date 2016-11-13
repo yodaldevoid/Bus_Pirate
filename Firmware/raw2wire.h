@@ -49,4 +49,4 @@ void R2Wsettings(void);
 
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
 
-#endif /* BP_RAW2WIRE_H */
+#endif /* !BP_RAW2WIRE_H */

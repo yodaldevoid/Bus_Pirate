@@ -20,7 +20,7 @@
 
 #include "spi.h"
 #include "base.h"
-#include "procMenu.h"
+#include "proc_menu.h"
 
 //direction registers
 #define SPIMOSI_TRIS    BP_MOSI_DIR     

@@ -150,5 +150,5 @@ unsigned char USBUSARTIsTxTrfReady(void);
 // Read the lower 16 bits from programming flash memory
 unsigned int bpReadFlash(unsigned int page, unsigned int addr);
 
-#endif /* BP_BASEIO_H */
+#endif /* !BP_BASEIO_H */
 

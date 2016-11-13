@@ -20,8 +20,8 @@
 #include "base.h"
 
 #include "basic.h"
-#include "bus_pirate_core.h"
-#include "procMenu.h"
+#include "core.h"
+#include "proc_menu.h"
 #include "selftest.h"
 
 #ifdef BUSPIRATEV4
@@ -218,7 +218,7 @@ void initialize_board(void) {
   mode_configuration.numbits = 8;
 
 #ifdef BP_ENABLE_BASIC_SUPPORT
-  bp_clear_basic_program_area();
+  bp_basic_initialize();
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 
   /* Move to page #0. */

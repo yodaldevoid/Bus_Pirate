@@ -37,4 +37,4 @@ void jtag(void);
 
 #endif /* BP_ENABLE_JTAG_SUPPORT */
 
-#endif /* BP_JTAG_H */
+#endif /* !BP_JTAG_H */

@@ -15,8 +15,8 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef BP_BINIO_H
-#define BP_BINIO_H
+#ifndef BP_BINARY_IO_H
+#define BP_BINARY_IO_H
 
 #include <stdint.h>
 
@@ -35,4 +35,4 @@ bool bp_binary_io_pullup_control(uint8_t control_byte);
 
 void binwire(void);
 
-#endif /* !BP_BINIO_H */
+#endif /* !BP_BINARY_IO_H */

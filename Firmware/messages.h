@@ -60,4 +60,4 @@ void bp_message_write_line(size_t offset, size_t length);
  */
 bool agree(void);
 
-#endif /* BP_MESSAGES_H */
+#endif /* !BP_MESSAGES_H */

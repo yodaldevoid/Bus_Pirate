@@ -41,4 +41,4 @@ void SPIsettings(void);
 
 #endif /* BP_ENABLE_SPI_SUPPORT */
 
-#endif /* BP_SPI_H */
+#endif /* !BP_SPI_H */

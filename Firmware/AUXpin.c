@@ -14,7 +14,7 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include "base.h"
-#include "procMenu.h"
+#include "proc_menu.h"
 
 						//TRISDbits.TRISD5
 #define AUXPIN_DIR      BP_AUX0_DIR

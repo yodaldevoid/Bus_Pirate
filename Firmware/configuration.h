@@ -399,6 +399,27 @@
 
 #endif /* BUSPIRATEV4 */
 
+/**
+ * Size of the tokens buffer allocate to the BASIC interpreter, in bytes.
+ */
+#define BP_BASIC_PROGRAM_SPACE 1024
+
+/**
+ * Maximum number of nested FOR-LOOP statements the BASIC interpreter can
+ * handle.
+ * 
+ * Each allowance for a nested FOR-LOOP consumes 6 bytes of RAM.
+ */
+#define BP_BASIC_NESTED_FOR_LOOP_COUNT 4
+
+/**
+ * Maximum stack depth for the BASIC interpreter, in frames.
+ * 
+ * This value changes how many nested GOSUB calls can be made.  Each stack frame
+ * consumes 2 bytes.
+ */
+#define BP_BASIC_STACK_FRAMES_DEPTH 10
+
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 
 /* SPI module configuration definitions. */

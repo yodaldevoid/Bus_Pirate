@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -58,17 +59,17 @@
 
 /**
  * Returns the most significant 16 bits of the given 32-bits integer.
- * 
+ *
  * @param[in] value a 32-bits integer whose MSW is required.
  */
-#define HI16(value) (((uint32_t) (value) >> 16) & 0xFFFF)
+#define HI16(value) (((uint32_t)(value) >> 16) & 0xFFFF)
 
 /**
  * Returns the least significant 16 bits of the given 32-bits integer.
- * 
+ *
  * @param[in] value a 32-bits integer whose LSW is required.
  */
-#define LO16(value) ((uint32_t) (value) & 0xFFFF)
+#define LO16(value) ((uint32_t)(value)&0xFFFF)
 
 /**
  * Firmware version string, used at startup and for the 'i' command.
@@ -78,8 +79,8 @@
 #ifdef BUSPIRATEV3
 #include "hardwarev3.h"
 #elif defined(BUSPIRATEV4)
-#include "hardwarev4a.h"
 #include "dp_usb/usb_stack_globals.h"
+#include "hardwarev4a.h"
 #include "onboard_eeprom.h"
 #else
 #error "No hardware defined in base.h."
@@ -87,63 +88,55 @@
 
 #include "baseIO.h"
 
-//Debugging mode for BPv4, comment out for normal compiling
-//Adds alternative communicaton to UART1 over AUX1 and AUX2 instead of USB.
-//#define BPV4_DEBUG  
-
-// only 1 should be uncommented
-//#define BASICTEST
-//#define BASICTEST_I2C
-//#define BASICTEST_UART
-//#define BASICTEST_R3W
-//#define BASICTEST_PIC10                       // program blink a led
-//#define BASICTEST_PIC10_2                     // read whole pic
+// Debugging mode for BPv4, comment out for normal compiling
+// Adds alternative communicaton to UART1 over AUX1 and AUX2 instead of USB.
+//#define BPV4_DEBUG
 
 /*
  * Sets the address in the bootloader to jump to on the bootloader command,
  * must be defined via an inline assembly block.
  */
-asm (".equ BLJUMPADDRESS, 0xABF8");
+asm(".equ BLJUMPADDRESS, 0xABF8");
 
 /**
  * Current mode configuration settings structure.
- * 
+ *
  * This is used to let protocol implementations to interact with the Bus Pirate
  * event loop.  Every time a mode is changed (a.k.a. a new protocol gets
  * activated) this structure is cleared.
  */
 typedef struct {
-    unsigned char speed;
-    unsigned char numbits;
-    unsigned char buf[16];
-    unsigned char altAUX : 2; // there are 4 AUX on BUSPIRATEV4
-    unsigned char periodicService : 1;
-    unsigned char lsbEN : 1;
-    unsigned char high_impedance : 1;
-    
-    /**
-     * Values are 16-bits wide.
-     */
-    unsigned char int16 : 1;
-    
-    /**
-     * Each I/O write from the protocol must be followed by a read operation.
-     */
-    unsigned char write_with_read : 1;
-    
+  unsigned char speed;
+  unsigned char numbits;
+  unsigned char buf[16];
+  unsigned char altAUX : 2; // there are 4 AUX on BUSPIRATEV4
+  unsigned char periodicService : 1;
+  unsigned char lsbEN : 1;
+  unsigned char high_impedance : 1;
+
+  /**
+   * Values are 16-bits wide.
+   */
+  unsigned char int16 : 1;
+
+  /**
+   * Each I/O write from the protocol must be followed by a read operation.
+   */
+  unsigned char write_with_read : 1;
+
 } mode_configuration_t;
 
 typedef struct {
-    unsigned char cmd;
-    unsigned int num;
-    unsigned int repeat;
+  unsigned char cmd;
+  unsigned int num;
+  unsigned int repeat;
 } command_t;
 
 /**
  * Reverses the bits in the given value and returns it.
- * 
+ *
  * @param[in] value the value whose bits should be reversed.
- * 
+ *
  * @return the value with reversed bits.
  */
 unsigned int bp_reverse_integer(unsigned int value);
@@ -156,10 +149,10 @@ void bp_reset_board_state(void);
 
 /**
  * Reads a value from the ADC on the given channel.
- * 
+ *
  * @warning this function assumes the ADC is already enabled, and will not turn
  *          it on or off.
- * 
+ *
  * @param[in] channel the channel to read data from.
  * @return the value read from the channel.
  */
@@ -179,7 +172,7 @@ void bp_adc_continuous_probe(void);
 /**
  * Prints the given value to the user terminal according to the format settings
  * specified by bus_pirate_configuration_t.display_mode.
- * 
+ *
  * @param[in] value the value to print to the serial port.
  */
 void bp_write_formatted_integer(unsigned int value);
@@ -198,4 +191,4 @@ void bp_delay_ms(unsigned int milliseconds);
  */
 void bp_delay_us(unsigned int microseconds);
 
-#endif /* BP_BASE_H */
+#endif /* !BP_BASE_H */

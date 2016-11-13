@@ -29,37 +29,31 @@
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 
-void kbSetup(void);
-void KEYBsetup_exc(void);
-unsigned char kbReadBit(void);
-unsigned char kbReadCode(void);
-unsigned char kbReadByte(void);
-unsigned char kbWriteByte(unsigned char c);
-unsigned char kbWriteBit(unsigned char c);
-void kbScancodeResults(unsigned char c);
-unsigned char kbWaitClock(unsigned char c);
+static unsigned char kbReadBit(void);
+static unsigned char kbReadCode(void);
+static unsigned char kbReadByte(void);
+static unsigned char kbWriteByte(unsigned char c);
+static unsigned char kbWriteBit(unsigned char c);
+static void kbScancodeResults(unsigned char c);
+static unsigned char kbWaitClock(unsigned char c);
 
-struct _kbframe{
-	unsigned char startbit:1;
-	unsigned char code;
-	unsigned char paritybit:1;
-	unsigned char stopbit:1;
-	unsigned char parityerror:1;
-} kbScancode;
+static uint8_t scan_code;
 
-
-void KEYBsetup(void)
-{	mode_configuration.high_impedance=1;//yes, always HiZ
+void KEYBsetup(void) {
+    mode_configuration.high_impedance=1;//yes, always HiZ
 }
 
-void KEYBsetup_exc(void)
-{
-    kbSetup();
+void KEYBsetup_exc(void) {
+	//writes to the PORTs write to the LATCH
+	KBDIO_TRIS=1;//data input
+	KBCLK_TRIS=0;//clock output/low
+	KBCLK=0;			//B8 scl 
+	KBDIO=0;			//B9 sda
 }    
 
 unsigned int KEYBread(void)
 {	kbScancodeResults(kbReadByte());
-	return kbScancode.code;
+	return scan_code;
 }
 
 unsigned int KEYBwrite(unsigned int c)
@@ -91,7 +85,7 @@ void KEYBmacro(unsigned int c)
 				BPMSG1250;
 				while(1)
 				{	if(kbReadByte()==0)
-					{	bp_write_formatted_integer(kbScancode.code);
+					{	bp_write_formatted_integer(scan_code);
 						bpSP;
 					}
 					if(UART1RXRdy() == 1) //any key pressed, exit
@@ -141,15 +135,6 @@ void kbScancodeResults(unsigned char c)
 	}
 }
 
-void kbSetup(void){
-	//writes to the PORTs write to the LATCH
-	KBDIO_TRIS=1;//data input
-	KBCLK_TRIS=0;//clock output/low
-	KBCLK=0;			//B8 scl 
-	KBDIO=0;			//B9 sda
-}
-
-
 unsigned char kbReadBit(void){
 	unsigned char j;
 
@@ -172,8 +157,7 @@ unsigned char kbReadCode(void){
 	unsigned char i, par=0,c=0, b;
 
 	//get startbit
-	kbScancode.startbit=KBDIO;
-	if(kbScancode.startbit!=0) return 1;//startbit should be 0
+	if(KBDIO!=0) return 1;//startbit should be 0
 
 	//while(KBCLK==0);//wait for clock HIGH (IDLE)
 	if(kbWaitClock(1)!=0) return 4;
@@ -188,27 +172,24 @@ unsigned char kbReadCode(void){
 			par^=1;
 		}
 	}
-	kbScancode.code=c;
+    scan_code = c;
 
 	//get parity bit and check
 	b=kbReadBit();
 	if(b==2) return 4; //bit timeout
-	kbScancode.paritybit=b;
 	//odd parity:if these are the same, there is an error
 	//condense to bitwise op...
-	if(kbScancode.paritybit==par){
-		kbScancode.parityerror=1;
+	if(b==par){
 		return 2; //error
- 	}else{
-		kbScancode.parityerror=0;//ok
-	}
+ 	}
+    
 
 	//get stopbit
 	b=kbReadBit();
 	if(b==2) return 4; //bit timeout
-	kbScancode.stopbit=b;//stopbit should be 1
 	KBCLK_TRIS=0;//set clock low again to idle keyboard
-	if(kbScancode.stopbit!=1) return 3;
+    //stopbit should be 1
+	if(b!=1) return 3;
 	
 	//success!
 	return 0;

@@ -25,7 +25,7 @@
 
 #include "base.h"
 #include "baseIO.h"
-#include "bus_pirate_core.h"
+#include "core.h"
 #include "uart.h"
 
 /*

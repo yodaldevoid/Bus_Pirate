@@ -44,4 +44,4 @@ void picpins(void);
 
 #endif /* BP_ENABLE_PIC_SUPPORT */
 
-#endif /* BP_PIC_H */
+#endif /* !BP_PIC_H */

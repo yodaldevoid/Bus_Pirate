@@ -41,4 +41,4 @@ bool eeprom_test(void);
 
 #endif /* BUSPIRATEV4 */
 
-#endif /* BP_ONBOARD_EEPROM_H */
+#endif /* !BP_ONBOARD_EEPROM_H */

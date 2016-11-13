@@ -20,7 +20,7 @@
 
 #include "base.h"
 #include "bitbang.h"
-#include "procMenu.h"		// for the userinteraction subs
+#include "proc_menu.h"		// for the userinteraction subs
 
 #define R3WMOSI_TRIS 	BP_MOSI_DIR
 #define R3WCLK_TRIS 	BP_CLK_DIR
