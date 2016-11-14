@@ -37,25 +37,45 @@ extern bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT];
 extern volatile BYTE cdc_Out_len;
 #endif /* BUSPIRATEV4 */
 
-void setMode(void); //change protocol/bus mode
-void setDisplayMode(void); //user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
-void setPullups(void); //pullup resistor dialog
-void measureSupplyVoltages(void); //display supply voltage measurements for 3.3, 5, and vpullup
-void setBitOrder(void); //LSB/MSB menu for modes that allow it
-void setAltAuxPin(void); //configure AUX syntax to control AUX or CS pin
-void set_baud_rate(void); //configure user terminal side UART baud rate
-void statusInfo(void); //display properties of the current bus mode (pullups, vreg, lsb, output type, etc)
-void convert(void); //convert input to HEX/DEC/BIN
-void pinDirection(unsigned int pin);
-void pinState(unsigned int pin);
-void pinStates(void);
+static void setDisplayMode(void); //user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
+static void set_baud_rate(void); //configure user terminal side UART baud rate
+static void statusInfo(void); //display properties of the current bus mode (pullups, vreg, lsb, output type, etc)
+
+/**
+ * Outputs both direction and state to the serial port for all available pins.
+ */
+static void print_pins_information(void);
+
+/**
+ * Outputs the direction (input/output) of the given pin to the serial port.
+ * 
+ * @warning if the pin bit mask has more than one bit set to one, the result
+ * will print the AND result of all directions marked by the pin mask.  This
+ * should probably be not used that way, as it does not make much sense in the
+ * first place.
+ * 
+ * @param[in] pin the pin to use for printing signal direction.
+ */
+static void print_pin_direction(uint16_t pin);
+
+/**
+ * Outputs the state (low/high) of the given pin to the serial port.
+ * 
+ * @warning if the pin bit mask has more than one bit set to one, the result
+ * will print the AND result of all states marked by the pin mask.  This
+ * should probably be not used that way, as it does not make much sense in the
+ * first place.
+ * 
+ * @param[in] pin the pin to use for printing signal state.
+ */
+static void print_pin_state(uint16_t pin);
 
 #ifdef BUSPIRATEV4
 void setPullupVoltage(void); // onboard Vpu selection
 #endif /* BUSPIRATEV4 */
 
 //global vars    move to bpconfig structure?
-char cmdbuf[BP_COMMAND_BUFFER_SIZE];
+char cmdbuf[BP_COMMAND_BUFFER_SIZE] = { 0 };
 unsigned int cmdend;
 unsigned int cmdstart;
 
@@ -65,8 +85,8 @@ unsigned int cmdstart;
  */
 bool command_error;
 
-static char usrmacros[BP_USER_MACROS_COUNT][BP_USER_MACRO_MAX_LENGTH];
-static int usrmacro;
+static char user_macros[BP_USER_MACROS_COUNT][BP_USER_MACRO_MAX_LENGTH];
+static int user_macro;
 
 void serviceuser(void) {
     int cmd, stop;
@@ -102,14 +122,10 @@ void serviceuser(void) {
     oldDmode=0;//temporarily holds the default display mode, while a different display read is performed
     newDmode=0;
     
-    for (repeat = 0; repeat < BP_USER_MACROS_COUNT; repeat++) {
-        for (temp = 0; temp < 32; temp++) {
-            usrmacros[repeat][temp] = 0;
-        }
-    }
-    usrmacro = 0;
+    memset(user_macros, 0, sizeof(user_macros));
+    user_macro = 0;
 
-    while (1) {
+    for (;;) {
         bp_write_string(enabled_protocols[bus_pirate_configuration.bus_mode].name);
 #ifdef BP_ENABLE_BASIC_SUPPORT
         if (bus_pirate_configuration.basic) {
@@ -119,17 +135,17 @@ void serviceuser(void) {
 #endif /* BP_ENABLE_BASIC_SUPPORT */
         bp_write_string(">");
         while (!cmd) {
-            if (usrmacro) {
-                usrmacro--;
+            if (user_macro) {
+                user_macro--;
                 temp = 0;
-                while (usrmacros[usrmacro][temp]) {
-                    cmdbuf[cmdend] = usrmacros[usrmacro][temp];
-                    UART1TX(usrmacros[usrmacro][temp]);
+                while (user_macros[user_macro][temp]) {
+                    cmdbuf[cmdend] = user_macros[user_macro][temp];
+                    UART1TX(user_macros[user_macro][temp]);
                     cmdend++;
                     temp++;
                     cmdend &= CMDLENMSK;
                 }
-                usrmacro = 0;
+                user_macro = 0;
             }
 
             while (!UART1RXRdy()) // as long as there is no user input poll periodicservice
@@ -423,6 +439,7 @@ end:
 #endif /* BUSPIRATEV4 */
                     }
                     break;
+                    
                 default:
                     if ((((cmdend + 1) & CMDLENMSK) != cmdstart) && (c >= 0x20) && (c < 0x7F)) { // no overflow and printable
                         if (cmdend == tmpcmdend) // adding to the end
@@ -509,7 +526,7 @@ end:
                     setDisplayMode();
                     break;
                 case 'v': //bpWline("-check supply voltage");
-                    pinStates();
+                    print_pins_information();
                     //measureSupplyVoltages();
                     break;
                 case 'f': //bpWline("-frequency count on AUX");
@@ -552,9 +569,8 @@ end:
                     BPMSG1123;
                     bpBR;
                     break;
-                case 'p': //bpWline("-pullup resistors off");
-
-
+                case 'p': 
+                    //bpWline("-pullup resistors off");
                     //don't allow pullups on some modules. also: V0a limitation of 2 resistors
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
@@ -591,7 +607,8 @@ end:
                 case 'e': setPullupVoltage();
                     break;
 #endif /* BUSPIRATEV4 */
-                case '=': //bpWline("-HEX/BIN/DEC convertor");
+                case '=':
+                    //bpWline("-HEX/BIN/DEC convertor");
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
                     temp = getint();
@@ -602,7 +619,8 @@ end:
                     bpWbin(temp);
                     bpBR;
                     break;
-                case '|': //bpWline("-HEX/BIN/DEC convertor");
+                case '|':
+                    //bpWline("-HEX/BIN/DEC convertor");
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
                     temp = getint();
@@ -614,7 +632,8 @@ end:
                     bpWbin(temp);
                     bpBR;
                     break;
-                case '~': //bpWline("-selftest");
+                case '~':
+                    //bpWline("-selftest");
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) {
                         perform_selftest(true, true);
                     } else {
@@ -622,7 +641,8 @@ end:
                         BPMSG1092;
                     }
                     break;
-                case '#': //bpWline("-reset BP");
+                case '#':
+                    //bpWline("-reset BP");
 #ifdef BUSPIRATEV4
                     bp_write_string("RESET\r\n");
 bpv4reset:
@@ -633,7 +653,8 @@ bpv4reset:
                     asm("RESET");
 #endif /* BUSPIRATEV4 */
                     break;
-                case '$': //bpWline("-bootloader jump");
+                case '$': 
+                    //bpWline("-bootloader jump");
                     if (agree()) { //bpWline("BOOTLOADER");
                         BPMSG1094;
                         bp_delay_ms(100);
@@ -643,15 +664,18 @@ bpv4reset:
                                     "goto w1 \n");
                     }
                     break;
-                case 'a': //bpWline("-AUX low");
+                case 'a':
+                    //bpWline("-AUX low");
                     repeat = getrepeat() + 1;
                     while (--repeat) bpAuxLow();
                     break;
-                case 'A': //bpWline("-AUX hi");
+                case 'A':
+                    //bpWline("-AUX hi");
                     repeat = getrepeat() + 1;
                     while (--repeat) bpAuxHigh();
                     break;
-                case '@': //bpWline("-Aux read");
+                case '@':
+                    //bpWline("-Aux read");
                     repeat = getrepeat() + 1;
                     while (--repeat) { //bpWstring(OUMSG_AUX_INPUT_READ);
                         BPMSG1095;
@@ -757,11 +781,11 @@ bpv4reset:
                                 cmdstart = (cmdstart + 1) & CMDLENMSK;
                                 temp--;
                                 for (repeat = 0; repeat < BP_USER_MACRO_MAX_LENGTH; repeat++) {
-                                    usrmacros[temp][repeat] = 0;
+                                    user_macros[temp][repeat] = 0;
                                 }
                                 repeat = 0;
                                 while (cmdbuf[cmdstart] != '>') {
-                                    usrmacros[temp][repeat] = cmdbuf[cmdstart];
+                                    user_macros[temp][repeat] = cmdbuf[cmdstart];
                                     repeat++;
                                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                                 }
@@ -773,14 +797,14 @@ bpv4reset:
                                 for (repeat = 0; repeat < BP_USER_MACROS_COUNT; repeat++) {
                                     bpWdec(repeat + 1);
                                     bp_write_string(". <");
-                                    bp_write_string(usrmacros[repeat]);
+                                    bp_write_string(user_macros[repeat]);
                                     bp_write_line(">");
                                 }
                             } else if ((temp > 0) && (temp <= BP_USER_MACROS_COUNT)) { //bpWstring("execute : ");
                                 //BPMSG1236;
                                 //bpWdec(temp-1);
                                 bpBR;
-                                usrmacro = temp;
+                                user_macro = temp;
                             } else {
                                 command_error = true;
                             }
@@ -1225,7 +1249,8 @@ int cmdhistory(void) {
     {
         bp_write_line("");
         return 1;
-    } else {
+    }
+    
         i = 0;
         while (cmdbuf[(historypos[j] + i) & CMDLENMSK]) // copy it to the end of the ringbuffer
         {
@@ -1235,7 +1260,7 @@ int cmdhistory(void) {
         cmdstart = (cmdend - 1) & CMDLENMSK; // start will be increased before parsing in main loop
         cmdend = (cmdstart + i + 2) & CMDLENMSK;
         cmdbuf[(cmdend - 1) & CMDLENMSK] = 0x00;
-    }
+
     return 0;
 }
 
@@ -1454,7 +1479,8 @@ void print_version_info(void) {
     bp_write_string(BP_VERSION_STRING);
     UART1TX('.');
     UART1TX(bus_pirate_configuration.hardware_version);
-    if (bus_pirate_configuration.device_type == 0x44F) {//sandbox electronics clone with 44pin PIC24FJ64GA004
+    if (bus_pirate_configuration.device_type == 0x44F) {
+        //sandbox electronics clone with 44pin PIC24FJ64GA004
         bp_write_string(" clone w/different PIC");
     }
     bpBR;
@@ -1503,7 +1529,8 @@ void print_version_info(void) {
     }
 #else
     bp_write_string(" (24FJ64GA00");
-    if (bus_pirate_configuration.device_type == 0x44F) {//sandbox electronics clone with 44pin PIC24FJ64GA004
+    if (bus_pirate_configuration.device_type == 0x44F) {
+        //sandbox electronics clone with 44pin PIC24FJ64GA004
         bp_write_string("4 ");
     } else {
         bp_write_string("2 ");
@@ -1555,7 +1582,7 @@ void statusInfo(void) {
     //bpWline("*----------*");
     BPMSG1119;
 
-    pinStates();
+    print_pins_information();
 
     //vreg status (was modeConfig.vregEN)
     if (BP_VREGEN == 1) BPMSG1096;
@@ -1616,7 +1643,8 @@ void statusInfo(void) {
     BPMSG1119;
 } //statusInfo(void)
 
-void pinStates(void) { //bpWline("Pinstates:");
+void print_pins_information(void) { 
+    //bpWline("Pinstates:");
     BPMSG1226;
 #ifdef BUSPIRATEV4
     BPMSG1256; //bpWstring("12.(RD)\t11.(BR)\t10.(BLK)\t9.(WT)\t8.(GR)\t7.(PU)\t6.(BL)\t5.(GN)\t4.(YW)\t3.(OR)\t2.(RD)\1.(BR)");
@@ -1629,19 +1657,19 @@ void pinStates(void) { //bpWline("Pinstates:");
     enabled_protocols[bus_pirate_configuration.bus_mode].protocol_print_pins_state();
     BPMSG1228; //bpWstring("P\tP\tP\tI\tI\t");
 #ifdef BUSPIRATEV4
-    pinDirection(AUX2);
-    pinDirection(AUX1);
-    pinDirection(AUX);
-    pinDirection(CS);
-    pinDirection(MISO);
-    pinDirection(CLK);
-    pinDirection(MOSI);
+    print_pin_direction(AUX2);
+    print_pin_direction(AUX1);
+    print_pin_direction(AUX);
+    print_pin_direction(CS);
+    print_pin_direction(MISO);
+    print_pin_direction(CLK);
+    print_pin_direction(MOSI);
 #else    
-    pinDirection(AUX);
-    pinDirection(CLK);
-    pinDirection(MOSI);
-    pinDirection(CS);
-    pinDirection(MISO);
+    print_pin_direction(AUX);
+    print_pin_direction(CLK);
+    print_pin_direction(MOSI);
+    print_pin_direction(CS);
+    print_pin_direction(MISO);
 #endif /* BUSPIRATEV4 */
     bpBR;
     BPMSG1234; //bpWstring("GND\t");
@@ -1682,37 +1710,29 @@ void pinStates(void) { //bpWline("Pinstates:");
     ADCOFF();
     
 #ifdef BUSPIRATEV4
-    pinState(AUX2);
-    pinState(AUX1);
-    pinState(AUX);
-    pinState(CS);
-    pinState(MISO);
-    pinState(CLK);
-    pinState(MOSI);
+    print_pin_state(AUX2);
+    print_pin_state(AUX1);
+    print_pin_state(AUX);
+    print_pin_state(CS);
+    print_pin_state(MISO);
+    print_pin_state(CLK);
+    print_pin_state(MOSI);
 #else
-    pinState(AUX);
-    pinState(CLK);
-    pinState(MOSI);
-    pinState(CS);
-    pinState(MISO);
+    print_pin_state(AUX);
+    print_pin_state(CLK);
+    print_pin_state(MOSI);
+    print_pin_state(CS);
+    print_pin_state(MISO);
 #endif /* BUSPIRATEV4 */
     bpBR;
 }
 
-void pinDirection(unsigned int pin) {
-    if (IODIR & pin) {
-        bp_write_string("I\t");
-    } else {
-        bp_write_string("O\t");
-    }
+void print_pin_direction(uint16_t pin) {
+    bp_write_string(IODIR & pin ? "I\t" : "O\t");
 }
 
-void pinState(unsigned int pin) {
-    if (IOPOR & pin) {
-        bp_write_string("H\t");
-    } else {
-        bp_write_string("L\t");
-    }
+void print_pin_state(uint16_t pin) {
+    bp_write_string(IOPOR & pin ? "H\t" : "L\t");
 }
 
 //user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
