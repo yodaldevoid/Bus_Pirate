@@ -95,7 +95,7 @@ The _ and - commands were updated in firmware v5.2. They previously set the data
 Connections
 ------------------
 
-| Bus Pirate | Dir. | Circuit | Description         |
-| ----------:|:----:|:------- | ------------------- |
-| ???        | ↔    | ???     | Serial Data & Clock |
-| GND        | ⏚    | GND     | Signal Ground       |
+| Bus Pirate | Dir. | Circuit  | Description         |
+| ----------:|:----:|:-------- | ------------------- |
+| MOSI       | ↔    | 1-wire   | Serial Data & Clock |
+| GND        | ⏚    | GND      | Signal Ground       |

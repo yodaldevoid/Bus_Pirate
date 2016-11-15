@@ -92,8 +92,8 @@ Macros
 | (#) | Description |
 |:---:| ----------- |
 | 0 | Macro menu |
-| 1 | ISO7813-3 ATR for smart cards, parses reply bytes. |
-| 2 | ISO7813-3 parse only (provide your own ATR command). |
+| 1 | ISO7816-3 ATR for smart cards, parses reply bytes. |
+| 2 | ISO7816-3 parse only (provide your own ATR command). |
 
 Connections
 ------------------

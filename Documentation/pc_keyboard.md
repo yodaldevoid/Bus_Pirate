@@ -72,6 +72,6 @@ Connections
 
 | Bus Pirate | Dir. | Circuit | Description   |
 | ----------:|:----:|:------- | ------------- |
-| ???        | ↔    | KBD     |               |
-| ???        | →    | KBC     |               |
+| MOSI       | ↔    | KBD     | Data          |
+| CLK        | →    | KBC     | Clock signal  |
 | GND        | ⏚    | GND     | Signal Ground |
