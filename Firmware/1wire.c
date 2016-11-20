@@ -566,7 +566,6 @@ void onewire_reset(void) {
 
 onewire_bus_reset_result_t perform_bus_reset(void) {
   onewire_bus_reset_result_t result;
-  size_t delay;
 
   result = ONEWIRE_BUS_RESET_OK;
 
@@ -579,16 +578,8 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
   /*
    * According to specification a minimum of 480us need to be waited before
    * reading the line.
-   *
-   * @todo: why not bp_delay_us(490); instead? Need to test on an analyzer.
-   *
-   * On the old code it was mentioned that looping 34 times, including
-   * compensating the loop code being executed, pauses the board for exactly
-   * 491us.
    */
-  for (delay = 0; delay < 34; delay++) {
-    bp_delay_us(10);
-  }
+  bp_delay_us(500);
 
   /* Release the bus. */
   ONEWIRE_DATA_DIRECTION = INPUT;
@@ -600,10 +591,8 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
     result = ONEWIRE_BUS_RESET_NO_DEVICE;
   }
 
-  /* Wait for 506us. */
-  for (delay = 0; delay < 35; delay++) {
-    bp_delay_us(10);
-  }
+  /* Wait for 500us. */
+  bp_delay_us(500);
 
   /* Read the data line. */
   if (ONEWIRE_DATA_LINE == LOW) {

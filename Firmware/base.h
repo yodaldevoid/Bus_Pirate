@@ -18,11 +18,17 @@
 #ifndef BP_BASE_H
 #define BP_BASE_H
 
-#include <p24Fxxxx.h>
+/**
+ * MCU Operating Frequency, in Hz.
+ */
+#define FCY 16000000UL
+
+#include <libpic30.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <xc.h>
 
 #include "configuration.h"
 #include "messages.h"
@@ -182,13 +188,13 @@ void bp_write_formatted_integer(unsigned int value);
  *
  * @param[in] milliseconds the amount of milliseconds to wait.
  */
-void bp_delay_ms(unsigned int milliseconds);
+#define bp_delay_ms(milliseconds) __delay_ms(milliseconds) 
 
 /**
  * Pauses execution for the given amount of microseconds.
  *
  * @param[in] microseconds the amount of microseconds to wait.
  */
-void bp_delay_us(unsigned int microseconds);
+#define bp_delay_us(microseconds) __delay_us(microseconds) 
 
 #endif /* !BP_BASE_H */

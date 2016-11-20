@@ -207,41 +207,6 @@ void bp_write_formatted_integer(unsigned int value) {
     }
 }
 
-void bp_delay_ms(unsigned int milliseconds) {
-    unsigned int counter;
-    
-    for (counter = 0; counter < milliseconds; counter++) {
-        bp_delay_us(250);
-        bp_delay_us(250);
-        bp_delay_us(250);
-        bp_delay_us(250);
-    }
-}
-
-void bp_delay_us(unsigned int microseconds) {
-    unsigned int counter;
-    
-    /* When running at 32MHz, it can execute 16 instructions per uS */
-    for (counter = 0; counter < microseconds; counter++) {
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-        Nop();
-    }
-}
-
 unsigned int bp_reverse_integer(unsigned int value) {
     unsigned int reversed = 0, bitmask;
 
