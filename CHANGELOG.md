@@ -24,10 +24,11 @@
 * Raw 2-wire mode now correctly honours LSB/MSB endianness settings. (#17)
 * General refactoring and code cleanups have reduced both memory and code footprint when building without optimisations enabled.
 * Firmware code sections do not overlap each other anymore. (#10)
+* Delays are more accurate. (#23)
 
 ### Other:
 
 * The message generation program has been turned into a Python script, to increase portability.
 * Support for Bus Pirate v1A, v2, and v2.5 has been removed. (#6)
 * Hardware schematics have been migrated to their own repo at [https://github.com/BusPirate/hardware](https://github.com/BusPirate/hardware) (#14)
-* Documentation from Dangerous Prototypes' wiki has been converted into Markdown format and placed in the source repository.
+* Documentation from Dangerous Prototypes' wiki has been converted into Markdown format and placed in the source repository. (#27)
