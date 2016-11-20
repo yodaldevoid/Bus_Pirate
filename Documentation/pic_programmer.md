@@ -125,7 +125,7 @@ Add new PICs
 PiratePICprog is fairly feature complete, we just need to add settings for a bunch of PIC chips. We really need a tutorial that shows how to do this, but for now you can refer to the [existing chips](http://code.google.com/p/dangerous-prototypes-open-hardware/source/browse/trunk/PiratePICprog/pic.c#22). Just send us your settings and we'll compile a new release.
 
 ### Source location
-_TODO: Where?_ code.google.com svn is permanently disabled...
+[Currently available here](https://github.com/DangerousPrototypes/PiratePICprog).
 
 ### Building
 Pirate PIC Prog is designed to be cross-platform. We're developing it on Windows with the open source [Codeblocks IDE](http://www.codeblocks.org/) and MinGW compiler. It should compile on GNU/Linux with GCC, but may need a little care and feeding first.
