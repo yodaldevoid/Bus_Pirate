@@ -734,6 +734,9 @@ _bp_messages:
 	; MSG_1WIRE_MODE_IDENTIFIER
 	.pascii "1W01"
 
+	; MSG_1WIRE_SPEED_PROMPT
+	.pascii "Set speed:\r\n 1. Standard (~16.3kbps) \r\n 2. Overdrive (~160kps)"
+
 	; MSG_ACK
 	.pascii "ACK"
 

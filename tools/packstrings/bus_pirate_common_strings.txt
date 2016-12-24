@@ -223,6 +223,7 @@ BPMSG1285	1	" bps"
 // Post-6.2 strings.
 
 MSG_1WIRE_MODE_IDENTIFIER	0	"1W01"
+MSG_1WIRE_SPEED_PROMPT	1	"Set speed:\r\n 1. Standard (~16.3kbps) \r\n 2. Overdrive (~160kps)"
 MSG_ACK	0	"ACK"
 MSG_BASE_CONVERTER_EQUAL_SIGN	0	" = "
 MSG_BBIO_MODE_IDENTIFIER	0	"BBIO1"
