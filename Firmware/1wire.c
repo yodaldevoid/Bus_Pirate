@@ -405,9 +405,9 @@ void print_device_information(size_t roster_id, uint8_t *rom_address) {
     bp_write_formatted_integer(rom_address[index]);
     bpSP;
   }
-  BPMSG1008;
 
 #ifdef BP_1WIRE_LOOKUP_FAMILY_ID
+  BPMSG1008;
   /* Print the device family identifier if known. */
   lookup_device_model(rom_address[0]);
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
@@ -677,6 +677,8 @@ void lookup_device_model(uint8_t model) {
   default:
     BPMSG1027;
   }
+
+  bpBR;
 }
 
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
