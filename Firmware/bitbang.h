@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -13,38 +14,214 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-//setup the library first
-void bbSetup(unsigned char pins, unsigned char speed);
 
-//byte functions 
-// bytes are overrated! migrating to unsigned int :D (read and write (procMenu) are already unsigned int)
-// the actual number of bits are stored in the bitbang struct, after each call this is set to 8
-//   should the default be configurable??
-unsigned int bbReadWriteByte(unsigned int c);
-void bbWriteByte(unsigned int c);
-unsigned int bbReadByte(void);
+#ifndef BP_BITBANG_H
+#define BP_BITBANG_H
 
-//bit read and write functions
-unsigned char bbReadBit(void);
-void bbWriteBit(unsigned char c);
-void bbClockTicks(unsigned char c);
+#include <stdbool.h>
+#include <stdint.h>
 
-//generic pin direction functions including delays for bitwise pin functions
-void bbMOSI(unsigned char dir);
-void bbCLK(unsigned char dir);
-void bbCS(unsigned char dir);
-unsigned char bbMISO (void);
+/**
+ * The possible bus speeds for bit-banging operations.
+ */
+typedef enum {
+  /**
+   * Selects a bus speed of 5kHz.
+   */
+  BITBANG_SPEED_5KHZ = 0,
 
-//pin twiddling functions with delays
-void bbH(unsigned int pins, unsigned char delay);
-void bbL(unsigned int pins, unsigned char delay);
-void bbPins(unsigned int dir, unsigned int pins, unsigned char delay);
-unsigned char bbR(unsigned int pin);
+  /**
+   * Selects a bus speed of 50kHz.
+   */
+  BITBANG_SPEED_50KHZ,
 
-//protocol helper functions
-int bbI2Cstart(void);
-int bbI2Cstop(void);
+  /**
+   * Selects a bus speed of 100kHz.
+   */
+  BITBANG_SPEED_100KHZ,
 
-//protocol specific pseudo functions 
-#define bbI2Cack()  bbWriteBit(0) //low bit is ACK
-#define bbI2Cnack()  bbWriteBit(1) //high bit is NACK
+  /**
+   * Selects the maximum bus speed, which is around 400kHz.
+   */
+  BITBANG_SPEED_MAXIMUM
+} bp_bitbang_speed_t;
+
+/**
+ * Sets up the bit-bang module.
+ *
+ * This function sets the bit-banging module operation type, whether to use
+ * three pins (and then operate in a SPI-like fashion), or two pins (operating
+ * in an I2C-like fashion instead).
+ *
+ * @param[in] pins the number of pins to use, 2 or 3.
+ * @param[in] speed the bit-banging bus speed to use.
+ *
+ * @see BITBANG_SPEED_5KHZ
+ * @see BITBANG_SPEED_50KHZ
+ * @see BITBANG_SPEED_100KHZ
+ * @see BITBANG_SPEED_MAXIMUM
+ */
+void bitbang_setup(unsigned char pins, const bp_bitbang_speed_t speed);
+
+/**
+ * Writes a value to the bus then reads a value back, used by 3-wire protocols.
+ *
+ * @warning The amount of bits to read and write is set in the numbits field in
+ * the mode configuration structure (up to 16).
+ *
+ * @param[in] value the value to write on the bus.
+ *
+ * @return the value read from the bus.
+ */
+uint16_t bitbang_read_with_write(const uint16_t value);
+
+/**
+ * Writes a value to the bus, used by 2-wire protocols.
+ *
+ * @warning The amount of bits to write is set in the numbits field in the mode
+configuration structure (up to 16).
+ *
+ * @param[in] value the value to write on the bus.
+\ */
+void bitbang_write_value(const uint16_t value);
+
+/**
+ * Reads a value from the bus, used by 2-wire protocols.
+ *
+ * @warning The output size is dependent on the numbits field in the mode
+ * configuration structure, with said number being the amount of bits to read
+ * from the bus (up to 16 at a time).
+ *
+ * @return the value read from the bus.
+ */
+uint16_t bitbang_read_value(void);
+
+/**
+ * Reads a single bit from the MISO pin.
+ *
+ * @return true if the MISO pin is HIGH, false otherwise.
+ */
+bool bitbang_read_bit(void);
+
+/**
+ * Writes the given bit to the bus via the MOSI pin.
+ *
+ * @param[in] state the bit to write, either HIGH or LOW.
+ */
+void bitbang_write_bit(const bool state);
+
+/**
+ * Pulses the CLK line for the given amount of ticks, leaving the MOSI pin
+ * alone.
+ *
+ * @param[in] ticks the number of pulses to send.
+ */
+void bitbang_advance_clock_ticks(const uint16_t ticks);
+
+/**
+ * Sets the state of the MOSI pin.
+ *
+ * @param[in] state the state to set.
+ */
+inline void bitbang_set_mosi(const bool state);
+
+/**
+ * Sets the state of the CLK pin.
+ *
+ * @param[in] state the state to set.
+ */
+inline void bitbang_set_clk(const bool state);
+
+/**
+ * Sets the state of the CS pin.
+ *
+ * @param[in] state the state to set.
+ */
+inline void bitbang_set_cs(const bool state);
+
+/**
+ * Reads the state of the MISO pin.
+ *
+ * @return HIGH or LOW, depending on the state of the MISO pin.
+ */
+inline bool bitbang_read_miso(void);
+
+/**
+ * Sets the pins indicated by the given bitmask to HIGH state and OUTPUT
+ * direction, then spins for the given amount of microseconds.
+ *
+ * @param[in] pins the bitmask of the pins to set HIGH.
+ * @param[in] delay the amount of microseconds to wait after setting the pins
+ * HIGH.
+ */
+void bitbang_set_pins_high(const uint16_t pins_bitmask, const uint16_t delay);
+
+/**
+ * Sets the pins indicated by the given bitmask to LOW state and OUTPUT
+ * direction, then spins for the given amount of microseconds.
+ *
+ * @param[in] pins the bitmask of the pins to set LOW.
+ * @param[in] delay the amount of microseconds to wait after setting the pins
+ * LOW.
+ */
+void bitbang_set_pins_low(const uint16_t pins_bitmask, const uint16_t delay);
+
+/**
+ * Sets the pins indicated by the given bitmask to the given state and OUTPUT
+ * direction, then spins for the given amount of microseconds.
+ *
+ * @param[in] state the state to set the selected pins to.
+ * @param[in] pins the bitmask of the pins to set.
+ * @param[in] delay the amount of microseconds to wait after setting the pins
+ * LOW.
+ */
+void bitbang_set_pins(const bool state, const uint16_t pins_mask,
+                      const uint16_t delay);
+
+/**
+ * Reads the state from the given pin.
+ *
+ * The pin number should be passed in the form (1 &lt;&lt; pin).
+ *
+ * @warning passing a pin number with more than a single bit set to one will
+ * trigger an undefined behaviour.
+ *
+ * @param[in] pin_bit the pin to read from.
+ *
+ * @return HIGH or LOW, depending on the pin state.
+ */
+bool bitbang_read_pin(const uint16_t pin_bit);
+
+/**
+ * Sends the appropriate signals to indicate an I2C transmission start frame.
+ *
+ * @return true if an error occurred, false otherwise.
+ */
+bool bitbang_i2c_start(void);
+
+/**
+ * Sends the appropriate signals to indicate an I2C transmission stop frame.
+ */
+void bitbang_i2c_stop(void);
+
+/**
+ * @def bitbang_i2c_ack
+ *
+ * Sends an I2C ACK signal over the bus.
+ */
+#define bitbang_i2c_ack()                                                      \
+  do {                                                                         \
+    bitbang_write_bit(LOW);                                                    \
+  } while (0)
+
+/**
+ * @def bitbang_i2c_nack
+ *
+ * Sends an I2C NACK signal over the bus.
+ */
+#define bitbang_i2c_nack()                                                     \
+  do {                                                                         \
+    bitbang_write_bit(HIGH);                                                   \
+  } while (0)
+
+#endif /* !BP_BITBANG_H */

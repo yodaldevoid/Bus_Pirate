@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -13,280 +14,271 @@
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-//Bus Pirate bitbang base library
-//consolidates all bitbang code into one place
 
-// The software i2c routines were written in c from public domain pseudo code:
-/// **** I2C Driver V1.1 Written by V.Himpe. Released as Public Domain **** /
-// http://www.esacademy.com/faq/i2c/general/i2cpseud.htm
+/*
+ * The software i2c routines were written in c from public domain pseudo code
+ * found at http://www.esacademy.com/faq/i2c/general/i2cpseud.htm, bearing the
+ * description "I2C Driver V1.1 Written by V.Himpe. Released as Public Domain".
+ */
+
+#include "bitbang.h"
 #include "base.h"
-#include "bitbang.h" //need own functions
 
-#define	BB_5KHZSPEED_SETTLE 20 //~5KHz
-#define	BB_5KHZSPEED_CLOCK 100
-#define	BB_5KHZSPEED_HALFCLOCK BB_5KHZSPEED_CLOCK/2
+/* Values are in microseconds. */
 
-#define	BB_50KHZSPEED_SETTLE 2 //~50KHz
-#define	BB_50KHZSPEED_CLOCK 10
-#define	BB_50KHZSPEED_HALFCLOCK BB_50KHZSPEED_CLOCK/2
+#define BB_5KHZSPEED_SETTLE 20
+#define BB_5KHZSPEED_CLOCK 100
+#define BB_50KHZSPEED_SETTLE 2
+#define BB_50KHZSPEED_CLOCK 10
+#define BB_100KHZSPEED_SETTLE 1
+#define BB_100KHZSPEED_CLOCK 5
+#define BB_MAXSPEED_SETTLE 0
+#define BB_MAXSPEED_CLOCK 0
 
-#define	BB_100KHZSPEED_SETTLE 1 //~100KHz
-#define	BB_100KHZSPEED_CLOCK 5
-#define	BB_100KHZSPEED_HALFCLOCK 2
-
-#define	BB_MAXSPEED_SETTLE 0 //~400KHz
-#define	BB_MAXSPEED_CLOCK 0
-#define	BB_MAXSPEED_HALFCLOCK 0
+#define DELAY_PROFILES_MAX_INDEX 3
 
 extern mode_configuration_t mode_configuration;
 
-struct _bitbang{
-	unsigned char pins;
-	unsigned int MOpin;
-	unsigned int MIpin;
-	unsigned char delaySettle;
-	unsigned char delayClock;
-	unsigned char delayHalfClock;
-} bitbang;
+/**
+ * Delay profile structure.
+ */
+typedef struct {
+  /**
+   * How many microseconds to wait after setting a non-clock pin state, to make
+   * sure the state change occurs properly.
+   */
+  const uint8_t settle;
 
-void bbSetup(unsigned char pins, unsigned char speed){
+  /**
+   * How many microseconds to wait after setting the clock pin state.
+   */
+  const uint8_t clock;
+} __attribute__((packed)) bitbang_delays_t;
 
-	bitbang.pins=pins;
+/* The delays are in microseconds. */
 
-	//define pins for 2 or 3 wire modes (do we use a seperate input pin)
-	if(pins==3){ //SPI-like
-		bitbang.MOpin=MOSI;
-		bitbang.MIpin=MISO;
-	}else{ //I2C-like
-		bitbang.MOpin=MOSI;
-		bitbang.MIpin=MOSI;
-	}
-	
-	
-	//define delays for differnt speeds
-	// I2C Bus timing in uS
-	switch(speed){
-		case 0:
-			bitbang.delaySettle = BB_5KHZSPEED_SETTLE;
-			bitbang.delayClock = BB_5KHZSPEED_CLOCK;
-			bitbang.delayHalfClock = BB_5KHZSPEED_HALFCLOCK;
-			break;
-		case 1:
-			bitbang.delaySettle = BB_50KHZSPEED_SETTLE;
-			bitbang.delayClock = BB_50KHZSPEED_CLOCK;
-			bitbang.delayHalfClock = BB_50KHZSPEED_HALFCLOCK;
-			break;
-		case 2:
-			bitbang.delaySettle = BB_100KHZSPEED_SETTLE;
-			bitbang.delayClock = BB_100KHZSPEED_CLOCK;
-			bitbang.delayHalfClock = BB_100KHZSPEED_HALFCLOCK;
-			break;
-		default:
-			bitbang.delaySettle = BB_MAXSPEED_SETTLE;
-			bitbang.delayClock = BB_MAXSPEED_CLOCK;
-			bitbang.delayHalfClock = BB_MAXSPEED_HALFCLOCK;
-			break;
-	}
+/**
+ * Predefined delay profiles, each associated with a predefined bus speed.
+ * 
+ * @see bp_bitbang_speed_t
+ */
+static const bitbang_delays_t BITBANG_DELAYS[] = {
+    {.settle = BB_5KHZSPEED_SETTLE, .clock = BB_5KHZSPEED_CLOCK},
+    {.settle = BB_50KHZSPEED_SETTLE, .clock = BB_50KHZSPEED_CLOCK},
+    {.settle = BB_100KHZSPEED_SETTLE, .clock = BB_100KHZSPEED_CLOCK},
+    {.settle = BB_MAXSPEED_SETTLE, .clock = BB_MAXSPEED_CLOCK}};
 
+/**
+ * Which pin to use for bus reads.
+ */
+static uint16_t miso_pin;
 
+/**
+ * The delay profile to use when operating on the bus, and therefore what is the
+ * maximum bus speed.
+ */
+static const bitbang_delays_t *delay_profile;
+
+void bitbang_setup(unsigned char bitbang_pins, const bp_bitbang_speed_t speed) {
+  miso_pin = (bitbang_pins == 3) ? MISO : MOSI;
+  delay_profile = &BITBANG_DELAYS[speed > DELAY_PROFILES_MAX_INDEX
+                                      ? DELAY_PROFILES_MAX_INDEX
+                                      : speed];
 }
 
-//
-// HELPER functions
-//
+bool bitbang_i2c_start(void) {
+  bool error;
 
-int bbI2Cstart(void){
-	int error=0;
-//http://www.esacademy.com/faq/i2c/busevents/i2cstast.htm
-	//setup both lines high first
-	bbH(MOSI+CLK, bitbang.delayClock);
+  error = false;
 
-	//check bus state, return error if held low
-	if(BP_CLK==0 || BP_MOSI==0) error=1;
+  /* Set both SDA and CLK high. */
+  bitbang_set_pins_high(MOSI + CLK, delay_profile->clock);
 
-	//now take data low while clock is high
-	bbL(MOSI, bitbang.delayClock);
+  /* Check whether lines are still high. */
+  if ((BP_CLK == LOW) || (BP_MOSI == LOW)) {
+    error = true;
+  } else {
+    /* Bring SDA low. */
+    bitbang_set_pins_low(MOSI, delay_profile->clock);
 
-	//next take clock low too
-	bbL(CLK, bitbang.delayClock);	
-	
-	//example suggests returning SDA to high
-	bbH(MOSI, bitbang.delayClock);
-	
-	return error;
+    /* Bring CLK low too. */
+    bitbang_set_pins_low(CLK, delay_profile->clock);
 
+    /* Bring SDA back high. */
+    bitbang_set_pins_high(MOSI, delay_profile->clock);
+  }
+
+  return error;
 }
 
+void bitbang_i2c_stop(void) {
+  /* Set both SDA and CLK low. */
+  bitbang_set_pins_low(MOSI + CLK, delay_profile->clock);
 
-int bbI2Cstop(void){
-//http://www.esacademy.com/faq/i2c/busevents/i2cstast.htm
+  /* Set CLK high. */
+  bitbang_set_pins_high(CLK, delay_profile->clock);
 
-	//setup both lines low first
-	//example suggests just SDA, but some chips are flakey.
-	bbL(MOSI+CLK, bitbang.delayClock);
-
-	//take clock high
-	bbH(CLK, bitbang.delayClock);
-
-	//with clock high, bring data high too
-	bbH(MOSI, bitbang.delayClock);
-
-	//return clock low, importatnt for raw2wire smartcard
-	//bbL(CLK, bitbang.delayClock);
-	return 0;
+  /* Set SDA high too. */
+  bitbang_set_pins_high(MOSI, delay_profile->clock);
 }
 
-//
-//BYTE functions
-//
+uint16_t bitbang_read_with_write(const uint16_t value) {
+  size_t count;
+  uint16_t temporary;
+  uint16_t bit_index;
+  uint16_t input;
 
-// ** Read with write for 3-wire protocols ** //
+  bit_index = 1 << (mode_configuration.numbits - 1);
+  temporary = value;
+  input = 0;
+  for (count = 0; count < mode_configuration.numbits; count++) {
+    bitbang_set_pins(temporary & bit_index, MOSI, delay_profile->settle);
+    bitbang_set_pins_high(CLK, delay_profile->clock);
+    input = (input << 1) | bitbang_read_pin(MISO);
+    temporary <<= 1;
+    bitbang_set_pins_low(CLK, delay_profile->clock);
+  }
 
-//unsigned char bbReadWriteByte(unsigned char c){
-unsigned int bbReadWriteByte(unsigned int c){
-	unsigned int i,bt,tem,di,dat=0;
-
-	//begin with clock low...	
-	bt=1<<(mode_configuration.numbits-1);
-
-	tem=c;//????
-//	for(i=0;i<8;i++){
-	for(i=0;i<mode_configuration.numbits;i++){
-		bbPins((tem&bt), MOSI, bitbang.delaySettle); //set data out
-		bbH(CLK,bitbang.delayClock);//set clock high
-		di=bbR(MISO); //read data pin	
-		bbL(CLK,bitbang.delayClock);;//set clock low
-
-		//get MSB first
-		tem=tem<<1;  //shift data output bits
-		dat=dat<<1;  //shift the data input byte bits
-		if(di)dat++; //if datapin in is high, set LBS
-	}
-
-	return dat;
+  return input;
 }
 
-// ** Seperate read/write for 2-wire protocols ** //
+void bitbang_write_value(const uint16_t value) {
+  uint16_t temporary;
+  uint16_t bit_index;
+  size_t count;
 
-void bbWriteByte(unsigned int c){
-	unsigned int i,bt,tem;
-
-	//bbo();//prepare for output
-
-	//bt=0x80;
-	bt=1<<(mode_configuration.numbits-1);
-
-	tem=c;//????
-	for(i=0;i<mode_configuration.numbits;i++){
-		//if( (b & d)== 0) bbL(bitbang.MOpin,bitbang.delaySettle); else bbH(bitbang.MOpin,bitbang.delaySettle);//setup the data pin
-		bbPins((tem&bt), MOSI, bitbang.delaySettle );
-		bbH(CLK,bitbang.delayClock);
-		bbL(CLK,bitbang.delayClock);
-
-		tem=tem<<1; //next output bit
-
-	}
+  bit_index = 1 << (mode_configuration.numbits - 1);
+  temporary = value;
+  for (count = 0; count < mode_configuration.numbits; count++) {
+    bitbang_set_pins(temporary & bit_index, MOSI, delay_profile->settle);
+    bitbang_set_pins_high(CLK, delay_profile->clock);
+    bitbang_set_pins_low(CLK, delay_profile->clock);
+    temporary <<= 1;
+  }
 }
 
-unsigned int bbReadByte(void){
-	unsigned int i,di,dat=0;
+uint16_t bitbang_read_value(void) {
+  size_t count;
+  uint16_t value;
 
-	//bbi();//prepare for input
-	bbR(MOSI); //setup for input
+  /* Setup for input. */
+  bitbang_read_pin(MOSI);
+  value = 0;
 
-	for(i=0;i<mode_configuration.numbits;i++){
-		bbH(CLK,bitbang.delayClock);//set clock high
-		di=bbR(MOSI); //same as MISO on 2-wire
-		bbL(CLK,bitbang.delayClock);;//set clock low
+  for (count = 0; count < mode_configuration.numbits; count++) {
+    bitbang_set_pins_high(CLK, delay_profile->clock);
+    value = (value << 1) | bitbang_read_pin(MOSI);
+    bitbang_set_pins_low(CLK, delay_profile->clock);
+  }
 
-		//get MSB first
-		dat=dat<<1;//shift the data input byte bits
-		if(di)dat++;//if datapin in is high, set LBS
-	}
-	return dat;
+  return value;
 }
 
-//
-// BIT functions
-//
+bool bitbang_read_bit(void) {
+  bool bit_value;
 
-unsigned char bbReadBit(void){
-	unsigned char c;
+  /* Set the MISO pin as input. */
+  bitbang_read_pin(miso_pin);
 
-	bbR(bitbang.MIpin); //setup for input
-	bbH(CLK,bitbang.delayClock);//set clock high
-	c=bbR(bitbang.MIpin);
-	bbL(CLK,bitbang.delayClock);;//set clock low
-	return c;
+  /* Set CLK high. */
+  bitbang_set_pins_high(CLK, delay_profile->clock);
+
+  /* Read value. */
+  bit_value = bitbang_read_pin(miso_pin);
+
+  /* Set CLK low. */
+  bitbang_set_pins_low(CLK, delay_profile->clock);
+
+  return bit_value;
 }
 
-void bbWriteBit(unsigned char c){
+void bitbang_write_bit(const bool state) {
+  /* Set the output pin to the given state. */
+  bitbang_set_pins(state, MOSI, delay_profile->settle);
 
-	bbPins(c,bitbang.MOpin, bitbang.delaySettle);
-
-	bbH(CLK,bitbang.delayClock);
-	bbL(CLK,bitbang.delayClock);
+  /* Clock the bit out. */
+  bitbang_set_pins_high(CLK, delay_profile->clock);
+  bitbang_set_pins_low(CLK, delay_profile->clock);
 }
 
-void bbClockTicks(unsigned char c){
-	unsigned char i;
+void bitbang_advance_clock_ticks(const uint16_t ticks) {
+  size_t tick;
 
-	for(i=0;i<c;i++){
-		bbH(CLK,bitbang.delayClock);
-		bbL(CLK,bitbang.delayClock);
-	}
-
+  for (tick = 0; tick < ticks; tick++) {
+    bitbang_set_pins_high(CLK, delay_profile->clock);
+    bitbang_set_pins_low(CLK, delay_profile->clock);
+  }
 }
 
-//
-// PIN functions
-//
-void bbMOSI(unsigned char dir){ bbPins(dir, bitbang.MOpin, bitbang.delaySettle);}
-void bbCLK(unsigned char dir){ bbPins(dir, CLK, bitbang.delaySettle);}
-void bbCS(unsigned char dir){ bbPins(dir, CS, bitbang.delaySettle);}
-unsigned char bbMISO (void){ return bbR(bitbang.MIpin);}
-
-//
-// BASE IO functions
-//
-void bbH(unsigned int pins, unsigned char delay){
-	if(mode_configuration.high_impedance==0){
-		IOLAT |= pins;//normal output high
-		IODIR &=(~pins);//direction to output
-	}else{
-		IODIR |= pins;//open collector output high
-	}
-	bp_delay_us(delay);//delay
+void bitbang_set_mosi(const bool state) {
+  bitbang_set_pins(state, MOSI, delay_profile->settle);
 }
 
-void bbL(unsigned int pins, unsigned char delay){
-	IOLAT &=(~pins); //pins to 0
-	IODIR &=(~pins);//direction to output
-	bp_delay_us(delay);//delay	
+void bitbang_set_clk(const bool state) {
+  bitbang_set_pins(state, CLK, delay_profile->settle);
 }
 
-void bbPins(unsigned int dir, unsigned int pins, unsigned char delay){
-	if(dir==0){
-		IOLAT &=(~pins); //pins to 0
-		IODIR &=(~pins);//direction to output
-	}else{
-		if(mode_configuration.high_impedance==0){
-			IOLAT |= pins;//normal output high
-			IODIR &=(~pins);//direction to output
-		}else{
-			IODIR |= pins;//open collector output high
-		}
-	}
-	bp_delay_us(delay);//delay	
+void bitbang_set_cs(const bool state) {
+  bitbang_set_pins(state, CS, delay_profile->settle);
 }
 
-unsigned char bbR(unsigned int pin){
-	IODIR |= pin; //pin as input
-	Nop();
-	Nop();
-	Nop();
-	if(IOPOR & pin) return 1; else return 0;//clear all but pin bit and return result
+bool bitbang_read_miso(void) { return bitbang_read_pin(miso_pin); }
+
+void bitbang_set_pins_high(const uint16_t pins, const uint16_t delay) {
+  if (mode_configuration.high_impedance == OFF) {
+    /* Mark pins' state as HIGH. */
+    IOLAT |= pins;
+
+    /* Mark pins' direction as OUTPUT. */
+    IODIR &= ~pins;
+  } else {
+    /* Open collector output HIGH. */
+    IODIR |= pins;
+  }
+
+  /* Wait. */
+  if (delay > 0) {
+    bp_delay_us(delay);
+  }
 }
 
+void bitbang_set_pins_low(const uint16_t pins, const uint16_t delay) {
+  /* Mark pins' state as LOW. */
+  IOLAT &= ~pins;
 
+  /* Mark pins' direction as OUTPUT. */
+  IODIR &= ~pins;
 
+  /* Wait. */
+  if (delay > 0) {
+    bp_delay_us(delay);
+  }
+}
+
+void bitbang_set_pins(const bool state, const uint16_t pins_mask,
+                      const uint16_t delay) {
+  if (state == LOW) {
+    IOLAT &= ~pins_mask; // pins to 0
+    IODIR &= ~pins_mask; // direction to output
+  } else {
+    if (mode_configuration.high_impedance == OFF) {
+      IOLAT |= pins_mask;  // normal output high
+      IODIR &= ~pins_mask; // direction to output
+    } else {
+      IODIR |= pins_mask; // open collector output high
+    }
+  }
+
+  /* Wait. */
+  if (delay > 0) {
+    bp_delay_us(delay);
+  }
+}
+
+bool bitbang_read_pin(const uint16_t pin_bit) {
+  IODIR |= pin_bit;
+  Nop();
+  Nop();
+  Nop();
+  return IOPOR & pin_bit;
+}

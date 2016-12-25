@@ -46,11 +46,11 @@ struct _R3W{
 
 
 unsigned int R3Wread(void)
-{	return (bbReadWriteByte(0xff));
+{	return (bitbang_read_with_write(0xff));
 }
 
 unsigned int R3Wwrite(unsigned int c)
-{	c=bbReadWriteByte(c);
+{	c=bitbang_read_with_write(c);
 	if(mode_configuration.write_with_read==1)
 	{	return c;
 	}
@@ -60,10 +60,10 @@ unsigned int R3Wwrite(unsigned int c)
 void R3Wstartr(void)
 {	mode_configuration.write_with_read=1;
 	if(r3wSettings.csl)
-	{	bbCS(0);
+	{	bitbang_set_cs(0);
 	}
 	else
-	{	bbCS(1);
+	{	bitbang_set_cs(1);
 	}
 	//bpWmessage(MSG_CS_ENABLED);
 	if(r3wSettings.csl) UART1TX('/');
@@ -72,10 +72,10 @@ void R3Wstartr(void)
 void R3Wstart(void)
 {	mode_configuration.write_with_read=0;
 	if(r3wSettings.csl)
-	{	bbCS(0);
+	{	bitbang_set_cs(0);
 	}
 	else
-	{	bbCS(1);
+	{	bitbang_set_cs(1);
 	}
 	//bpWmessage(MSG_CS_ENABLED);
 	if(r3wSettings.csl) UART1TX('/');
@@ -84,35 +84,35 @@ void R3Wstart(void)
 void R3Wstop(void)
 {	mode_configuration.write_with_read=0;
 	if(r3wSettings.csl)
-	{	bbCS(1);
+	{	bitbang_set_cs(1);
 	}
 	else
-	{	bbCS(0);
+	{	bitbang_set_cs(0);
 	}
 	//bpWmessage(MSG_CS_DISABLED);
 	if(r3wSettings.csl) UART1TX('/');
 	BPMSG1160;
 }
 bool R3Wbitr(void)
-{	return (bbReadBit());
+{	return (bitbang_read_bit());
 }
 unsigned int R3Wbitp(void)
-{	return (bbMISO());
+{	return (bitbang_read_miso());
 }
 void R3Wclk(void)
-{	bbClockTicks(1);
+{	bitbang_advance_clock_ticks(1);
 }
 void R3Wclkh(void)
-{	bbCLK(1);				// same as r2wire?
+{	bitbang_set_clk(1);				// same as r2wire?
 }
 void R3Wclkl(void)
-{	bbCLK(0);				// same as r2wire?
+{	bitbang_set_clk(0);				// same as r2wire?
 }
 void R3Wdath(void)
-{	bbMOSI(1);				// same as r2wire?
+{	bitbang_set_mosi(1);				// same as r2wire?
 }
 void R3Wdatl(void)
-{	bbMOSI(0);				// same as r2wire?
+{	bitbang_set_mosi(0);				// same as r2wire?
 }
 
 void R3Wsettings(void) {
@@ -178,7 +178,7 @@ void R3Wsetup(void)
 }
 void R3Wsetup_exc(void)
 {
-    bbSetup(3, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
+    bitbang_setup(3, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
 	//setup pins (pins are input/low when we start)
 	//MOSI output, low
 	//clock output, low
@@ -189,7 +189,7 @@ void R3Wsetup_exc(void)
 	R3WMISO_TRIS=1;
 
 	// set cs the way the user wants
-	bbCS(r3wSettings.csl);//takes care of custom HiZ settings too
+	bitbang_set_cs(r3wSettings.csl);//takes care of custom HiZ settings too
 }    
 
 void R3Wpins(void) {

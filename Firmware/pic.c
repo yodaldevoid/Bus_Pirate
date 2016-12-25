@@ -87,7 +87,7 @@ void picinit(void)
 
 	mode_configuration.high_impedance=1;				// to allow different Vcc 
 	mode_configuration.int16=1;
-	bbL(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
+	bitbang_set_pins_low(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 }
 
 //Doesn't do much as the protocol defines that the pins need to be connected bedro power is applied.
@@ -126,29 +126,29 @@ unsigned int picread(void)
 	c=0;
 
 	switch(picmode&PICMODEMSK)		// make it future proof
-	{	case PICMODE6:	bbR(MOSI);		// switch in to input
-						bbH(CLK, PICSPEED/2);
-						bbL(CLK, PICSPEED/2);
+	{	case PICMODE6:	bitbang_read_pin(MOSI);		// switch in to input
+						bitbang_set_pins_high(CLK, PICSPEED/2);
+						bitbang_set_pins_low(CLK, PICSPEED/2);
 						for(i=0; i<14; i++)
 						{	c>>=1;
-							bbH(CLK, PICSPEED/2);
-							if(bbR(MOSI)) c|=0x2000;		// bit14
-							bbL(CLK, PICSPEED/2);
+							bitbang_set_pins_high(CLK, PICSPEED/2);
+							if(bitbang_read_pin(MOSI)) c|=0x2000;		// bit14
+							bitbang_set_pins_low(CLK, PICSPEED/2);
 						}
-						bbH(CLK, PICSPEED/2);
-						bbL(CLK, PICSPEED/2);
-						bbL(MOSI, PICSPEED/5);
+						bitbang_set_pins_high(CLK, PICSPEED/2);
+						bitbang_set_pins_low(CLK, PICSPEED/2);
+						bitbang_set_pins_low(MOSI, PICSPEED/5);
 						break;
-		case PICMODE4:	bbR(MOSI);
+		case PICMODE4:	bitbang_read_pin(MOSI);
 						for(i=0; i<16; i++)
 						{	c>>=1;
-							bbH(CLK, PICSPEED/2);
-							if(bbR(MOSI)) c|=0x8000;		// bit16
-							bbL(CLK, PICSPEED/2);
+							bitbang_set_pins_high(CLK, PICSPEED/2);
+							if(bitbang_read_pin(MOSI)) c|=0x8000;		// bit16
+							bitbang_set_pins_low(CLK, PICSPEED/2);
 						}
-						bbH(CLK, PICSPEED/2);
-						bbL(CLK, PICSPEED/2);
-						bbL(MOSI, PICSPEED/5);
+						bitbang_set_pins_high(CLK, PICSPEED/2);
+						bitbang_set_pins_low(CLK, PICSPEED/2);
+						bitbang_set_pins_low(MOSI, PICSPEED/5);
 						break;
 		default:		bp_write_line("unknown mode");
 					BPMSG1078;
@@ -169,28 +169,28 @@ unsigned int picwrite(unsigned int c)
 	if(picmode&PICCMDMSK)				// we got a command
 	{	switch(picmode&PICMODEMSK)		// make it future proof
 		{	case PICMODE6:	for(i=0; i<6; i++)
-							{	bbH(CLK, PICSPEED/4);
+							{	bitbang_set_pins_high(CLK, PICSPEED/4);
 								if(c&mask)
-								{	bbH(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
 								}
 								else
-								{	bbL(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
 								}
-								bbL(CLK, PICSPEED/4);
-								bbL(MOSI, PICSPEED/4);		// both dat and clk low 
+								bitbang_set_pins_low(CLK, PICSPEED/4);
+								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
 								mask<<=1;
 							}
 							break;
 			case PICMODE4:	for(i=0; i<4; i++)
-							{	bbH(CLK, PICSPEED/4);
+							{	bitbang_set_pins_high(CLK, PICSPEED/4);
 								if(c&mask)
-								{	bbH(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
 								}
 								else
-								{	bbL(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
 								}
-								bbL(CLK, PICSPEED/4);
-								bbL(MOSI, PICSPEED/4);		// both dat and clk low 
+								bitbang_set_pins_low(CLK, PICSPEED/4);
+								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
 								mask<<=1;
 							}
 							break;
@@ -202,37 +202,37 @@ unsigned int picwrite(unsigned int c)
 	}
 	else									// send data
 	{	switch(picmode&PICMODEMSK)		// make it future proof
-		{	case PICMODE6:	bbH(CLK, PICSPEED/4);			// send leading 0
-							bbL(MOSI, PICSPEED/4);
-							bbL(CLK, PICSPEED/4);
-							bbL(CLK, PICSPEED/4);
+		{	case PICMODE6:	bitbang_set_pins_high(CLK, PICSPEED/4);			// send leading 0
+							bitbang_set_pins_low(MOSI, PICSPEED/4);
+							bitbang_set_pins_low(CLK, PICSPEED/4);
+							bitbang_set_pins_low(CLK, PICSPEED/4);
 							for(i=0; i<14; i++)				// 14 bits
-							{	bbH(CLK, PICSPEED/4);
+							{	bitbang_set_pins_high(CLK, PICSPEED/4);
 								if(c&mask)
-								{	bbH(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
 								}
 								else
-								{	bbL(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
 								}
-								bbL(CLK, PICSPEED/4);
-								bbL(MOSI, PICSPEED/4);		// both dat and clk low 
+								bitbang_set_pins_low(CLK, PICSPEED/4);
+								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
 								mask<<=1;
 							}
-							bbH(CLK, PICSPEED/4);			// send trailing 0
-							bbL(MOSI, PICSPEED/4);
-							bbL(CLK, PICSPEED/4);
-							bbL(CLK, PICSPEED/4);
+							bitbang_set_pins_high(CLK, PICSPEED/4);			// send trailing 0
+							bitbang_set_pins_low(MOSI, PICSPEED/4);
+							bitbang_set_pins_low(CLK, PICSPEED/4);
+							bitbang_set_pins_low(CLK, PICSPEED/4);
 							break;
 			case PICMODE4:	for(i=0; i<16; i++)				// does 16 bits at a time
-							{	bbH(CLK, PICSPEED/4);
+							{	bitbang_set_pins_high(CLK, PICSPEED/4);
 								if(c&mask)
-								{	bbH(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
 								}
 								else
-								{	bbL(MOSI, PICSPEED/4);
+								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
 								}
-								bbL(CLK, PICSPEED/4);
-								bbL(MOSI, PICSPEED/4);		// both dat and clk low 
+								bitbang_set_pins_low(CLK, PICSPEED/4);
+								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
 								mask<<=1;
 							}
 							break;
@@ -319,7 +319,7 @@ void binpic(void)
 
 	bp_write_string("PIC1");
 	mode_configuration.high_impedance=1;				// to allow different Vcc 
-	bbL(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
+	bitbang_set_pins_low(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 	picmode=PICMODE6;
 	piccmddelay=2;
 
@@ -347,22 +347,22 @@ void binpic(void)
 										break;
 							case 0x10:	if(cmd&0x08)
 										{	if(cmd&0x04)
-											{	bbH(AUX ,5);
+											{	bitbang_set_pins_high(AUX ,5);
 											}
 											else
-											{	bbL(AUX ,5);
+											{	bitbang_set_pins_low(AUX ,5);
 											}
 											if(cmd&0x02)
-											{	bbH(MISO ,5);
+											{	bitbang_set_pins_high(MISO ,5);
 											}
 											else
-											{	bbL(MISO ,5);
+											{	bitbang_set_pins_low(MISO ,5);
 											}
 											if(cmd&0x01)
-											{	bbH(CS ,5);
+											{	bitbang_set_pins_high(CS ,5);
 											}
 											else
-											{	bbL(CS ,5);
+											{	bitbang_set_pins_low(CS ,5);
 											}
 										}
 										else

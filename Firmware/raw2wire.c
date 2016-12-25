@@ -50,16 +50,16 @@ void r2wMacro_78163Read(void);
 void r2wMacro_78163Write(void);
 
 unsigned int R2Wread(void)
-{	return (bbReadByte());
+{	return (bitbang_read_value());
 }
 
 unsigned int R2Wwrite(unsigned int c)
-{	bbWriteByte(c);//send byte
+{	bitbang_write_value(c);//send byte
 	return 0x100;
 }
 
 void R2Wstart(void)
-{	bbI2Cstart();
+{	bitbang_i2c_start();
 	//bpWstring("(\\-/_\\)");
 	BPMSG1138;
 	//bpWmessage(MSG_I2C_START);
@@ -67,7 +67,7 @@ void R2Wstart(void)
 }
 
 void R2Wstop(void)
-{	bbI2Cstop();
+{	bitbang_i2c_stop();
 	//bpWstring("(_/-\\)");
 	BPMSG1140;
 	//bpWmessage(MSG_I2C_STOP);
@@ -75,33 +75,33 @@ void R2Wstop(void)
 }
 
 bool R2Wbitr(void)
-{	return (bbReadBit());
+{	return (bitbang_read_bit());
 	//bpWmessage(MSG_BIT_NOWINPUT);
 }
 
 unsigned int R2Wbitp(void)
-{	return (bbMISO());
+{	return (bitbang_read_miso());
 	//bpWmessage(MSG_BIT_NOWINPUT);
 }
 		
 void R2Wclkl(void)
-{	bbCLK(0);
+{	bitbang_set_clk(0);
 }
 
 void R2Wclkh(void)
-{	bbCLK(1);
+{	bitbang_set_clk(1);
 }
 
 void R2Wclk(void)
-{	bbClockTicks(1);
+{	bitbang_advance_clock_ticks(1);
 }
 
 void R2Wdatl(void)
-{	bbMOSI(0);
+{	bitbang_set_mosi(0);
 }
 
 void R2Wdath(void)
-{	bbMOSI(1);
+{	bitbang_set_mosi(1);
 }
 
 void R2Wsettings(void) {
@@ -156,7 +156,7 @@ void R2Wsetup_exc(void)
 	R2WDIO=0;			//B9 sda
 	R2WDIO_TRIS=1;//data input
 	R2WCLK_TRIS=0;//clock output
-	bbSetup(2, mode_configuration.speed);    
+	bitbang_setup(2, mode_configuration.speed);    
 }    
 
 void R2Wmacro(unsigned int macro) {
@@ -204,17 +204,17 @@ void r2wMacro_78163Write(void){
 	BPMSG1145;
 	
 	//Reset needs to start low
-	bbCS(0); //bpAuxLow();
+	bitbang_set_cs(0); //bpAuxLow();
 	bp_delay_us(0xff);
 	
 	//RESET HIGH
-	bbCS(1);
+	bitbang_set_cs(1);
 
 	//clock tick
-	bbClockTicks(1);
+	bitbang_advance_clock_ticks(1);
 
 	//reset low again
-	bbCS(0); //bpAuxLow();
+	bitbang_set_cs(0); //bpAuxLow();
 }
 	
 void r2wMacro_78163Read(void){	
@@ -227,7 +227,7 @@ void r2wMacro_78163Read(void){
 
 	//read and display ISO 7816-3 bytes
 	for(i=0; i<4; i++){
-        m[i] = bbReadByte();
+        m[i] = bitbang_read_value();
 		if (mode_configuration.lsbEN) {
 			m[i] = reverse_byte(m[i]);
 		}

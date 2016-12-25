@@ -84,7 +84,7 @@ unsigned int I2Cread(void) {
     
     if (i2c_state.i2c_acknowledgment_pending) {
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bbI2Cack();
+            bitbang_i2c_ack();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -99,7 +99,7 @@ unsigned int I2Cread(void) {
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-        c = bbReadByte();
+        c = bitbang_read_value();
     }
 #ifdef BP_I2C_USE_HW_BUS
     else {
@@ -117,7 +117,7 @@ unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
         BPMSG1060;
         bpSP;
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bbI2Cack();
+            bitbang_i2c_ack();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -128,8 +128,8 @@ unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-        bbWriteByte(c);
-        c = bbReadBit();
+        bitbang_write_value(c);
+        c = bitbang_read_bit();
     }
 #ifdef BP_I2C_USE_HW_BUS
     else {
@@ -153,7 +153,7 @@ void I2Cstart(void) {
         BPMSG1061;
         bpBR; //bpWline(OUMSG_I2C_READ_PEND_NACK);
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bbI2Cnack();
+            bitbang_i2c_nack();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -164,7 +164,7 @@ void I2Cstart(void) {
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-        if (bbI2Cstart()) {//bus contention
+        if (bitbang_i2c_start()) {//bus contention
             BPMSG1019; //warning
             BPMSG1020; //short or no pullups
             bpBR;
@@ -184,7 +184,7 @@ void I2Cstop(void) {
         BPMSG1061;
         bpBR; //bpWline(OUMSG_I2C_READ_PEND_NACK);
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bbI2Cnack();
+            bitbang_i2c_nack();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -195,7 +195,7 @@ void I2Cstop(void) {
     }
 
     if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-        bbI2Cstop();
+        bitbang_i2c_stop();
     }
 #ifdef BP_I2C_USE_HW_BUS
     else {
@@ -298,7 +298,7 @@ void I2Csetup_exc(void) //Executes the setup.. controlled with 'P' command
        SCL_TRIS = 1;
        SCL = 0; //B8 scl
        SDA = 0; //B9 sda
-       bbSetup(2, mode_configuration.speed); //configure the bitbang library for 2-wire, set the speed
+       bitbang_setup(2, mode_configuration.speed); //configure the bitbang library for 2-wire, set the speed
    }
 #ifdef BP_I2C_USE_HW_BUS
    else {
@@ -328,7 +328,7 @@ void I2Cmacro(unsigned int c) {
             break;
         case 1:
             //setup both lines high first
-            bbH(MOSI + CLK, 0);
+            bitbang_set_pins_high(MOSI + CLK, 0);
             //bpWline(OUMSG_I2C_MACRO_SEARCH);
             BPMSG1070;
 #ifdef BUSPIRATEV4
@@ -346,9 +346,9 @@ void I2Cmacro(unsigned int c) {
             for (i = 0; i < 0x100; i++) {
 
                 if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-                    bbI2Cstart(); //send start
-                    bbWriteByte(i); //send address
-                    c = bbReadBit(); //look for ack
+                    bitbang_i2c_start(); //send start
+                    bitbang_write_value(i); //send address
+                    c = bitbang_read_bit(); //look for ack
                 }
 #ifdef BP_I2C_USE_HW_BUS
                 else {
@@ -366,8 +366,8 @@ void I2Cmacro(unsigned int c) {
                         bp_write_string(" W");
                     } else {
                         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-                            bbReadByte();
-                            bbI2Cnack(); //bbWriteBit(1);//high bit is NACK
+                            bitbang_read_value();
+                            bitbang_i2c_nack(); //bbWriteBit(1);//high bit is NACK
                         }
 #ifdef BP_I2C_USE_HW_BUS
                         else {
@@ -380,7 +380,7 @@ void I2Cmacro(unsigned int c) {
                     bp_write_string(")");
                     bpSP;
                 }
-                if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) bbI2Cstop();
+                if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) bitbang_i2c_stop();
 #ifdef BP_I2C_USE_HW_BUS
                 else hwi2cstop();
 #endif /* BP_I2C_USE_HW_BUS */
@@ -831,7 +831,7 @@ void binI2C(void) {
 
     mode_configuration.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
     mode_configuration.lsbEN = 0; //just in case!
-    bbSetup(2, 0xff); //configure the bitbang library for 2-wire, set the speed to default/high
+    bitbang_setup(2, BITBANG_SPEED_MAXIMUM); //configure the bitbang library for 2-wire, set the speed to default/high
     binI2CversionString(); //reply string
 
     while (1) {
@@ -851,22 +851,22 @@ void binI2C(void) {
                         binI2CversionString(); //reply string
                         break;
                     case 2://I2C start bit
-                        bbI2Cstart();
+                        bitbang_i2c_start();
                         UART1TX(1);
                         break;
                     case 3://I2C stop bit
-                        bbI2Cstop();
+                        bitbang_i2c_stop();
                         UART1TX(1);
                         break;
                     case 4://I2C read byte
-                        UART1TX(bbReadByte());
+                        UART1TX(bitbang_read_value());
                         break;
                     case 6://I2C send ACK
-                        bbI2Cack();
+                        bitbang_i2c_ack();
                         UART1TX(1);
                         break;
                     case 7://I2C send NACK
-                        bbI2Cnack();
+                        bitbang_i2c_nack();
                         UART1TX(1);
                         break;
                     case 8: //write-then-read
@@ -904,29 +904,29 @@ I2C_write_read_error: //use this for the read error too
                         }
 
                         //start
-                        bbI2Cstart();
+                        bitbang_i2c_start();
 
                         for (j = 0; j < fw; j++) {
                             //get ACK
                             //if no ack, goto error
-                            bbWriteByte(bus_pirate_configuration.terminal_input[j]); //send byte
-                            if (bbReadBit() == 1) goto I2C_write_read_error;
+                            bitbang_write_value(bus_pirate_configuration.terminal_input[j]); //send byte
+                            if (bitbang_read_bit() == 1) goto I2C_write_read_error;
                         }
 
                         fw = fr - 1; //reuse fw
                         for (j = 0; j < fr; j++) { //read bulk bytes from SPI
                             //send ack
                             //i flast byte, send NACK
-                            bus_pirate_configuration.terminal_input[j] = bbReadByte();
+                            bus_pirate_configuration.terminal_input[j] = bitbang_read_value();
 
                             if (j < fw) {
-                                bbI2Cack();
+                                bitbang_i2c_ack();
                             } else {
-                                bbI2Cnack();
+                                bitbang_i2c_nack();
                             }
                         }
                         //I2C stop
-                        bbI2Cstop();
+                        bitbang_i2c_stop();
 
                         UART1TX(1); //send 1/OK
 
@@ -990,15 +990,15 @@ I2C_write_read_error: //use this for the read error too
 
                 for (i = 0; i < inByte; i++) {
                     //JTR Not required while (UART1RXRdy() == 0); //wait for a byte
-                    bbWriteByte(UART1RX()); // JTR usb port //send byte
-                    UART1TX(bbReadBit()); //return ACK0 or NACK1
+                    bitbang_write_value(UART1RX()); // JTR usb port //send byte
+                    UART1TX(bitbang_read_bit()); //return ACK0 or NACK1
                 }
 
                 break;
 
             case 0b0110://set speed
                 inByte &= (~0b11111100); //clear command portion
-                bbSetup(2, inByte); //set I2C speed
+                bitbang_setup(2, inByte); //set I2C speed
                 UART1TX(1);
                 break;
 

@@ -586,7 +586,7 @@ void binwire(void) {
     //startup in raw2wire mode
     wires = 2;
     //configure for raw3wire mode
-    bbSetup(2, 0xff); //setup the bitbang library, must be done before calling bbCS below
+    bitbang_setup(2, BITBANG_SPEED_MAXIMUM); //setup the bitbang library, must be done before calling bbCS below
     //setup pins (pins are input/low when we start)
     //MOSI output, low
     //clock output, low
@@ -595,7 +595,7 @@ void binwire(void) {
     R3WMOSI_TRIS = 0;
     R3WCLK_TRIS = 0;
     R3WMISO_TRIS = 1;
-    bbCS(1); //takes care of custom HiZ settings too
+    bitbang_set_cs(1); //takes care of custom HiZ settings too
 
     binrawversionString(); //reply ID string
 
@@ -616,26 +616,26 @@ void binwire(void) {
                         binrawversionString(); //reply string
                         break;
                     case 2://start bit
-                        bbI2Cstart();
+                        bitbang_i2c_start();
                         UART1TX(1);
                         break;
                     case 3://stop bit
-                        bbI2Cstop();
+                        bitbang_i2c_stop();
                         UART1TX(1);
                         break;
                     case 4: //cs low
-                        bbCS(0);
+                        bitbang_set_cs(0);
                         UART1TX(1);
                         break;
                     case 5://cs high
-                        bbCS(1);
+                        bitbang_set_cs(1);
                         UART1TX(1);
                         break;
                     case 6://read byte
                         if (wires == 2) {
-                            i = bbReadByte();
+                            i = bitbang_read_value();
                         } else {
-                            i = bbReadWriteByte(0xff);
+                            i = bitbang_read_with_write(0xff);
                         }
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             i = bp_reverse_integer(i);
@@ -643,29 +643,29 @@ void binwire(void) {
                         UART1TX(i);
                         break;
                     case 7://read bit
-                        UART1TX(bbReadBit());
+                        UART1TX(bitbang_read_bit());
                         break;
                     case 8://peek bit
-                        UART1TX(bbMISO());
+                        UART1TX(bitbang_read_miso());
                         break;
                     case 9://clock tick
-                        bbClockTicks(1);
+                        bitbang_advance_clock_ticks(1);
                         UART1TX(1);
                         break;
                     case 10://clock low
-                        bbCLK(0);
+                        bitbang_set_clk(0);
                         UART1TX(1);
                         break;
                     case 11://clock high
-                        bbCLK(1);
+                        bitbang_set_clk(1);
                         UART1TX(1);
                         break;
                     case 12://data low
-                        bbMOSI(0);
+                        bitbang_set_mosi(0);
                         UART1TX(1);
                         break;
                     case 13://data high
-                        bbMOSI(1);
+                        bitbang_set_mosi(1);
                         UART1TX(1);
                         break;
                     default:
@@ -685,10 +685,10 @@ void binwire(void) {
                         c = bp_reverse_integer(c);
                     }
                     if (wires == 2) {//2 wire, send 1
-                        bbWriteByte(c); //send byte
+                        bitbang_write_value(c); //send byte
                         UART1TX(1);
                     } else { //3 wire, return read byte
-                        c = bbReadWriteByte(c); //send byte
+                        c = bitbang_read_with_write(c); //send byte
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             c = bp_reverse_integer(c);
                         }
@@ -701,7 +701,7 @@ void binwire(void) {
             case 0b0010://bulk clock ticks
                 inByte &= (~0b11110000); //clear command portion
                 inByte++; //increment by 1, 0=1byte
-                bbClockTicks(inByte);
+                bitbang_advance_clock_ticks(inByte);
                 UART1TX(1); //send 1/OK
                 break;
 
@@ -713,9 +713,9 @@ void binwire(void) {
                 rawCommand = UART1RX(); //  //get byte, reuse rawCommand variable
                 for (i = 0; i < inByte; i++) {
                     if (rawCommand & 0b10000000) {//send 1
-                        bbWriteBit(1); //send bit
+                        bitbang_write_bit(1); //send bit
                     } else { //send 0
-                        bbWriteBit(0); //send bit
+                        bitbang_write_bit(0); //send bit
                     }
                     rawCommand = rawCommand << 1; //pop the MSB off
                 }
@@ -763,15 +763,15 @@ void binwire(void) {
                                     //do any pre instruction NOPs
 
                                     //send four bit SIX command (write)
-                                    bbWriteBit(0); //send bit
-                                    bbWriteBit(0); //send bit
-                                    bbWriteBit(0); //send bit
-                                    bbWriteBit(0); //send bit
+                                    bitbang_write_bit(0); //send bit
+                                    bitbang_write_bit(0); //send bit
+                                    bitbang_write_bit(0); //send bit
+                                    bitbang_write_bit(0); //send bit
 
                                     //send data payload
-                                    bbWriteByte(bus_pirate_configuration.terminal_input[j]); //send byte
-                                    bbWriteByte(bus_pirate_configuration.terminal_input[j + 1]); //send byte
-                                    bbWriteByte(bus_pirate_configuration.terminal_input[j + 2]); //send byte
+                                    bitbang_write_value(bus_pirate_configuration.terminal_input[j]); //send byte
+                                    bitbang_write_value(bus_pirate_configuration.terminal_input[j + 1]); //send byte
+                                    bitbang_write_value(bus_pirate_configuration.terminal_input[j + 2]); //send byte
 
                                     //do any post instruction NOPs
                                     bus_pirate_configuration.terminal_input[j + 3] &= 0x0F;
@@ -803,14 +803,14 @@ void binwire(void) {
                                     c = rawCommand; //temporary varaible
                                     for (i = 0; i < 4; i++) {
                                         if (c & 0b1) {//send 1
-                                            bbWriteBit(1); //send bit
+                                            bitbang_write_bit(1); //send bit
                                         } else { //send 0
-                                            bbWriteBit(0); //send bit
+                                            bitbang_write_bit(0); //send bit
                                         }
                                         c = c >> 1; //pop the LSB off
                                     }
-                                    bbReadByte(); //dummy byte, setup input
-                                    UART1TX(bbReadByte());
+                                    bitbang_read_value(); //dummy byte, setup input
+                                    UART1TX(bitbang_read_value());
                                 }
                                 break;
                             case PIC424:
@@ -909,8 +909,8 @@ void binwire(void) {
             case 0b0110://set speed
                 inByte &= (~0b11111100); //clear command portion
                 mode_configuration.speed = inByte;
-                bbSetup(wires, mode_configuration.speed);
-                bbCS(1); //takes care of custom HiZ settings too
+                bitbang_setup(wires, mode_configuration.speed);
+                bitbang_set_cs(1); //takes care of custom HiZ settings too
                 UART1TX(1);
                 break;
 
@@ -927,8 +927,8 @@ void binwire(void) {
 
                 //if(inByte&0b1) //bit unused
 
-                bbSetup(wires, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
-                bbCS(1); //takes care of custom HiZ settings too
+                bitbang_setup(wires, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
+                bitbang_set_cs(1); //takes care of custom HiZ settings too
                 UART1TX(1); //send 1/OK
                 break;
 
@@ -970,12 +970,12 @@ void PIC614Read(unsigned char c) {
     unsigned char i;
 
     for (i = 0; i < 6; i++) {
-        bbWriteBit(c & 0b1); //send bit
+        bitbang_write_bit(c & 0b1); //send bit
         c = c >> 1; //pop the LSB off
     }
 
-    UART1TX(bbReadByte());
-    UART1TX(bbReadByte());
+    UART1TX(bitbang_read_value());
+    UART1TX(bitbang_read_value());
 }
 
 void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
@@ -985,15 +985,15 @@ void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
     nodata = cmd & 0x80;
 
     for (i = 0; i < 6; i++) {
-        bbWriteBit(cmd & 0b1); //send bit
+        bitbang_write_bit(cmd & 0b1); //send bit
         cmd = cmd >> 1; //pop the LSB off
     }
 
     if (nodata)
         return;
 
-    bbWriteByte(datl); //send byte
-    bbWriteByte(dath); //send byte
+    bitbang_write_value(datl); //send byte
+    bitbang_write_value(dath); //send byte
 
 }
 
@@ -1002,15 +1002,15 @@ void PIC416Read(unsigned char c) {
 
     for (i = 0; i < 4; i++) {
         if (c & 0b1) {//send 1
-            bbWriteBit(1); //send bit
+            bitbang_write_bit(1); //send bit
         } else { //send 0
-            bbWriteBit(0); //send bit
+            bitbang_write_bit(0); //send bit
         }
         c = c >> 1; //pop the LSB off
     }
 
-    bbReadByte(); //dummy byte, setup input
-    UART1TX(bbReadByte());
+    bitbang_read_value(); //dummy byte, setup input
+    UART1TX(bitbang_read_value());
 }
 
 void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
@@ -1023,50 +1023,50 @@ void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
 
         //hold data for write time
         if (i == 3 && (delay > 0)) {
-            bbCLK(1);
+            bitbang_set_clk(1);
             bp_delay_ms(delay);
-            bbCLK(0);
+            bitbang_set_clk(0);
             continue;
         }
 
         if (cmd & 0b1) {//send 1
-            bbWriteBit(1); //send bit
+            bitbang_write_bit(1); //send bit
         } else { //send 0
-            bbWriteBit(0); //send bit
+            bitbang_write_bit(0); //send bit
         }
         cmd = cmd >> 1; //pop the LSB off
     }
 
-    bbWriteByte(datl); //send byte
-    bbWriteByte(dath); //send byte
+    bitbang_write_value(datl); //send byte
+    bitbang_write_value(dath); //send byte
 
 }
 
 void PIC24NOP(void) {
     //send four bit SIX command (write)
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
 
     //send data payload
-    bbWriteByte(0x00); //send byte
-    bbWriteByte(0x00); //send byte
-    bbWriteByte(0x00); //send byte
+    bitbang_write_value(0x00); //send byte
+    bitbang_write_value(0x00); //send byte
+    bitbang_write_value(0x00); //send byte
 
 }
 
 void PIC424Write(unsigned char *cmd, unsigned char pn) {
     //send four bit SIX command (write)
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
 
     //send data payload
-    bbWriteByte(cmd[0]); //send byte
-    bbWriteByte(cmd[1]); //send byte
-    bbWriteByte(cmd[2]); //send byte
+    bitbang_write_value(cmd[0]); //send byte
+    bitbang_write_value(cmd[1]); //send byte
+    bitbang_write_value(cmd[2]); //send byte
 
     //do any post instruction NOPs
     pn &= 0x0F;
@@ -1078,15 +1078,15 @@ void PIC424Write(unsigned char *cmd, unsigned char pn) {
 void PIC424Write_internal(unsigned long cmd, unsigned char pn) {
     unsigned char i;
     //send four bit SIX command (write)
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
 
     //send data payload 0xBA0B96 0xBADBB6 0xBA0BB6
-    bbWriteByte(bp_reverse_integer(cmd)); //send byte
-    bbWriteByte(bp_reverse_integer(cmd >> 8)); //send byte
-    bbWriteByte(bp_reverse_integer(cmd >> 16)); //send byte
+    bitbang_write_value(bp_reverse_integer(cmd)); //send byte
+    bitbang_write_value(bp_reverse_integer(cmd >> 8)); //send byte
+    bitbang_write_value(bp_reverse_integer(cmd >> 16)); //send byte
 
     //do any post instruction NOPs
     pn &= 0x0F;
@@ -1099,18 +1099,18 @@ void PIC424Read(void) {
     unsigned char c;
 
     //send four bit REGOUT command (read)
-    bbWriteBit(1); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
-    bbWriteBit(0); //send bit
+    bitbang_write_bit(1); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
+    bitbang_write_bit(0); //send bit
 
     //one byte output
-    bbWriteByte(0x00); //send byte
+    bitbang_write_value(0x00); //send byte
 
     //read 2 bytes
     //return bytes in little endian format
-    c = bbReadByte();
-    UART1TX(bbReadByte());
+    c = bitbang_read_value();
+    UART1TX(bitbang_read_value());
     UART1TX(c);
 
     //ALWAYS POST nop TWICE after a read
