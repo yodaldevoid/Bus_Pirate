@@ -1,17 +1,18 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate. This work is published from
+ * United States.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
  */
 
 #include "uart.h"
@@ -20,7 +21,7 @@
 
 #include "base.h"
 #include "binary_io.h"
-#include "uart2io.h"
+#include "uart2.h"
 
 #include "proc_menu.h"		// for the userinteraction subs
 
@@ -50,10 +51,10 @@ static const unsigned int UART2speed[]={13332,3332,1666,832,416,207,103,68,34,12
 
 unsigned int UARTread(void)
 {	unsigned int c;
-	if(UART2RXRdy())
+	if(uart2_rx_ready())
 	{	if(U2STAbits.PERR) BPMSG1194;	//bpWstring("-p "); //show any errors
 		if(U2STAbits.FERR) BPMSG1195;	//bpWstring("-f ");
-		c=UART2RX();
+		c=uart2_rx();
 
 		if(U2STAbits.OERR)
 		{	//bpWstring("*Bytes dropped*");
@@ -70,7 +71,7 @@ unsigned int UARTread(void)
 }
 
 unsigned int UARTwrite(unsigned int c)
-{	UART2TX(c);				//send byte
+{	uart2_tx(c);				//send byte
 	return 0;
 }
 
@@ -237,62 +238,52 @@ void UARTsetup(void)
 
 void UARTsetup_exc(void)
 {
-    if(mode_configuration.speed==9)
-	{	
-    	//hack hack hack
-    	UART2Setup(U2BRG,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb ); //U2BRG passed insted of brg, collected in UARTsetup
-	}
-	else
-	{	UART2Setup(UART2speed[mode_configuration.speed],mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
-	}
+    uart2_setup(mode_configuration.speed == 9 ? U2BRG :
+        UART2speed[mode_configuration.speed], mode_configuration.high_impedance,
+            uartSettings.rxp, uartSettings.dbp, uartSettings.sb);
 
 	if(uartSettings.dbp==3)		// 9 bits
 	{	mode_configuration.numbits=9;
 	}
 	
-    UART2Enable();
+    uart2_enable();
 
 #if !defined (BUSPIRATEV4) || defined(BPV4_DEBUG)
 	//BPv4 does not use U2BRG to communicate with PC unless it is in debug mode
 	if(U2BRG<U1BRG) BPMSG1249;
-#endif
-	
-	
-	#if defined(BUSPIRATEV4)
+#endif /* !BUSPIRATEV4 || BPV4_DEBUG */
+
+#if defined(BUSPIRATEV4)
 	unsigned long abd;
     int brg;
 	if(uartSettings.autoBaudF == 1)
 	{
-		UART2Disable();
+		uart2_disable();
 		bp_write_line(" ");
 		abd = UARTgetbaud_EstimatedBaud(UARTgetbaud(0));
 		bp_write_line(" ");
 
-		if(abd == 0)
-		{
-			UART2Setup(UART2speed[8],mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
-		}
-		else
-		{
+		if (abd == 0) {
+            uart2_setup(UART2speed[8], mode_configuration.high_impedance,
+                    uartSettings.rxp, uartSettings.dbp, uartSettings.sb);
+		} else {
 			mode_configuration.speed=9;
 			abd=(((32000000/abd)/8)-1);
 			brg=abd;
-			UART2Setup(brg,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
-			
+            uart2_setup(brg, mode_configuration.high_impedance,
+                    uartSettings.rxp, uartSettings.dbp, uartSettings.sb);
 		}
-		UART2Enable();
-#if !defined (BUSPIRATEV4) || defined(BPV4_DEBUG)
+		uart2_enable();
+#if defined(BPV4_DEBUG)
 		//BPv4 does not use U2BRG to communicate with PC unless it is in debug mode
 		if(U2BRG<U1BRG) BPMSG1249;
-#endif
+#endif /* BPV4_DEBUG */
 	}
-	#endif
-    
+#endif /* BUSPIRATEV4 */
 }    
 
-
 void UARTcleanup(void)
-{	UART2Disable();
+{	uart2_disable();
 
 }
 
@@ -389,9 +380,9 @@ void UARTmacro(unsigned int macro)
 				if (BP_BUTTON_ISDOWN()) { //JTR July 2012 copied this from above, may so well have button to break on send too.
 					break; // get out if NORMAL button is pressed on BP v4 hardware
 				}				
-				if (UART2RXRdy())
+				if (uart2_rx_ready())
 				{
-					UART1TX(UART2RX());
+					UART1TX(uart2_rx());
 				}
 				#else
 				if((U2STAbits.URXDA==1)&& (U1STAbits.UTXBF == 0)){
@@ -405,9 +396,9 @@ void UARTmacro(unsigned int macro)
 			}
 			break;
 		case 4://auto UART baud rate
-			UART2Disable();
+			uart2_disable();
 			UARTgetbaud(0);
-			UART2Enable();
+			uart2_enable();
 #if !defined (BUSPIRATEV4) || defined(BPV4_DEBUG)
 			//BPv4 does not use U2BRG to communicate with PC unless it is in debug mode
 			if(U2BRG<U1BRG) BPMSG1249;
@@ -439,14 +430,14 @@ bool UARTperiodic(void)
 {	unsigned int temp;
 
 	temp=0;
-	while(UART2RXRdy())			//data ready
+	while(uart2_rx_ready())			//data ready
 	{	if(uartSettings.eu==1)
 		{	bpBR;
 			//bpWmessage(MSG_READ); //bpWstring(OUMSG_UART_READ);
 			BPMSG1102;
 			if(U2STAbits.PERR) BPMSG1194;	//bpWstring("-p "); //show any errors
 			if(U2STAbits.FERR) BPMSG1195;	//bpWstring("-f ");
-			bp_write_formatted_integer(UART2RX());
+			bp_write_formatted_integer(uart2_rx());
 			if(U2STAbits.OERR)
 			{	//bpWstring("*Bytes dropped*");
 				BPMSG1196;
@@ -454,7 +445,7 @@ bool UARTperiodic(void)
 			}	
 			bpBR;
 		}else
-		{	UART2RX();//clear the buffer....
+		{	uart2_rx();//clear the buffer....
 		}
 		temp=1;
 	}
@@ -685,8 +676,9 @@ void binUART(void){
 	mode_configuration.high_impedance=1;
 	BRGval=binUARTspeed[0]; //start at 300bps
 	uartSettings.eu=0;
-	UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
-	UART2Enable();
+	uart2_setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp,
+            uartSettings.dbp, uartSettings.sb);
+	uart2_enable();
 	binUARTversionString();
 
 	while(1){
@@ -694,11 +686,11 @@ void binUART(void){
 		//check for incomming bytes on UART2
 		//if echo enabled, send to USB
 		//else, just clear the buffer
-		if( UART2RXRdy()){
+		if( uart2_rx_ready()){
 			if(uartSettings.eu==1){ 
-				UART1TX(UART2RX());
+				UART1TX(uart2_rx());
 			}else{
-				UART2RX();//clear the buffer....
+				uart2_rx();//clear the buffer....
 			}
 		}
 		if(U2STAbits.OERR) U2STA &= (~0b10); //clear overrun error if exists
@@ -712,7 +704,7 @@ void binUART(void){
 				case 0://reset/setup/config commands
 					switch(inByte){
 						case 0://0, reset exit
-							UART2Disable();
+							uart2_disable();
 							return; //exit
 							break;
 						case 1://reply string
@@ -729,12 +721,15 @@ void binUART(void){
 							break;
 						case 7://00000111 - UART speed manual config, 2 bytes (BRGH, BRGL)
 							UART1TX(1);
-							UART2Disable();
+							uart2_disable();
 							BRGval=(unsigned int)(UART1RX()<<8);
 							UART1TX(1);
 							BRGval|=UART1RX(); /* JTR usb port; */
-							UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
-							UART2Enable();
+							uart2_setup(BRGval,
+                                    mode_configuration.high_impedance,
+                                    uartSettings.rxp, uartSettings.dbp,
+                                    uartSettings.sb);
+							uart2_enable();
 							UART1TX(1);
 							break;
 						case 15://00001111 - bridge mode (reset to exit)
@@ -767,7 +762,7 @@ void binUART(void){
 					UART1TX(1);//send 1/OK		
 	
 					for(i=0;i<inByte;i++){
-						UART2TX(UART1RX()); // JTR usb port;
+						uart2_tx(UART1RX()); // JTR usb port;
 						UART1TX(1);
 					}
 	
@@ -787,9 +782,11 @@ void binUART(void){
 					inByte&=(~0b11110000);//clear command portion
 					if(inByte>0b1010) inByte=0b1010; //safe default if out of range
 					BRGval=binUARTspeed[inByte];
-					UART2Disable();
-					UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
-					UART2Enable();
+					uart2_disable();
+					uart2_setup(BRGval, mode_configuration.high_impedance,
+                            uartSettings.rxp, uartSettings.dbp,
+                            uartSettings.sb);
+					uart2_enable();
 					UART1TX(1);//send 1/OK	
 					break;
 				case 0b1000: //set config
@@ -804,9 +801,11 @@ void binUART(void){
 					if(inByte&0b10) uartSettings.sb=1;//set 	
 					if(inByte&0b1) uartSettings.rxp=1;//set 
 					if((inByte&0b10000)==0) mode_configuration.high_impedance=1;//hiz output if this bit is 1
-					UART2Disable();
-					UART2Setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp, uartSettings.dbp, uartSettings.sb );
-					UART2Enable();
+					uart2_disable();
+					uart2_setup(BRGval, mode_configuration.high_impedance,
+                            uartSettings.rxp, uartSettings.dbp,
+                            uartSettings.sb);
+					uart2_enable();
 					UART1TX(1);//send 1/OK	
 					break;
 				default:

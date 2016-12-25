@@ -22,7 +22,6 @@
       <itemPath>../raw3wire.h</itemPath>
       <itemPath>../selftest.h</itemPath>
       <itemPath>../sump.h</itemPath>
-      <itemPath>../uart2io.h</itemPath>
       <itemPath>../dp_usb/usb_stack.h</itemPath>
       <itemPath>../onboard_eeprom.h</itemPath>
       <itemPath>../i2c.h</itemPath>
@@ -39,6 +38,7 @@
       <itemPath>../binary_io.h</itemPath>
       <itemPath>../proc_menu.h</itemPath>
       <itemPath>../core.h</itemPath>
+      <itemPath>../uart2.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -77,7 +77,6 @@
       <itemPath>../selftest.c</itemPath>
       <itemPath>../smps.c</itemPath>
       <itemPath>../sump.c</itemPath>
-      <itemPath>../uart2io.c</itemPath>
       <itemPath>../dp_usb/usb_stack.c</itemPath>
       <itemPath>../onboard_eeprom.c</itemPath>
       <itemPath>../i2c.c</itemPath>
@@ -92,6 +91,7 @@
       <itemPath>../binary_io.c</itemPath>
       <itemPath>../proc_menu.c</itemPath>
       <itemPath>../core.c</itemPath>
+      <itemPath>../uart2.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -112,7 +112,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>ICD3PlatformTool</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>1.26</languageToolchainVersion>
+        <languageToolchainVersion>1.30</languageToolchainVersion>
         <platform>4</platform>
       </toolsSet>
       <compileType>
@@ -743,7 +743,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>1.26</languageToolchainVersion>
+        <languageToolchainVersion>1.30</languageToolchainVersion>
         <platform>4</platform>
       </toolsSet>
       <compileType>
