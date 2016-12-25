@@ -17,6 +17,8 @@
 
 #include "uart2.h"
 
+#if defined(BP_ENABLE_UART_SUPPORT)
+
 #include "base.h"
 
 /* PPS Settings. */
@@ -148,3 +150,5 @@ uint8_t uart2_rx(void) {
 }
 
 bool uart2_rx_ready(void) { return U2STAbits.URXDA; }
+
+#endif /* BP_ENABLE_UART_SUPPORT */

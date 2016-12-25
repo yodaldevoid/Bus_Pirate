@@ -18,10 +18,12 @@
 #ifndef BP_UART2_H
 #define BP_UART2_H
 
+#include "configuration.h"
+
+#if defined(BP_ENABLE_UART_SUPPORT)
+
 #include <stdbool.h>
 #include <stdint.h>
-
-#include "configuration.h"
 
 /**
  * @def UART2_POLARITY_INVERT_YES
@@ -152,5 +154,7 @@ bool uart2_rx_ready(void);
  * @return the character being read from UART #2.
  */
 uint8_t uart2_rx(void);
+
+#endif /* BP_ENABLE_UART_SUPPORT */
 
 #endif /* !BP_UART2_H */
