@@ -33,17 +33,17 @@ typedef struct {
   /**
    * Start the protocol operations.
    */
-  void (*protocol_start)(void);
+  void (*start)(void);
 
   /**
    * Start the protocol operations and immediately read data on the bus.
    */
-  void (*protocol_start_with_read)(void);
+  void (*start_with_read)(void);
 
   /**
    * Stop the protocol operations.
    */
-  void (*protocol_stop)(void);
+  void (*stop)(void);
 
   /**
    * Stop the protocol operations if they have been started with an immediate
@@ -51,7 +51,7 @@ typedef struct {
    *
    * @todo Find a better name for this callback.
    */
-  void (*protocol_stop_from_read)(void);
+  void (*stop_from_read)(void);
 
   /**
    * Send the given data to the bus.
@@ -68,7 +68,7 @@ typedef struct {
    * @return the data being read from the bus if any has to be read, or
    *         0 otherwise.
    */
-  uint16_t (*protocol_send)(uint16_t data);
+  uint16_t (*send)(uint16_t data);
 
   /**
    * Read some data from the bus.
@@ -78,27 +78,27 @@ typedef struct {
    *
    * @return the data being read from the bus.
    */
-  uint16_t (*protocol_read)(void);
+  uint16_t (*read)(void);
 
   /**
    * Pull the clock line high, if one is present.
    */
-  void (*protocol_clock_high)(void);
+  void (*clock_high)(void);
 
   /**
    * Bring the clock line low, if one is present.
    */
-  void (*protocol_clock_low)(void);
+  void (*clock_low)(void);
 
   /**
    * Pull the data line high, if one is present.
    */
-  void (*protocol_data_high)(void);
+  void (*data_high)(void);
 
   /**
    * Bring the data line low, if one is present.
    */
-  void (*protocol_data_low)(void);
+  void (*data_low)(void);
 
   /**
    * Read the state of the data line, if one is present.
@@ -108,19 +108,19 @@ typedef struct {
    *
    * @return the state of the data line.
    */
-  uint16_t (*protocol_data_state)(void);
+  uint16_t (*data_state)(void);
 
   /**
    * Pulse the clock line, if one is present.
    */
-  void (*protocol_clock_pulse)(void);
+  void (*clock_pulse)(void);
 
   /**
    * Read a bit from the bus.
    *
    * @return the bit read from the bus.
    */
-  bool (*protocol_read_bit)(void);
+  bool (*read_bit)(void);
 
   /**
    * Updates the state of the bus and signals that a data I/O operation must
@@ -131,42 +131,42 @@ typedef struct {
    *
    * @return true if there is data to be read, false otherwise.
    */
-  bool (*protocol_periodic_update)(void);
+  bool (*periodic_update)(void);
 
   /**
    * Run the macro defined by the given numeric identifier.
    *
    * @param[in] macro the numeric identifier for the macro.
    */
-  void (*protocol_run_macro)(uint16_t macro);
+  void (*run_macro)(uint16_t macro);
 
   /**
    * Perform the setup steps for the protocol to be able to interact with the
    * outside world.
    */
-  void (*protocol_setup)(void);
+  void (*setup)(void);
 
   /**
    * Perform the final steps of the setup stage, shortly before giving power
    * to the pull-ups and start doing I/O.
    */
-  void (*protocol_get_ready)(void);
+  void (*get_ready)(void);
 
   /**
    * Perform the cleanup steps for the protocol before shutting down.
    */
-  void (*protocol_cleanup)(void);
+  void (*cleanup)(void);
 
   /**
    * Print on the serial port the state of the pins the protocol is currently
    * using.
    */
-  void (*protocol_print_pins_state)(void);
+  void (*print_pins_state)(void);
 
   /**
    * Print on the serial port the current settings in use by the protocol.
    */
-  void (*protocol_print_settings)(void);
+  void (*print_settings)(void);
 
   /**
    * The protocol name, as displayed in the user interface.

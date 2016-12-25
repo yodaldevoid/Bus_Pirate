@@ -151,7 +151,7 @@ void serviceuser(void) {
             while (!UART1RXRdy()) // as long as there is no user input poll periodicservice
             {
                 if (mode_configuration.periodicService == 1) {
-                    if (enabled_protocols[bus_pirate_configuration.bus_mode].protocol_periodic_update()) // did we print something?
+                    if (enabled_protocols[bus_pirate_configuration.bus_mode].periodic_update()) // did we print something?
                     {
                         bp_write_string(enabled_protocols[bus_pirate_configuration.bus_mode].name);
                         bp_write_string(">");
@@ -699,7 +699,7 @@ bpv4reset:
                             
                             //Engaging Clutch
                             //finishes the settup and conects the pins...
-                            enabled_protocols[bus_pirate_configuration.bus_mode].protocol_get_ready();
+                            enabled_protocols[bus_pirate_configuration.bus_mode].get_ready();
                             bp_write_line("Clutch engaged!!!");
                         } else {
                             BP_VREG_OFF();
@@ -716,7 +716,7 @@ bpv4reset:
                     } else {
                         //disengaging Clutch
                         //cleansup the protocol and HiZs the pins
-                        enabled_protocols[bus_pirate_configuration.bus_mode].protocol_cleanup();
+                        enabled_protocols[bus_pirate_configuration.bus_mode].cleanup();
                         bp_write_line("Clutch disengaged!!!");
                         
                         BP_VREG_OFF();
@@ -819,7 +819,7 @@ bpv4reset:
                     if (cmdbuf[((cmdstart) & CMDLENMSK)] == ')') { //cmdstart++;				// skip )
                         //cmdstart&=CMDLENMSK;
                         //bpWdec(sendw);
-                        enabled_protocols[bus_pirate_configuration.bus_mode].protocol_run_macro(sendw);
+                        enabled_protocols[bus_pirate_configuration.bus_mode].run_macro(sendw);
                         bpBR;
                     } else {
                         command_error = true;
@@ -845,7 +845,7 @@ bpv4reset:
                             {
                                 sendw = bp_reverse_integer(sendw);
                             }
-                            enabled_protocols[bus_pirate_configuration.bus_mode].protocol_send(sendw);
+                            enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
                         }
                         cmdstart &= CMDLENMSK;
                         UART1TX(0x22);
@@ -853,16 +853,16 @@ bpv4reset:
                     }
                     break;
                 case '[': //bpWline("-Start");
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_start();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].start();
                     break;
                 case '{': //bpWline("-StartR");
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_start_with_read();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].start_with_read();
                     break;
                 case ']': //bpWline("-Stop");
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_stop();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].stop();
                     break;
                 case '}': //bpWline("-StopR");
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_stop_from_read();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].stop_from_read();
                     break;
                 case '0':
                 case '1':
@@ -895,7 +895,7 @@ bpv4reset:
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             sendw = bp_reverse_integer(sendw);
                         }
-                        received = enabled_protocols[bus_pirate_configuration.bus_mode].protocol_send(sendw);
+                        received = enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
                         bpSP;
                         if (mode_configuration.write_with_read) { //bpWmessage(MSG_READ);
                             BPMSG1102;
@@ -926,7 +926,7 @@ bpv4reset:
 								bus_pirate_configuration.display_mode = newDmode-1;
 						  }
                     while (--repeat) {
-                        received = enabled_protocols[bus_pirate_configuration.bus_mode].protocol_read();
+                        received = enabled_protocols[bus_pirate_configuration.bus_mode].read();
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             received = bp_reverse_integer(received);
                         }
@@ -949,7 +949,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_CLKH);
                     BPMSG1103;
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_clock_high();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].clock_high();
                     //}
                     break;
                 case '\\': //bpWline("-CLK lo");
@@ -957,7 +957,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_CLKL);
                     BPMSG1104;
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_clock_low();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].clock_low();
                     //}
                     break;
                 case '-': //bpWline("-DAT hi");
@@ -965,7 +965,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_DATH);
                     BPMSG1105;
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_data_high();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].data_high();
                     //}
                     break;
                 case '_': //bpWline("-DAT lo");
@@ -973,7 +973,7 @@ bpv4reset:
                     //while(--repeat)
                     //{	//bpWmessage(MSG_BIT_DATL);
                     BPMSG1106;
-                    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_data_low();
+                    enabled_protocols[bus_pirate_configuration.bus_mode].data_low();
                     //}
                     break;
                 case '.': //bpWline("-DAT state read");
@@ -981,7 +981,7 @@ bpv4reset:
                     BPMSG1098;
                     //while(--repeat)
                 {
-                    bpEchoState(enabled_protocols[bus_pirate_configuration.bus_mode].protocol_data_state());
+                    bpEchoState(enabled_protocols[bus_pirate_configuration.bus_mode].data_state());
                     //bpWmessage(MSG_BIT_NOWINPUT);
                     //BPMSG1107;
                 }
@@ -992,7 +992,7 @@ bpv4reset:
                     bp_write_formatted_integer(repeat);
                     repeat++;
                     while (--repeat) { //bpWmessage(MSG_BIT_CLK);
-                        enabled_protocols[bus_pirate_configuration.bus_mode].protocol_clock_pulse();
+                        enabled_protocols[bus_pirate_configuration.bus_mode].clock_pulse();
                     }
                     bpBR;
                     break;
@@ -1000,7 +1000,7 @@ bpv4reset:
                     repeat = getrepeat() + 1;
                     BPMSG1109;
                     while (--repeat) { //bpWmessage(MSG_BIT_READ);
-                        bpEchoState(enabled_protocols[bus_pirate_configuration.bus_mode].protocol_read_bit());
+                        bpEchoState(enabled_protocols[bus_pirate_configuration.bus_mode].read_bit());
                         bpSP;
                     }
                     //bpWmessage(MSG_BIT_NOWINPUT);
@@ -1181,10 +1181,10 @@ void changemode(void) {
             //bpWline("no mode change");
             BPMSG1112;
         } else {
-            enabled_protocols[bus_pirate_configuration.bus_mode].protocol_cleanup();
+            enabled_protocols[bus_pirate_configuration.bus_mode].cleanup();
             bp_reset_board_state();
             bus_pirate_configuration.bus_mode = busmode;
-            enabled_protocols[bus_pirate_configuration.bus_mode].protocol_setup();
+            enabled_protocols[bus_pirate_configuration.bus_mode].setup();
             bp_write_line("Clutch disengaged!!!");
             if (busmode) {
                BP_LEDMODE = 1; // mode led is on when proto >0
@@ -1197,10 +1197,10 @@ void changemode(void) {
     {
         busmode--; // save a couple of programwords to do it here :D
         if (busmode < ENABLED_PROTOCOLS_COUNT) {
-            enabled_protocols[bus_pirate_configuration.bus_mode].protocol_cleanup();
+            enabled_protocols[bus_pirate_configuration.bus_mode].cleanup();
             bp_reset_board_state();
             bus_pirate_configuration.bus_mode = busmode;
-            enabled_protocols[bus_pirate_configuration.bus_mode].protocol_setup();
+            enabled_protocols[bus_pirate_configuration.bus_mode].setup();
             if (busmode) BP_LEDMODE = 1; // mode led is on when proto >0
             //bpWmessage(MSG_READY);
             BPMSG1085;
@@ -1637,7 +1637,7 @@ void statusInfo(void) {
     }
 #endif /* BUSPIRATEV4 */
 
-    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_print_settings();
+    enabled_protocols[bus_pirate_configuration.bus_mode].print_settings();
 
     //bpWline("*----------*");
     BPMSG1119;
@@ -1654,7 +1654,7 @@ void print_pins_information(void) {
     BPMSG1227; //bpWstring("GND\t3.3V\t5.0V\tADC\tVPU\tAUX\t");
 #endif /* BUSPIRATEV4 */
 
-    enabled_protocols[bus_pirate_configuration.bus_mode].protocol_print_pins_state();
+    enabled_protocols[bus_pirate_configuration.bus_mode].print_pins_state();
     BPMSG1228; //bpWstring("P\tP\tP\tI\tI\t");
 #ifdef BUSPIRATEV4
     print_pin_direction(AUX2);

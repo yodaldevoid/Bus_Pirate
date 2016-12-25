@@ -531,10 +531,10 @@ int handle_special_token(const uint8_t token) {
   switch (token) {
 
   case TOK_RECEIVE:
-    return enabled_protocols[bus_pirate_configuration.bus_mode].protocol_read();
+    return enabled_protocols[bus_pirate_configuration.bus_mode].read();
 
   case TOK_SEND:
-    return enabled_protocols[bus_pirate_configuration.bus_mode].protocol_send(
+    return enabled_protocols[bus_pirate_configuration.bus_mode].send(
         assign());
 
   case TOK_AUX:
@@ -542,11 +542,11 @@ int handle_special_token(const uint8_t token) {
 
   case TOK_DAT:
     return enabled_protocols[bus_pirate_configuration.bus_mode]
-        .protocol_data_state();
+        .data_state();
 
   case TOK_BITREAD:
     return enabled_protocols[bus_pirate_configuration.bus_mode]
-        .protocol_read_bit();
+        .read_bit();
 
   case TOK_PSU:
     return BP_VREGEN;
@@ -957,7 +957,7 @@ void interpreter(void) {
       pcupdated = 1;
       basic_program_counter += 4;
 
-      enabled_protocols[bus_pirate_configuration.bus_mode].protocol_start();
+      enabled_protocols[bus_pirate_configuration.bus_mode].start();
       handleelse();
       break;
 
@@ -966,7 +966,7 @@ void interpreter(void) {
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode]
-          .protocol_start_with_read();
+          .start_with_read();
       handleelse();
       break;
 
@@ -974,7 +974,7 @@ void interpreter(void) {
       pcupdated = 1;
       basic_program_counter += 4;
 
-      enabled_protocols[bus_pirate_configuration.bus_mode].protocol_stop();
+      enabled_protocols[bus_pirate_configuration.bus_mode].stop();
       handleelse();
       break;
 
@@ -983,14 +983,14 @@ void interpreter(void) {
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode]
-          .protocol_stop_from_read();
+          .stop_from_read();
       handleelse();
       break;
 
     case TOK_SEND:
       pcupdated = 1;
       basic_program_counter += 4;
-      enabled_protocols[bus_pirate_configuration.bus_mode].protocol_send(
+      enabled_protocols[bus_pirate_configuration.bus_mode].send(
           (int)assign());
       handleelse();
       break;
@@ -1073,10 +1073,10 @@ void interpreter(void) {
 
       if (assign()) {
         enabled_protocols[bus_pirate_configuration.bus_mode]
-            .protocol_data_high();
+            .data_high();
       } else {
         enabled_protocols[bus_pirate_configuration.bus_mode]
-            .protocol_data_low();
+            .data_low();
       }
       handleelse();
       break;
@@ -1088,15 +1088,15 @@ void interpreter(void) {
       switch (assign()) {
       case 0:
         enabled_protocols[bus_pirate_configuration.bus_mode]
-            .protocol_clock_low();
+            .clock_low();
         break;
       case 1:
         enabled_protocols[bus_pirate_configuration.bus_mode]
-            .protocol_clock_high();
+            .clock_high();
         break;
       case 2:
         enabled_protocols[bus_pirate_configuration.bus_mode]
-            .protocol_clock_pulse();
+            .clock_pulse();
         break;
       }
       handleelse();
@@ -1126,7 +1126,7 @@ void interpreter(void) {
       pcupdated = 1;
       basic_program_counter += 4;
       temp = assign();
-      enabled_protocols[bus_pirate_configuration.bus_mode].protocol_run_macro(
+      enabled_protocols[bus_pirate_configuration.bus_mode].run_macro(
           temp);
       handleelse();
       break;

@@ -146,90 +146,91 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
-bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {{/* protocol_start */
+bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {{
+                                           /* start */
                                            null_operation_callback,
-                                           /* protocol_start_with_read */
+                                           /* start_with_read */
                                            null_operation_callback,
-                                           /* protocol_stop */
+                                           /* stop */
                                            null_operation_callback,
-                                           /* protocol_stop_from_read */
+                                           /* stop_from_read */
                                            null_operation_callback,
-                                           /* protocol_send */
+                                           /* send */
                                            null_send_callback,
-                                           /* protocol_read */
+                                           /* read */
                                            null_data_read_callback,
-                                           /* protocol_clock_high */
+                                           /* clock_high */
                                            null_operation_callback,
-                                           /* protocol_clock_low */
+                                           /* clock_low */
                                            null_operation_callback,
-                                           /* protocol_data_high */
+                                           /* data_high */
                                            null_operation_callback,
-                                           /* protocol_data_low */
+                                           /* data_low */
                                            null_operation_callback,
-                                           /* protocol_data_state */
+                                           /* data_state */
                                            null_data_read_callback,
-                                           /* protocol_clock_pulse */
+                                           /* clock_pulse */
                                            null_operation_callback,
-                                           /* protocol_read_bit */
+                                           /* read_bit */
                                            null_bit_read_callback,
-                                           /* protocol_periodic_update */
+                                           /* periodic_update */
                                            null_bit_read_callback,
-                                           /* protocol_run_macro */
+                                           /* run_macro */
                                            null_macro_callback,
-                                           /* protocol_setup */
+                                           /* setup */
                                            reset_mode_to_8_bits,
-                                           /* protocol_get_ready */
+                                           /* get_ready */
                                            reset_mode_to_8_bits,
-                                           /* protocol_cleanup */
+                                           /* cleanup */
                                            reset_mode_to_8_bits,
-                                           /* protocol_print_pins_state */
+                                           /* print_pins_state */
                                            hiz_print_pins_state,
-                                           /* protocol_print_settings */
+                                           /* print_settings */
                                            empty_print_settings_implementation,
                                            /* name */
                                            "HiZ"}
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
                                           ,
-                                          {/* protocol_start */
+                                          {/* start */
                                            onewire_reset,
-                                           /* protocol_start_with_read */
+                                           /* start_with_read */
                                            onewire_reset,
-                                           /* protocol_stop */
+                                           /* stop */
                                            null_operation_callback,
-                                           /* protocol_stop_from_read */
+                                           /* stop_from_read */
                                            null_operation_callback,
-                                           /* protocol_send */
+                                           /* send */
                                            onewire_write,
-                                           /* protocol_read */
+                                           /* read */
                                            onewire_read,
-                                           /* protocol_clock_high */
+                                           /* clock_high */
                                            null_operation_callback,
-                                           /* protocol_clock_low */
+                                           /* clock_low */
                                            null_operation_callback,
-                                           /* protocol_data_high */
+                                           /* data_high */
                                            onewire_data_high,
-                                           /* protocol_data_low */
+                                           /* data_low */
                                            onewire_data_low,
-                                           /* protocol_data_state */
+                                           /* data_state */
                                            onewire_data_state,
-                                           /* protocol_clock_pulse */
+                                           /* clock_pulse */
                                            onewire_clock_pulse,
-                                           /* protocol_read_bit */
+                                           /* read_bit */
                                            onewire_read_bit,
-                                           /* protocol_periodic_update */
+                                           /* periodic_update */
                                            null_bit_read_callback,
-                                           /* protocol_run_macro */
+                                           /* run_macro */
                                            onewire_run_macro,
-                                           /* protocol_setup */
+                                           /* setup */
                                            onewire_setup,
-                                           /* protocol_get_ready */
+                                           /* get_ready */
                                            onewire_setup,
-                                           /* protocol_cleanup */
+                                           /* cleanup */
                                            reset_mode_to_8_bits,
-                                           /* protocol_print_pins_state */
+                                           /* print_pins_state */
                                            onewire_pins_state,
-                                           /* protocol_print_settings */
+                                           /* print_settings */
                                            empty_print_settings_implementation,
                                            /* name */
                                            "1-WIRE"}
@@ -427,45 +428,45 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {{/* protocol
 
 #ifdef BP_ENABLE_DIO_SUPPORT
                                           ,
-                                          {/* protocol_start */
+                                          {/* start */
                                            null_operation_callback,
-                                           /* protocol_start_with_read */
+                                           /* start_with_read */
                                            null_operation_callback,
-                                           /* protocol_stop */
+                                           /* stop */
                                            null_operation_callback,
-                                           /* protocol_stop_from_read */
+                                           /* stop_from_read */
                                            null_operation_callback,
-                                           /* protocol_send */
+                                           /* send */
                                            dio_write,
-                                           /* protocol_read */
+                                           /* read */
                                            dio_read,
-                                           /* protocol_clock_high */
+                                           /* clock_high */
                                            null_operation_callback,
-                                           /* protocol_clock_low */
+                                           /* clock_low */
                                            null_operation_callback,
-                                           /* protocol_data_high */
+                                           /* data_high */
                                            null_operation_callback,
-                                           /* protocol_data_low */
+                                           /* data_low */
                                            null_operation_callback,
-                                           /* protocol_data_state */
+                                           /* data_state */
                                            null_data_read_callback,
-                                           /* protocol_clock_pulse */
+                                           /* clock_pulse */
                                            null_operation_callback,
-                                           /* protocol_read_bit */
+                                           /* read_bit */
                                            null_bit_read_callback,
-                                           /* protocol_periodic_update */
+                                           /* periodic_update */
                                            null_bit_read_callback,
-                                           /* protocol_run_macro */
+                                           /* run_macro */
                                            null_macro_callback,
-                                           /* protocol_setup */
+                                           /* setup */
                                            silent_null_operation_callback,
-                                           /* protocol_get_ready */
+                                           /* get_ready */
                                            silent_null_operation_callback,
-                                           /* protocol_cleanup */
+                                           /* cleanup */
                                            reset_mode_to_8_bits,
-                                           /* protocol_print_pins_state */
+                                           /* print_pins_state */
                                            hiz_print_pins_state,
-                                           /* protocol_print_settings */
+                                           /* print_settings */
                                            empty_print_settings_implementation,
                                            /* name */
                                            "DIO"}
