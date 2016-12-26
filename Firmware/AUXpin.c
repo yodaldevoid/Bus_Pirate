@@ -552,7 +552,7 @@ void bpAuxHiZ(void)
 {
 #ifndef BUSPIRATEV4
 
-        if(mode_configuration.altAUX==0)
+        if(mode_configuration.alternate_aux==0)
         {       BP_AUX0_DIR=1;//aux input
         }
         else
@@ -560,7 +560,7 @@ void bpAuxHiZ(void)
         }
 #endif
 #ifdef BUSPIRATEV4
-        switch(mode_configuration.altAUX)
+        switch(mode_configuration.alternate_aux)
         {       case 0: BP_AUX0_DIR=1;
                                 break;
                 case 1: BP_CS_DIR=1;
@@ -579,7 +579,7 @@ void bpAuxHiZ(void)
 void bpAuxHigh(void){
 
 #ifndef BUSPIRATEV4
-        if(mode_configuration.altAUX==0)
+        if(mode_configuration.alternate_aux==0)
         {       BP_AUX0_DIR=0;//aux output
                 BP_AUX0=1;//aux high
         }
@@ -589,7 +589,7 @@ void bpAuxHigh(void){
         }
 #endif
 #ifdef BUSPIRATEV4
-        switch(mode_configuration.altAUX)
+        switch(mode_configuration.alternate_aux)
         {       case 0: BP_AUX0_DIR=0;
                                 BP_AUX0=1;
                                 break;
@@ -613,7 +613,7 @@ void bpAuxHigh(void){
 void bpAuxLow(void){
         
 #ifndef BUSPIRATEV4
-        if(mode_configuration.altAUX==0)
+        if(mode_configuration.alternate_aux==0)
         {       BP_AUX0_DIR=0;//aux output
                 BP_AUX0=0;//aux high
         }
@@ -623,7 +623,7 @@ void bpAuxLow(void){
         }
 #endif
 #ifdef BUSPIRATEV4
-        switch(mode_configuration.altAUX)
+        switch(mode_configuration.alternate_aux)
         {       case 0: BP_AUX0_DIR=0;
                                 BP_AUX0=0;
                                 break;
@@ -648,7 +648,7 @@ unsigned int bpAuxRead(void){
         unsigned char c;
 
 #ifndef BUSPIRATEV4
-        if(mode_configuration.altAUX==0){
+        if(mode_configuration.alternate_aux==0){
                 BP_AUX0_DIR=1;//aux input
                 Nop();
                 Nop();
@@ -662,7 +662,7 @@ unsigned int bpAuxRead(void){
 #endif
 
 #ifdef BUSPIRATEV4
-        switch(mode_configuration.altAUX)
+        switch(mode_configuration.alternate_aux)
         {       case 0: BP_AUX0_DIR=1;
                 Nop();
                 Nop();

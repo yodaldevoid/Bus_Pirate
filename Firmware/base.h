@@ -115,7 +115,7 @@ typedef struct {
   unsigned char speed;
   unsigned char numbits;
   unsigned char buf[16];
-  unsigned char altAUX : 2; // there are 4 AUX on BUSPIRATEV4
+  unsigned char alternate_aux : 2; // there are 4 AUX on BUSPIRATEV4
   unsigned char periodicService : 1;
   unsigned char lsbEN : 1;
   unsigned char high_impedance : 1;

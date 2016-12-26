@@ -1024,9 +1024,9 @@ void interpreter(void) {
       basic_program_counter += 4;
 
       if (assign()) {
-        mode_configuration.altAUX = ON;
+        mode_configuration.alternate_aux = ON;
       } else {
-        mode_configuration.altAUX = OFF;
+        mode_configuration.alternate_aux = OFF;
       }
       handleelse();
       break;

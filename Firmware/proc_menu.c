@@ -540,21 +540,21 @@ end:
                     }
                     break;
                 case 'c': //bpWline("-aux pin assigment");
-                    mode_configuration.altAUX = 0;
+                    mode_configuration.alternate_aux = 0;
                     //bpWmessage(MSG_OPT_AUXPIN_AUX);
                     BPMSG1086;
                     break;
                 case 'C': //bpWline("-aux pin assigment");
-                    mode_configuration.altAUX = 1;
+                    mode_configuration.alternate_aux = 1;
                     //bpWmessage(MSG_OPT_AUXPIN_CS);
                     BPMSG1087;
                     break;
 #ifdef BUSPIRATEV4
-                case 'k': mode_configuration.altAUX = 2;
+                case 'k': mode_configuration.alternate_aux = 2;
                     //bpWline("AUX1 selected");
                     BPMSG1263;
                     break;
-                case 'K': mode_configuration.altAUX = 3;
+                case 'K': mode_configuration.alternate_aux = 3;
                     //bpWline("AUX2 selected");
                     BPMSG1264;
                     break;
@@ -1620,12 +1620,12 @@ void statusInfo(void) {
 
     //AUX pin setting
 #ifndef BUSPIRATEV4
-    if (mode_configuration.altAUX == 1) BPMSG1087;
+    if (mode_configuration.alternate_aux == 1) BPMSG1087;
     else BPMSG1086; //bpWmessage(MSG_OPT_AUXPIN_CS); else bpWmessage(MSG_OPT_AUXPIN_AUX);
 #endif /* !BUSPIRATEV4 */
     
 #ifdef BUSPIRATEV4
-    switch (mode_configuration.altAUX) {
+    switch (mode_configuration.alternate_aux) {
         case 0: BPMSG1087;
             break;
         case 1: BPMSG1086;

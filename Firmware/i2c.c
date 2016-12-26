@@ -962,10 +962,10 @@ I2C_write_read_error: //use this for the read error too
 					            fr = bpAuxRead();
 					            break;
 					         case 0x10:
-					            mode_configuration.altAUX = 0;
+					            mode_configuration.alternate_aux = 0;
 					            break;
 					         case 0x20:
-					            mode_configuration.altAUX = 1;
+					            mode_configuration.alternate_aux = 1;
 					            break;
 					         default:
 					            fw = 0;

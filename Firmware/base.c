@@ -61,7 +61,7 @@ void clear_mode_configuration(void) {
     mode_configuration.high_impedance = 0;
     mode_configuration.speed = 0; 
     mode_configuration.periodicService = 0;
-    mode_configuration.altAUX = 0;
+    mode_configuration.alternate_aux = 0;
     mode_configuration.lsbEN = 0;
 }
 
