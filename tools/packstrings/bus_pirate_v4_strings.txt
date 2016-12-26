@@ -76,4 +76,18 @@ HLP1020	1	"s\tScript engine\t\t\t:\tRepeat e.g. r:10"
 HLP1021	1	"v\tShow volts/states\t\t;\tBits to read/write e.g. 0x55;2"
 HLP1022	1	"w/W\tPSU (off/ON)\t\t<x>/<x= >/<0>\tUsermacro x/assign x/list all"
 
+// Post-6.2 strings.
+
+MSG_BAUD_DETECTION_SELECTED	1	"Baud detection selected.."
+MSG_CFG0_FIELD	0	"CFG0: "
+MSG_CHIP_REVISION_A5	0	"A5"
+MSG_CHIP_REVISION_ID_BEGIN	0	" (24FJ256GB106 "
+MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED	1	"On-board EEPROM write protect disabled"
+MSG_RESET_MESSAGE	1	"RESET"
+MSG_USING_ONBOARD_I2C_EEPROM	1	"Now using on-board EEPROM I2C interface"
+MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT	1	"Warning: already a voltage on Vpullup pin"
+MSG_VPU_3V3_MARKER	0	"Vpu=3V3, "
+MSG_VPU_5V_MARKER	0	"Vpu=5V, "
+MSG_XSV1_MODE_IDENTIFIER	0	"XSV1"
+
 // vim:cc=80:noet:number:

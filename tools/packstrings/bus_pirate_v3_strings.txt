@@ -57,4 +57,15 @@ HLP1020	1	" s\tScript engine\t\t\t:\tRepeat e.g. r:10"
 HLP1021	1	" v\tShow volts/states\t\t.\tBits to read/write e.g. 0x55.2"
 HLP1022	1	" w/W\tPSU (off/ON)\t\t<x>/<x= >/<0>\tUsermacro x/assign x/list all"
 
+// Post-6.2 strings.
+
+MSG_CHIP_IDENTIFIER_CLONE	0	" clone w/different PIC"
+MSG_CHIP_REVISION_B4	0	"B4"
+MSG_CHIP_REVISION_B5	0	"B5"
+MSG_CHIP_REVISION_B8	0	"B8"
+MSG_CHIP_REVISION_ID_BEGIN	0	" (24FJ64GA00 "
+MSG_CHIP_REVISION_ID_END_2	0	"2 "
+MSG_CHIP_REVISION_ID_END_4	0	"4 "
+MSG_OPENOCD_MODE_IDENTIFIER	0	"OCD1"
+
 // vim:cc=80:noet:number:

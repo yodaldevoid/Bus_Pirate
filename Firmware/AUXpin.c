@@ -268,7 +268,7 @@ void bpFreq(void){
         // at 4000Hz 1 bit resolution of frequency measurement = 1 bit resolution of period measurement
         if(f>3999){ // when < 4 KHz  counting edges is inferior to measuring period(s)
                 bpWlongdecf(f); // this function uses comma's to seperate thousands.
-                bp_write_line(" Hz");
+                MSG_PWM_HZ_MARKER;
         }else if (f>0) {
                 BPMSG1245;
                 p=bpPeriod_count(f);
@@ -333,9 +333,11 @@ void bpFreq(void){
                      f = f % 10; // frequency resolution < 1
                      bpWdec(f);
                 }
-                bp_write_line(" Hz");
+                MSG_PWM_HZ_MARKER;
 			//END of IF(f>0)
-			}else   bp_write_line("Frequencies < 1Hz are not supported.");
+			}else {
+                MSG_PWM_FREQUENCY_TOO_LOW;
+            }
 
         //return clock input to other pin
         RPINR3bits.T2CKR=0b11111; //assign T2 clock input to nothing

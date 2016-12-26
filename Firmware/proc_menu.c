@@ -427,7 +427,7 @@ end:
                     cmdbuf[cmdend] = 0x00; // use to find history
                     cmdend = (cmdend + 1) & CMDLENMSK;
                     tmpcmdend = cmdend; // resync
-                    bp_write_line("");
+                    bpBR;
                     break;
                 case 0x00:
                     binmodecnt++;
@@ -597,8 +597,9 @@ end:
                         bpBR;
 
                         ADCON();
-                        if (bp_read_adc(BP_ADC_VPU) < 0x50) { //no pullup voltage detected
-                            bp_write_line("Warning: no voltage on Vpullup pin");
+                        if (bp_read_adc(BP_ADC_VPU) < 0x50) {
+                            /* No voltage on pullup pin detected. */
+                            MSG_NO_VOLTAGE_ON_PULLUP_PIN;
                         }
                         ADCOFF();
                     }
@@ -608,32 +609,29 @@ end:
                     break;
 #endif /* BUSPIRATEV4 */
                 case '=':
-                    //bpWline("-HEX/BIN/DEC convertor");
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
                     temp = getint();
                     bpWhex(temp);
-                    bp_write_string(" = ");
+                    MSG_BASE_CONVERTER_EQUAL_SIGN;
                     bpWdec(temp);
-                    bp_write_string(" = ");
+                    MSG_BASE_CONVERTER_EQUAL_SIGN;
                     bpWbin(temp);
                     bpBR;
                     break;
                 case '|':
-                    //bpWline("-HEX/BIN/DEC convertor");
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
                     temp = getint();
                     temp = bp_reverse_integer((unsigned char) temp);
                     bpWhex(temp);
-                    bp_write_string(" = ");
+                    MSG_BASE_CONVERTER_EQUAL_SIGN;
                     bpWdec(temp);
-                    bp_write_string(" = ");
+                    MSG_BASE_CONVERTER_EQUAL_SIGN;
                     bpWbin(temp);
                     bpBR;
                     break;
                 case '~':
-                    //bpWline("-selftest");
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) {
                         perform_selftest(true, true);
                     } else {
@@ -642,9 +640,8 @@ end:
                     }
                     break;
                 case '#':
-                    //bpWline("-reset BP");
 #ifdef BUSPIRATEV4
-                    bp_write_string("RESET\r\n");
+                    MSG_RESET_MESSAGE;
 bpv4reset:
                     print_version_info();
 #else
@@ -698,12 +695,12 @@ bpv4reset:
                             //modeConfig.vregEN=1;
                             
                             //Engaging Clutch
-                            //finishes the settup and conects the pins...
+                            //finishes the set up and connects the pins...
                             enabled_protocols[bus_pirate_configuration.bus_mode].get_ready();
-                            bp_write_line("Clutch engaged!!!");
+                            MSG_CLUTCH_ENGAGED;
                         } else {
                             BP_VREG_OFF();
-                            bp_write_line("VREG too low, is there a short?");
+                            MSG_VREG_TOO_LOW;
                             BPMSG1097;
                             bpBR;
                         }
@@ -715,9 +712,9 @@ bpv4reset:
                         BPMSG1088;
                     } else {
                         //disengaging Clutch
-                        //cleansup the protocol and HiZs the pins
+                        //cleans up the protocol and HiZs the pins
                         enabled_protocols[bus_pirate_configuration.bus_mode].cleanup();
-                        bp_write_line("Clutch disengaged!!!");
+                        MSG_CLUTCH_DISENGAGED;
                         
                         BP_VREG_OFF();
                         //bpWmessage(MSG_VREG_OFF);
@@ -1185,10 +1182,10 @@ void changemode(void) {
             bp_reset_board_state();
             bus_pirate_configuration.bus_mode = busmode;
             enabled_protocols[bus_pirate_configuration.bus_mode].setup();
-            bp_write_line("Clutch disengaged!!!");
+            MSG_CLUTCH_DISENGAGED;
             if (busmode) {
                BP_LEDMODE = 1; // mode led is on when proto >0
-               bp_write_line("To finish setup, start up the power supplies with command 'W'\r\n");
+               MSG_FINISH_SETUP_PROMPT;
             }
             //bpWmessage(MSG_READY);
             BPMSG1085;
@@ -1235,19 +1232,19 @@ int cmdhistory(void) {
             historypos[i] = (j + 1) & CMDLENMSK;
             i++;
             if (i == BP_COMMAND_HISTORY_LENGTH) break;
-            bp_write_line("");
+            bpBR;
         }
         j = (j - 1) & CMDLENMSK;
     }
 
-    bp_write_line(" ");
+    bpBR;
     BPMSG1115;
 
     j = getnumber(0, 1, i, 1);
 
     if (j == -1 || !j) // x is -1, default is 0
     {
-        bp_write_line("");
+        bpBR;
         return 1;
     }
     
@@ -1481,7 +1478,7 @@ void print_version_info(void) {
     UART1TX(bus_pirate_configuration.hardware_version);
     if (bus_pirate_configuration.device_type == 0x44F) {
         //sandbox electronics clone with 44pin PIC24FJ64GA004
-        bp_write_string(" clone w/different PIC");
+        MSG_CHIP_IDENTIFIER_CLONE;
     }
     bpBR;
 #else
@@ -1515,42 +1512,42 @@ void print_version_info(void) {
     BPMSG1210;
     bpWinthex(bus_pirate_configuration.device_revision);
 #ifdef BUSPIRATEV4
-    bp_write_string(" (24FJ256GB106 ");
+    MSG_CHIP_REVISION_ID_BEGIN;
     switch (bus_pirate_configuration.device_revision) {
         case PIC_REV_A3:
-            bp_write_string("A3");
+            MSG_CHIP_REVISION_A3;
             break;
         case PIC_REV_A5:
-            bp_write_string("A5");
+            MSG_CHIP_REVISION_A5;
             break;
         default:
-            bp_write_string("UNK");
+            MSG_CHIP_REVISION_UNKNOWN;
             break;
     }
 #else
-    bp_write_string(" (24FJ64GA00");
+    MSG_CHIP_REVISION_ID_BEGIN;
     if (bus_pirate_configuration.device_type == 0x44F) {
         //sandbox electronics clone with 44pin PIC24FJ64GA004
-        bp_write_string("4 ");
+        MSG_CHIP_REVISION_ID_END_4;
     } else {
-        bp_write_string("2 ");
+        MSG_CHIP_REVISION_ID_END_2;
     }
 
     switch (bus_pirate_configuration.device_revision) {
         case PIC_REV_A3:
-            bp_write_string("A3"); //also A4, but that's not in the wild and makes it confusing to users
+            MSG_CHIP_REVISION_A3;
             break;
         case PIC_REV_B4:
-            bp_write_string("B4");
+            MSG_CHIP_REVISION_B4;
             break;
         case PIC_REV_B5:
-            bp_write_string("B5");
+            MSG_CHIP_REVISION_B5;
             break;
         case PIC_REV_B8:
-            bp_write_string("B8");
+            MSG_CHIP_REVISION_B8;
             break;
         default:
-            bp_write_string("UNK");
+            MSG_CHIP_REVISION_UNKNOWN;
             break;
     }
 #endif /* BUSPIRATEV4 */
@@ -1564,22 +1561,18 @@ void print_version_info(void) {
 //display properties of the current bus mode (pullups, vreg, lsb, output type, etc)
 
 void statusInfo(void) {
-
 #ifdef BUSPIRATEV4
-    bp_write_string("CFG0: ");
+    MSG_CFG0_FIELD;
     bpWinthex(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_0));
     bpSP;
 #endif /* BUSPIRATEV4 */
 
-    //bpWstring("CFG1:");
     BPMSG1136;
     bpWinthex(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_1));
-    //bpWstring(" CFG2:");
     BPMSG1137;
     bpWinthex(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_2));
     bpBR;
 
-    //bpWline("*----------*");
     BPMSG1119;
 
     print_pins_information();
@@ -1598,8 +1591,12 @@ void statusInfo(void) {
     bpSP;
 
 #ifdef BUSPIRATEV4
-    if (BP_PUVSEL50_DIR == 0) bp_write_string("Vpu=5V, ");
-    if (BP_PUVSEL33_DIR == 0) bp_write_string("Vpu=3V3, ");
+    if (BP_PUVSEL50_DIR == 0) {
+        MSG_VPU_5V_MARKER;
+    }
+    if (BP_PUVSEL33_DIR == 0) {
+        MSG_VPU_3V3_MARKER;
+    }
 #endif /* BUSPIRATEV4 */
 
     //open collector outputs?
@@ -1785,7 +1782,7 @@ void set_baud_rate(void) {
 
         if (brg == 0) {
             command_error = false;
-            bp_write_line("Enter raw value for BRG");
+            MSG_RAW_BRG_VALUE_INPUT;
             brg = getnumber(34, 0, 32767, 0);
         }
     }
@@ -1829,7 +1826,8 @@ void setPullupVoltage(void) {
     bp_delay_ms(2);
     ADCON();
     if (bp_read_adc(BP_ADC_VPU) > 0x100) { //is there already an external voltage?
-        bp_write_line("Warning: already a voltage on Vpullup pin"); // shouldn;t this be an error?
+        /* Shouldn't this be an error? */
+        MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT;
     }
     ADCOFF();
 

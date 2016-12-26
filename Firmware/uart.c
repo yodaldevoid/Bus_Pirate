@@ -163,7 +163,7 @@ void UARTsetup(void)
 
 		BPMSG1133;
 		
-		#if defined(BUSPIRATEV4)
+#if defined(BUSPIRATEV4)
 		// BPv4 Mode; has custom BAUD entry and auto-baud detection
 
 		mode_configuration.speed=getnumber(1,1,11,0)-1; //get user reply
@@ -173,7 +173,7 @@ void UARTsetup(void)
 			mode_configuration.speed=8; //Set to 115200 for now
 			abd=1;				//trigger to run baud detection
 			uartSettings.autoBaudF = 1;
-			bp_write_line("Baud detection selected..");
+			MSG_BAUD_DETECTION_SELECTED;
 		}
 		
 		if(mode_configuration.speed==9)
@@ -185,9 +185,8 @@ void UARTsetup(void)
 			abd=0;							//set abd to 0; so 'Auto Baud Detection' routine isnt ran below
 			//hack hack hakc
 			U2BRG = brg;    //passing the brg variable to U2BRG so the UARTsetup_exc can use it to start UART2setup..
-		} 
-		
-		#else
+		} 		
+#else
 		// Normal mode; input BRG and no autobaud detection
 		mode_configuration.speed=getnumber(1,1,10,0)-1; //get user reply
 		
@@ -197,10 +196,8 @@ void UARTsetup(void)
 			//hack hack hack 
 			U2BRG = brg; //passing the brg variable to U2BRG so the UARTsetup_exc can use it to start UART2setup..
 		} 
-		#endif
+#endif /* BUSPIRATEV4 */
 
-
-		
 		//bpWstring("Data bits and parity:\x0D\x0A 1. 8, NONE *default \x0D\x0A 2. 8, EVEN \x0D\x0A 3. 8, ODD \x0D\x0A 4. 9, NONE \x0D\x0A");
 		//bpWline(OUMSG_UART_DATABITS_PARITY); //write text (data bit and parity)
 		BPMSG1199;
@@ -664,8 +661,6 @@ peripheral settings
 */
 static const unsigned int binUARTspeed[]={13332,3332,1666,832,416,207,127,103,68,34,};//BRG:300,1200,2400,4800,9600,19200,31250,38400,57600,115200
 
-void binUARTversionString(void){bp_write_string("ART1");}
-
 void binUART(void){
 	static unsigned char inByte, rawCommand,i;
 	static unsigned int BRGval;
@@ -679,7 +674,7 @@ void binUART(void){
 	uart2_setup(BRGval,mode_configuration.high_impedance, uartSettings.rxp,
             uartSettings.dbp, uartSettings.sb);
 	uart2_enable();
-	binUARTversionString();
+    MSG_UART_MODE_IDENTIFIER;
 
 	while(1){
 
@@ -708,7 +703,7 @@ void binUART(void){
 							return; //exit
 							break;
 						case 1://reply string
-							binUARTversionString();
+                            MSG_UART_MODE_IDENTIFIER;
 							break;
 						case 2://00000010 � Show UART input
 							UART1TX(1);

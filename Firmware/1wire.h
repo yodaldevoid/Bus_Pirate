@@ -108,7 +108,7 @@ void onewire_pins_state(void);
  *
  * @see bus_pirate_protocol_t.protocol_data_state
  */
-unsigned int onewire_data_state(void);
+uint16_t onewire_data_state(void);
 
 /**
  * Resets the bus.

@@ -800,3 +800,96 @@ _bp_messages:
 	; HLP1022
 	.pascii "w/W\tPSU (off/ON)\t\t<x>/<x= >/<0>\tUsermacro x/assign x/list all"
 
+	; MSG_1WIRE_MODE_IDENTIFIER
+	.pascii "1W01"
+
+	; MSG_BASE_CONVERTER_EQUAL_SIGN
+	.pascii " = "
+
+	; MSG_BAUD_DETECTION_SELECTED
+	.pascii "Baud detection selected.."
+
+	; MSG_BBIO_MODE_IDENTIFIER
+	.pascii "BBIO1"
+
+	; MSG_CFG0_FIELD
+	.pascii "CFG0: "
+
+	; MSG_CHIP_REVISION_A3
+	.pascii "A3"
+
+	; MSG_CHIP_REVISION_A5
+	.pascii "A5"
+
+	; MSG_CHIP_REVISION_ID_BEGIN
+	.pascii " (24FJ256GB106 "
+
+	; MSG_CHIP_REVISION_UNKNOWN
+	.pascii "UNK"
+
+	; MSG_CLUTCH_DISENGAGED
+	.pascii "Clutch disengaged!!!"
+
+	; MSG_CLUTCH_ENGAGED
+	.pascii "Clutch engaged!!!"
+
+	; MSG_FINISH_SETUP_PROMPT
+	.pascii "To finish setup, start up the power supplies with command 'W'"
+
+	; MSG_I2C_MODE_IDENTIFIER
+	.pascii "I2C1"
+
+	; MSG_NO_VOLTAGE_ON_PULLUP_PIN
+	.pascii "Warning: no voltage on Vpullup pin"
+
+	; MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED
+	.pascii "On-board EEPROM write protect disabled"
+
+	; MSG_PIC_MODE_IDENTIFIER
+	.pascii "PIC1"
+
+	; MSG_PIC_UNKNOWN_MODE
+	.pascii "unknown mode"
+
+	; MSG_PWM_FREQUENCY_TOO_LOW
+	.pascii "Frequencies < 1Hz are not supported."
+
+	; MSG_PWM_HZ_MARKER
+	.pascii " Hz"
+
+	; MSG_RAW_BRG_VALUE_INPUT
+	.pascii "Enter raw value for BRG"
+
+	; MSG_RAW_MODE_IDENTIFIER
+	.pascii "RAW1"
+
+	; MSG_RESET_MESSAGE
+	.pascii "RESET"
+
+	; MSG_SPI_COULD_NOT_KEEP_UP
+	.pascii "Couldn't keep up"
+
+	; MSG_SPI_MODE_IDENTIFIER
+	.pascii "SPI1"
+
+	; MSG_UART_MODE_IDENTIFIER
+	.pascii "ART1"
+
+	; MSG_USING_ONBOARD_I2C_EEPROM
+	.pascii "Now using on-board EEPROM I2C interface"
+
+	; MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT
+	.pascii "Warning: already a voltage on Vpullup pin"
+
+	; MSG_VPU_3V3_MARKER
+	.pascii "Vpu=3V3, "
+
+	; MSG_VPU_5V_MARKER
+	.pascii "Vpu=5V, "
+
+	; MSG_VREG_TOO_LOW
+	.pascii "VREG too low, is there a short?"
+
+	; MSG_XSV1_MODE_IDENTIFIER
+	.pascii "XSV1"
+

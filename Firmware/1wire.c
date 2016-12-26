@@ -48,11 +48,6 @@
 #include "binary_io.h"
 
 /**
- * Binary I/O mode identifier.
- */
-static const uint8_t ONEWIRE_MODE_IDENTIFIER[] = {'1', 'W', '0', '1'};
-
-/**
  * Size of a 1-Wire ROM number identifier, in bytes.
  */
 #define ROM_BYTES_SIZE 8
@@ -132,7 +127,10 @@ static uint8_t onewire_internal_byte_io(uint8_t byte_value);
  *
  * @param[in] value the value to write.
  */
-#define ONEWIRE_WRITE_BYTE(value) onewire_internal_byte_io(value)
+#define ONEWIRE_WRITE_BYTE(value)                                              \
+  do {                                                                         \
+    onewire_internal_byte_io(value);                                           \
+  } while (0)
 
 /**
  * Internal macro for triggering a byte bus read.
@@ -146,7 +144,10 @@ static uint8_t onewire_internal_byte_io(uint8_t byte_value);
  *
  * @param[in] value the value to write.
  */
-#define ONEWIRE_WRITE_BIT(value) onewire_internal_bit_io(value)
+#define ONEWIRE_WRITE_BIT(value)                                               \
+  do {                                                                         \
+    onewire_internal_bit_io(value);                                            \
+  } while (0)
 
 /**
  * Internal macro for triggering a bit bus read.
@@ -282,11 +283,6 @@ static const uint8_t CRC_TABLE[] = {
 static uint8_t update_crc8(uint8_t value);
 
 /**
- * Prints the 1-Wire binary protocol identifier to the serial port.
- */
-static void print_1wire_version_string(void);
-
-/**
  * Looks up the given model identifier and checks it against a list of known
  * devices, then prints the model information if a match is found.
  */
@@ -337,9 +333,9 @@ static void print_device_information(size_t roster_id, uint8_t *rom_address);
 
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
 
-unsigned int onewire_read(void) { return ONEWIRE_READ_BYTE(); }
+uint16_t onewire_read(void) { return ONEWIRE_READ_BYTE(); }
 
-unsigned int onewire_write(uint16_t value) {
+uint16_t onewire_write(uint16_t value) {
   ONEWIRE_WRITE_BYTE(value & 0xFF);
 
   return 0x100;
@@ -349,7 +345,7 @@ bool onewire_read_bit(void) { return ONEWIRE_READ_BIT(); }
 
 void onewire_clock_pulse(void) { ONEWIRE_WRITE_BIT(onewire_state.data_state); }
 
-unsigned int onewire_data_state(void) { return onewire_state.data_state; }
+uint16_t onewire_data_state(void) { return onewire_state.data_state; }
 
 void onewire_data_low(void) {
   onewire_state.data_state = LOW;
@@ -605,8 +601,10 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
 
 #ifdef BP_1WIRE_LOOKUP_FAMILY_ID
 
-/* TODO: Expand this table from the data at
- * http://owfs.org/index.php?page=family-code-list */
+/* 
+ * TODO: Expand this table from the data at
+ * http://owfs.org/index.php?page=family-code-list
+ */
 
 #define DS2404 0x04
 #define DS18S20 0x10
@@ -651,9 +649,9 @@ bool device_find_first() {
   return perform_device_search();
 }
 
-bool device_find_next() { return perform_device_search(); }
+bool device_find_next(void) { return perform_device_search(); }
 
-bool perform_device_search() {
+bool perform_device_search(void) {
   bool id_bit;
   bool cmp_id_bit;
 
@@ -876,7 +874,7 @@ uint8_t update_crc8(uint8_t value) {
  *
  * Interaction flow is as follows:
  *
- * PC         -> 9b0100xxxx
+ * PC         -> 0b0100xxxx
  * Bus Pirate <- 0b00000001 (SUCCESS)
  */
 #define BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS 0x04
@@ -1032,10 +1030,6 @@ uint8_t update_crc8(uint8_t value) {
  */
 #define BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO 0x09
 
-void print_1wire_version_string(void) {
-  bp_write_buffer(&ONEWIRE_MODE_IDENTIFIER[0], sizeof(ONEWIRE_MODE_IDENTIFIER));
-}
-
 void binary_io_enter_1wire_mode(void) {
   uint8_t input_byte;
   uint8_t command;
@@ -1054,7 +1048,7 @@ void binary_io_enter_1wire_mode(void) {
 
   /* Send version string. */
 
-  print_1wire_version_string();
+  MSG_1WIRE_MODE_IDENTIFIER;
 
   for (;;) {
 
@@ -1068,12 +1062,12 @@ void binary_io_enter_1wire_mode(void) {
         return;
 
       case BINARY_IO_ONEWIRE_ACTION_VERSION_STRING:
-        print_1wire_version_string();
+        MSG_1WIRE_MODE_IDENTIFIER;
         break;
 
       case BINARY_IO_ONEWIRE_ACTION_BUS_RESET:
         perform_bus_reset();
-        UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+        REPORT_IO_SUCCESS();
         break;
 
       case BINARY_IO_ONEWIRE_ACTION_READ_BYTE:
@@ -1085,7 +1079,7 @@ void binary_io_enter_1wire_mode(void) {
         bool next;
         size_t index;
 
-        UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+        REPORT_IO_SUCCESS();
 
         onewire_state.command_byte =
             (input_byte == BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO)
@@ -1112,7 +1106,7 @@ void binary_io_enter_1wire_mode(void) {
       }
 
       default:
-        UART1TX(BP_BINARY_IO_RESULT_FAILURE);
+        REPORT_IO_FAILURE();
         break;
       }
       break;
@@ -1121,11 +1115,11 @@ void binary_io_enter_1wire_mode(void) {
       size_t index;
 
       input_byte = (input_byte & 0x0F) + 1;
-      UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+      REPORT_IO_SUCCESS();
 
       for (index = 0; index < input_byte; index++) {
         ONEWIRE_WRITE_BYTE(UART1RX());
-        UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+        REPORT_IO_SUCCESS();
       }
 
       break;
@@ -1133,7 +1127,7 @@ void binary_io_enter_1wire_mode(void) {
 
     case BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS:
       bp_binary_io_peripherals_set(input_byte);
-      UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+      REPORT_IO_SUCCESS();
       break;
 
 #ifdef BUSPIRATEV4
@@ -1143,7 +1137,7 @@ void binary_io_enter_1wire_mode(void) {
 #endif /* BUSPIRATEV4 */
 
     default:
-      UART1TX(BP_BINARY_IO_RESULT_FAILURE);
+      REPORT_IO_FAILURE();
       break;
     }
   }

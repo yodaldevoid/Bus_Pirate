@@ -54,7 +54,6 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 #define CMD_UART_SPEED    0x07
 #define CMD_JTAG_SPEED    0x08
 
-static void binOpenOCDString(void);
 static void binOpenOCDPinMode(unsigned char mode);
 static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action);
 static void binOpenOCDAnswer(unsigned char *buf, unsigned int len);
@@ -79,10 +78,7 @@ enum {
 	MODE_JTAG_OD=2, // open-drain outputs
 };
 
-
 static unsigned int OpenOCDJtagDelay;
-
-static void binOpenOCDString(void){bp_write_string("OCD1");}
 
 void binOpenOCD(void){
 	unsigned char *buf = bus_pirate_configuration.terminal_input; // for simplicity :)
@@ -92,7 +88,7 @@ void binOpenOCD(void){
 
 	OpenOCDJtagDelay = 1;
 
-	binOpenOCDString();
+	MSG_OPENOCD_MODE_IDENTIFIER;
 
 	while(1){
 /*
@@ -133,7 +129,7 @@ this will misbehave when polling is turned off in OpenOCD
 			case CMD_UNKNOWN:
 				return;
 			case CMD_ENTER_OOCD:
-				binOpenOCDString();
+                MSG_OPENOCD_MODE_IDENTIFIER;
 				break;
 			case CMD_READ_ADCS:
 				buf[0] = CMD_READ_ADCS;

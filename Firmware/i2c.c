@@ -67,7 +67,6 @@ void hwi2csendack(unsigned char ack);
 unsigned char hwi2cgetack(void);
 void hwi2cwrite(unsigned char c);
 unsigned char hwi2cread(void);
-void binI2CversionString(void);
 
 #ifdef BP_I2C_USE_HW_BUS
 static const uint8_t I2Cspeed[] = {157, 37, 13}; //100,400,1000khz; datasheet pg 145
@@ -402,7 +401,7 @@ void I2Cmacro(unsigned int c) {
             break;
 #if defined (BUSPIRATEV4)
         case 3: //in hardware mode (or software, I guess) we can edit the on-board EEPROM -software mode unimplemented...
-            bp_write_line("Now using on-board EEPROM I2C interface");
+            MSG_USING_ONBOARD_I2C_EEPROM;
             i2c_state.i2c_internal = 1;
             I2C1CONbits.A10M = 0;
             I2C1CONbits.SCLREL = 0;
@@ -424,7 +423,7 @@ void I2Cmacro(unsigned int c) {
             break;
         case 4:
             if (i2c_state.i2c_internal == 1) {
-                bp_write_line("On-board EEPROM write protect disabled");
+                MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED;
                 BP_EE_WP = 0;
             }
             break;
@@ -436,11 +435,11 @@ void I2Cmacro(unsigned int c) {
 }
 
 void I2Cpins(void) {
-        #if defined(BUSPIRATEV4)
+#if defined(BUSPIRATEV4)
         BPMSG1261; //bpWline("-\t-\tSCL\tSDA");
-        #else
+#else
        	BPMSG1231; //bpWline("SCL\tSDA\t-\t-");
-        #endif
+#endif
 }
 //
 //
@@ -812,9 +811,6 @@ rawI2C mode:
 # (0100)wxyz � Configure peripherals w=power, x=pullups, y=AUX, z=CS (was 0110)
 # (0101)wxyz � read peripherals (planned, not implemented)
  */
-void binI2CversionString(void) {
-    bp_write_string("I2C1");
-}
 
 void binI2C(void) {
     static unsigned char inByte, rawCommand, i;
@@ -832,7 +828,7 @@ void binI2C(void) {
     mode_configuration.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
     mode_configuration.lsbEN = 0; //just in case!
     bitbang_setup(2, BITBANG_SPEED_MAXIMUM); //configure the bitbang library for 2-wire, set the speed to default/high
-    binI2CversionString(); //reply string
+    MSG_I2C_MODE_IDENTIFIER;
 
     while (1) {
 
@@ -848,7 +844,7 @@ void binI2C(void) {
                         return; //exit
                         break;
                     case 1://1 - id reply string
-                        binI2CversionString(); //reply string
+                        MSG_I2C_MODE_IDENTIFIER;
                         break;
                     case 2://I2C start bit
                         bitbang_i2c_start();

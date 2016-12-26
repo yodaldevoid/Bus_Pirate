@@ -48,7 +48,6 @@ extern command_t last_command;
 extern bus_pirate_configuration_t bus_pirate_configuration; //we use the big buffer
 extern bool command_error;
 
-void binSPIversionString(void);
 //void spiSetup(unsigned char spiSpeed);
 //void spiDisable(void);
 //unsigned char spiWriteByte(unsigned char c);
@@ -459,7 +458,7 @@ spiSnifferStart:
             SPI2STAT = 0;
 
             if (termMode) {
-                bp_write_line("Couldn't keep up");
+                MSG_SPI_COULD_NOT_KEEP_UP;
                 goto spiSnifferStart;
             }
 
@@ -576,10 +575,6 @@ rawSPI mode:
  * 00000010 - Bulk Memory Read from Flash
  */
 
-void binSPIversionString(void) {
-    bp_write_string("SPI1");
-}
-
 void binSPI(void) {
     static unsigned char inByte, rawCommand, i;
     unsigned int j, fw, fr;
@@ -595,8 +590,8 @@ void binSPI(void) {
     spiSettings.smp = 0;
     mode_configuration.high_impedance = 1;
     spi_setup(spi_bus_speed[mode_configuration.speed]);
-    binSPIversionString(); //1 - SPI setup and reply string
-
+    MSG_SPI_MODE_IDENTIFIER;
+    
     while (1) {
 
         inByte = UART1RX(); /* JTR usb port; */ //grab it
@@ -610,7 +605,7 @@ void binSPI(void) {
                         return; //exit
                         break;
                     case 1://1 - SPI setup and reply string
-                        binSPIversionString();
+                        MSG_SPI_MODE_IDENTIFIER;
                         break;
                     case 2:
                         IOLAT &= (~CS); //SPICS=0; //cs enable/low

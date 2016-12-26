@@ -224,4 +224,27 @@ BPMSG1283	0	"\n\rCalculated: \t"
 BPMSG1284	0	"\n\rEstimated:  \t"
 BPMSG1285	1	" bps"
 
+// Post-6.2 strings.
+
+MSG_1WIRE_MODE_IDENTIFIER	0	"1W01"
+MSG_BASE_CONVERTER_EQUAL_SIGN	0	" = "
+MSG_BBIO_MODE_IDENTIFIER	0	"BBIO1"
+MSG_CHIP_REVISION_A3	0	"A3"
+MSG_CHIP_REVISION_UNKNOWN	0	"UNK"
+MSG_CLUTCH_DISENGAGED	1	"Clutch disengaged!!!"
+MSG_CLUTCH_ENGAGED	1	"Clutch engaged!!!"
+MSG_FINISH_SETUP_PROMPT	1	"To finish setup, start up the power supplies with command 'W'"
+MSG_I2C_MODE_IDENTIFIER	0	"I2C1"
+MSG_NO_VOLTAGE_ON_PULLUP_PIN	1	"Warning: no voltage on Vpullup pin"
+MSG_PIC_MODE_IDENTIFIER	0	"PIC1"
+MSG_PIC_UNKNOWN_MODE	1	"unknown mode"
+MSG_PWM_FREQUENCY_TOO_LOW	1	"Frequencies < 1Hz are not supported."
+MSG_PWM_HZ_MARKER	1	" Hz"
+MSG_RAW_BRG_VALUE_INPUT	1	"Enter raw value for BRG"
+MSG_RAW_MODE_IDENTIFIER	0	"RAW1"
+MSG_SPI_COULD_NOT_KEEP_UP	1	"Couldn't keep up"
+MSG_SPI_MODE_IDENTIFIER	0	"SPI1"
+MSG_UART_MODE_IDENTIFIER	0	"ART1"
+MSG_VREG_TOO_LOW	1	"VREG too low, is there a short?"
+
 // vim:cc=80:noet:number:

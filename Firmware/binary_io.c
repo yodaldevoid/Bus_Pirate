@@ -57,9 +57,17 @@
 extern mode_configuration_t mode_configuration;
 extern bus_pirate_configuration_t bus_pirate_configuration;
 
+/**
+ * Sends the Binary I/O mode identifier over to the serial channel.
+ * 
+ * Unlike other instances of mode identifier reporting, this is called several
+ * times in the same function and therefore it makes sense to encapsulate it in
+ * a single function to save on code size.
+ */
+static void send_binary_io_mode_identifier(void);
+
 // unsigned char binBBpindirectionset(unsigned char inByte);
 // unsigned char binBBpinset(unsigned char inByte);
-void binBBversion(void);
 void binSelfTest(bool jumper_test);
 void binReset(void);
 unsigned char getRXbyte(void);
@@ -103,7 +111,10 @@ Commands:
 //
 010xxxxx //set input(1)/output(0) pin state (returns pin read)
  */
-void binBBversion(void) { bp_write_string("BBIO1"); }
+
+void send_binary_io_mode_identifier(void) {
+    MSG_BBIO_MODE_IDENTIFIER;
+}
 
 void binBB(void) {
   static unsigned char inByte;
@@ -111,7 +122,7 @@ void binBB(void) {
 
   BP_LEDMODE = 1; // light MODE LED
   binReset();
-  binBBversion(); // send mode name and version
+  send_binary_io_mode_identifier();
 
   while (1) {
 
@@ -119,54 +130,54 @@ void binBB(void) {
 
     if ((inByte & 0b10000000) == 0) { // if command bit cleared, process command
       if (inByte == 0) {              // reset, send BB version
-        binBBversion();
+        send_binary_io_mode_identifier();
       } else if (inByte == 1) { // goto SPI mode
         binReset();
 #ifdef BP_ENABLE_SPI_SUPPORT
         binSPI(); // go into rawSPI loop
 #endif            /* BP_ENABLE_SPI_SUPPORT */
         binReset();
-        binBBversion();         // say name on return
+        send_binary_io_mode_identifier();
       } else if (inByte == 2) { // goto I2C mode
         binReset();
 #ifdef BP_ENABLE_I2C_SUPPORT
         binI2C();
 #endif /* BP_ENABLE_I2C_SUPPORT */
         binReset();
-        binBBversion();         // say name on return
+        send_binary_io_mode_identifier();
       } else if (inByte == 3) { // goto UART mode
         binReset();
 #ifdef BP_ENABLE_UART_SUPPORT
         binUART();
 #endif
         binReset();
-        binBBversion();         // say name on return
+        send_binary_io_mode_identifier();
       } else if (inByte == 4) { // goto 1WIRE mode
         binReset();
 #ifdef BP_ENABLE_1WIRE_SUPPORT
         binary_io_enter_1wire_mode();
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
         binReset();
-        binBBversion();         // say name on return
+        send_binary_io_mode_identifier();
       } else if (inByte == 5) { // goto RAW WIRE mode
         binReset();
         binwire();
         binReset();
-        binBBversion();         // say name on return
+        send_binary_io_mode_identifier();
       } else if (inByte == 6) { // goto OpenOCD mode
         binReset();
 #ifdef BP_JTAG_OPENOCD_SUPPORT
         binOpenOCD();
 #endif /* BP_JTAG_OPENOCD_SUPPORT */
         binReset();
-        binBBversion();         // say name on return
+        send_binary_io_mode_identifier();
       } else if (inByte == 7) { // goto pic mode
         binReset();
 #ifdef BP_ENABLE_PIC_SUPPORT
         binpic();
 #endif /* BP_ENABLE_PIC_SUPPORT */
         binReset();
-        binBBversion();              // say name on return
+        send_binary_io_mode_identifier();
       } else if (inByte == 0b1111) { // return to terminal
         UART1TX(1);
         BP_LEDMODE = 0; // light MODE LED
@@ -251,7 +262,7 @@ void binBB(void) {
 #ifdef BUSPIRATEV4
       } else if (inByte == 0b11000) { // XSVF Player to program CPLD
         BP_VREGEN = 1;
-        bp_write_string("XSV1");
+        MSG_XSV1_MODE_IDENTIFIER;
         jtag();
 #endif
         //--- End added JM
@@ -511,7 +522,6 @@ bool bp_binary_io_pullup_control(uint8_t control_byte) {
 
 #endif /* BUSPIRATEV4 */
 
-void binrawversionString(void);
 void PIC24NOP(void);
 
 void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath);
@@ -564,10 +574,6 @@ void PIC424Read(void);
 
  */
 
-void binrawversionString(void) {
-    bp_write_string("RAW1");
-}
-
 enum {
     PICUNK = 0,
     PIC416,
@@ -597,7 +603,7 @@ void binwire(void) {
     R3WMISO_TRIS = 1;
     bitbang_set_cs(1); //takes care of custom HiZ settings too
 
-    binrawversionString(); //reply ID string
+    MSG_RAW_MODE_IDENTIFIER;
 
     while (1) {
 
@@ -613,7 +619,7 @@ void binwire(void) {
                         return; //exit
                         break;
                     case 1://id reply string
-                        binrawversionString(); //reply string
+                        MSG_RAW_MODE_IDENTIFIER;
                         break;
                     case 2://start bit
                         bitbang_i2c_start();

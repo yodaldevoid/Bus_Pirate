@@ -150,7 +150,7 @@ unsigned int picread(void)
 						bitbang_set_pins_low(CLK, PICSPEED/2);
 						bitbang_set_pins_low(MOSI, PICSPEED/5);
 						break;
-		default:		bp_write_line("unknown mode");
+		default:		MSG_PIC_UNKNOWN_MODE;
 					BPMSG1078;
 						return 0;
 	}
@@ -317,7 +317,7 @@ void binpic(void)
 	int ok;
 	unsigned int temp;
 
-	bp_write_string("PIC1");
+	MSG_PIC_MODE_IDENTIFIER;
 	mode_configuration.high_impedance=1;				// to allow different Vcc 
 	bitbang_set_pins_low(MOSI|CLK, PICSPEED);		// pull both pins to 0 before applying Vcc and Vpp
 	picmode=PICMODE6;
@@ -331,7 +331,7 @@ void binpic(void)
 						switch(cmd&0xF0)
 						{	case 0x00:	switch(cmd)
 										{	case 0x00:	return;
-											case 0x01:	bp_write_string("PIC1");
+											case 0x01:	MSG_PIC_MODE_IDENTIFIER;
 														break;
 											case 0x02:	picmode=PICMODE6;
 														break;
