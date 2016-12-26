@@ -5,7 +5,6 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>../1wire.h</itemPath>
-      <itemPath>../AUXpin.h</itemPath>
       <itemPath>../base.h</itemPath>
       <itemPath>../baseIO.h</itemPath>
       <itemPath>../basic.h</itemPath>
@@ -39,6 +38,7 @@
       <itemPath>../proc_menu.h</itemPath>
       <itemPath>../core.h</itemPath>
       <itemPath>../uart2.h</itemPath>
+      <itemPath>../aux_pin.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -58,7 +58,6 @@
                    displayName="Source Files"
                    projectFiles="true">
       <itemPath>../1wire.c</itemPath>
-      <itemPath>../AUXpin.c</itemPath>
       <itemPath>../base.c</itemPath>
       <itemPath>../baseIO.c</itemPath>
       <itemPath>../basic.c</itemPath>
@@ -92,6 +91,7 @@
       <itemPath>../proc_menu.c</itemPath>
       <itemPath>../core.c</itemPath>
       <itemPath>../uart2.c</itemPath>
+      <itemPath>../aux_pin.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

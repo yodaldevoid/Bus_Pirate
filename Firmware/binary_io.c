@@ -50,7 +50,7 @@
 #include "smps.h"
 #endif /* BP_ENABLE_SMPS_SUPPORT */
 
-#include "AUXpin.h"
+#include "aux_pin.h"
 #include "binary_io.h"
 #include "core.h"
 

@@ -20,7 +20,7 @@
 
 #include "base.h"
 #include "bitbang.h"
-#include "AUXpin.h"
+#include "aux_pin.h"
 
 #include "proc_menu.h"		// for the userinteraction subs
 

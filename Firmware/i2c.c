@@ -22,7 +22,7 @@
 #include "bitbang.h"
 #include "binary_io.h"
 #include "core.h"//need access to bpConfig
-#include "AUXpin.h"
+#include "aux_pin.h"
 
 #include "proc_menu.h"		// for the userinteraction subs
 
@@ -946,16 +946,16 @@ I2C_write_read_error: //use this for the read error too
 					      fr=1;
 					      switch( inByte ) {
 					         case 0x00:
-					            bpAuxLow();
+					            bp_aux_pin_set_low();
 					            break;
 					         case 0x01:
-					            bpAuxHigh();
+					            bp_aux_pin_set_high();
 					            break;
 					         case 0x02:
-					            bpAuxHiZ();
+					            bp_aux_pin_set_high_impedance();
 					            break;
 					         case 0x03:
-					            fr = bpAuxRead();
+					            fr = bp_aux_pin_read();
 					            break;
 					         case 0x10:
 					            mode_configuration.alternate_aux = 0;

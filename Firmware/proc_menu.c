@@ -20,7 +20,7 @@
 #include "configuration.h"
 
 #include "base.h"
-#include "AUXpin.h"
+#include "aux_pin.h"
 #include "core.h"
 #include "proc_menu.h" //need our public versionInfo() function
 #include "selftest.h"
@@ -664,19 +664,19 @@ bpv4reset:
                 case 'a':
                     //bpWline("-AUX low");
                     repeat = getrepeat() + 1;
-                    while (--repeat) bpAuxLow();
+                    while (--repeat) bp_aux_pin_set_low();
                     break;
                 case 'A':
                     //bpWline("-AUX hi");
                     repeat = getrepeat() + 1;
-                    while (--repeat) bpAuxHigh();
+                    while (--repeat) bp_aux_pin_set_high();
                     break;
                 case '@':
                     //bpWline("-Aux read");
                     repeat = getrepeat() + 1;
                     while (--repeat) { //bpWstring(OUMSG_AUX_INPUT_READ);
                         BPMSG1095;
-                        bpEchoState(bpAuxRead());
+                        bpEchoState(bp_aux_pin_read());
                         bpBR;
                     }
                     break;

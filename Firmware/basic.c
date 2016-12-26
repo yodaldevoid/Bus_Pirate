@@ -43,7 +43,7 @@
  */
 #define BP_BASIC_VARIABLES_COUNT 26
 
-#include "AUXpin.h"
+#include "aux_pin.h"
 #include "base.h"
 #include "bitbang.h"
 #include "core.h"
@@ -537,7 +537,7 @@ int handle_special_token(const uint8_t token) {
     return enabled_protocols[bus_pirate_configuration.bus_mode].send(assign());
 
   case TOK_AUX:
-    return bpAuxRead();
+    return bp_aux_pin_read();
 
   case TOK_DAT:
     return enabled_protocols[bus_pirate_configuration.bus_mode].data_state();
@@ -993,9 +993,9 @@ void interpreter(void) {
       basic_program_counter += 4;
 
       if (assign()) {
-        bpAuxHigh();
+        bp_aux_pin_set_high();
       } else {
-        bpAuxLow();
+        bp_aux_pin_set_low();
       }
       handle_else_statement();
       break;

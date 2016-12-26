@@ -23,7 +23,7 @@
 #include "baseIO.h"
 #include "core.h"
 #include "proc_menu.h"		// for the userinteraction subs
-#include "AUXpin.h"
+#include "aux_pin.h"
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
