@@ -128,27 +128,6 @@ _bp_messages:
 	; BPMSG1051
 	.pascii "Too long!"
 
-	; BPMSG1052
-	.pascii "Syntax error"
-
-	; BPMSG1053
-	.pascii "No EEPROM"
-
-	; BPMSG1054
-	.pascii "Erasing"
-
-	; BPMSG1055
-	.pascii "done"
-
-	; BPMSG1056
-	.pascii "Saving to slot "
-
-	; BPMSG1057
-	.pascii "Invalid slot"
-
-	; BPMSG1058
-	.pascii "Loading from slot "
-
 	; BPMSG1059
 	.pascii "ERROR: command has no effect here"
 

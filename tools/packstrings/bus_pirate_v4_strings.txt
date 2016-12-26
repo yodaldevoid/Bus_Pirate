@@ -18,6 +18,13 @@
 
 // v4-only strings follow.
 
+BPMSG1052	1	"Syntax error"
+BPMSG1053	1	"No EEPROM"
+BPMSG1054	0	"Erasing"
+BPMSG1055	1	"done"
+BPMSG1056	0	"Saving to slot "
+BPMSG1057	1	"Invalid slot"
+BPMSG1058	0	"Loading from slot "
 BPMSG1069	0	" 0.Macro menu\r\n 1.7bit address search\r\n 2.I2C sniffer\r\n 3.Connect to on-board EEPROM\r\n 4.Enable Writing the on-board EEPROM"
 BPMSG1133	1	"Set serial port speed: (bps)\r\n 1. 300\r\n 2. 1200\r\n 3. 2400\r\n 4. 4800\r\n 5. 9600\r\n 6. 19200\r\n 7. 38400\r\n 8. 57600\r\n 9. 115200\r\n10. Input Custom BAUD\r\n11. Auto-Baud Detection (Activity Required)"
 BPMSG1163	1	"Disconnect any devices\r\nConnect (ADC to +3.3V)"

@@ -170,9 +170,6 @@ _bp_messages:
 	; BPMSG1065
 	.pascii "Set speed:\r\n 1. ~5KHz\r\n 2. ~50KHz\r\n 3. ~100KHz\r\n 4. ~400KHz"
 
-	; BPMSG1066
-	.pascii "WARNING: HARDWARE I2C is broken on this PIC! (REV A3)"
-
 	; BPMSG1067
 	.pascii "Set speed:\r\n 1. 100KHz\r\n 2. 400KHz\r\n 3. 1MHz"
 
@@ -334,9 +331,6 @@ _bp_messages:
 
 	; BPMSG1124
 	.pascii "LSB set: LEAST sig bit first"
-
-	; BPMSG1126
-	.pascii " Bootloader v"
 
 	; BPMSG1127
 	.pascii " 1. HEX\r\n 2. DEC\r\n 3. BIN\r\n 4. RAW"
@@ -596,32 +590,14 @@ _bp_messages:
 	; BPMSG1223
 	.pascii "CURSOR SET"
 
-	; BPMSG1225
-	.pascii "CLK\tMOSI\tCS\tMISO"
-
 	; BPMSG1226
 	.pascii "Pinstates:"
-
-	; BPMSG1227
-	.pascii "GND\t3.3V\t5.0V\tADC\tVPU\tAUX\t"
 
 	; BPMSG1228
 	.pascii "P\tP\tP\tI\tI\t"
 
-	; BPMSG1229
-	.pascii "-\tOWD\t-\t-"
-
 	; BPMSG1230
 	.pascii "-\tTxD\t-\tRxD"
-
-	; BPMSG1231
-	.pascii "SCL\tSDA\t-\t-"
-
-	; BPMSG1232
-	.pascii "PGC\tPGD\t-\t-"
-
-	; BPMSG1233
-	.pascii "1.(BR)\t2.(RD)\t3.(OR)\t4.(YW)\t5.(GN)\t6.(BL)\t7.(PU)\t8.(GR)\t9.(WT)\t0.(Blk)"
 
 	; BPMSG1234
 	.pascii "GND\t"
