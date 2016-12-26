@@ -2,9 +2,6 @@
 
 _bp_messages:
 
-	; BPMSG1000
-	.pascii "WRITE BIT: "
-
 	; BPMSG1001
 	.pascii " *next clock (^) will use this value"
 
@@ -85,12 +82,6 @@ _bp_messages:
 
 	; BPMSG1030
 	.pascii "Frequency in KHz "
-
-	; BPMSG1031
-	.pascii "Prescale:"
-
-	; BPMSG1032
-	.pascii "PR2:"
 
 	; BPMSG1033
 	.pascii "Duty cycle in % "
@@ -317,17 +308,11 @@ _bp_messages:
 	; BPMSG1112
 	.pascii "no mode change"
 
-	; BPMSG1113
-	.pascii "#: No software reset on v4, use the reset button."
-
 	; BPMSG1114
 	.pascii "Nonexistent protocol!"
 
 	; BPMSG1115
 	.pascii "x. exit"
-
-	; BPMSG1116
-	.pascii "\r\nInvalid choice, try again"
 
 	; BPMSG1117
 	.pascii "DEVID:"
@@ -358,18 +343,6 @@ _bp_messages:
 
 	; BPMSG1128
 	.pascii "Display format set"
-
-	; BPMSG1129
-	.pascii "Voltage monitors: "
-
-	; BPMSG1130
-	.pascii "5V: "
-
-	; BPMSG1131
-	.pascii " | 3.3V: "
-
-	; BPMSG1132
-	.pascii " | VPULLUP: "
 
 	; BPMSG1133
 	.pascii "Set serial port speed: (bps)\r\n 1. 300\r\n 2. 1200\r\n 3. 2400\r\n 4. 4800\r\n 5. 9600\r\n 6. 19200\r\n 7. 38400\r\n 8. 57600\r\n 9. 115200\r\n10. BRG raw value"
@@ -605,17 +578,8 @@ _bp_messages:
 	; BPMSG1214
 	.pascii "RS HIGH, DATA MODE"
 
-	; BPMSG1215
-	.pascii "Address of PCF8574?"
-
 	; BPMSG1216
 	.pascii "This mode requires an adapter"
-
-	; BPMSG1217
-	.pascii "LCD type:\r\n 1. HD44780 (using PCF8574 IO expander)"
-
-	; BPMSG1218
-	.pascii "LCD (typ addr) = ( "
 
 	; BPMSG1219
 	.pascii " 0.Macro menu\r\n 1.LCD Reset\r\n 2.Init LCD\r\n 3.Clear LCD\r\n 4.Cursor position ex:(4) 0\r\n 6.Write test numbers ex:(6) 80\r\n 7.Write test characters ex:(7) 80"
@@ -631,9 +595,6 @@ _bp_messages:
 
 	; BPMSG1223
 	.pascii "CURSOR SET"
-
-	; BPMSG1224
-	.pascii "No ACK, check adapter"
 
 	; BPMSG1225
 	.pascii "CLK\tMOSI\tCS\tMISO"
@@ -665,12 +626,6 @@ _bp_messages:
 	; BPMSG1234
 	.pascii "GND\t"
 
-	; BPMSG1235
-	.pascii "GND\tADC\t5.0V\t3.3V\tVPU\tAUX\t"
-
-	; BPMSG1236
-	.pascii "execute : "
-
 	; BPMSG1237
 	.pascii " TIMEOUT"
 
@@ -697,12 +652,6 @@ _bp_messages:
 
 	; BPMSG1245
 	.pascii " autorange "
-
-	; BPMSG1246
-	.pascii "+MHz)"
-
-	; BPMSG1247
-	.pascii "+kHz)"
 
 	; BPMSG1248
 	.pascii "Raw value for BRG (MIDI=127)"
