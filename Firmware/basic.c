@@ -146,7 +146,7 @@ typedef struct {
   unsigned int from;
   unsigned int var;
   unsigned int to;
-} basic_for_loop_t;
+} __attribute__((packed)) basic_for_loop_t;
 
 static int basic_variables[BP_BASIC_VARIABLES_COUNT];
 static int basic_stack[BP_BASIC_STACK_FRAMES_DEPTH];
@@ -481,9 +481,9 @@ static int handle_special_token(const uint8_t token);
 
 static void list(void);
 static void interpreter(void);
-static void handleelse(void);
-static int getnumvar(void);
-static int getmultdiv(void);
+static void handle_else_statement(void);
+static int get_number_or_variable(void);
+static int get_multiplication_division_bitwise_ops(void);
 static int assign(void);
 static void interpreter(void);
 static void list(void);
@@ -496,7 +496,7 @@ static void load(void);
 static void waiteeprom(void);
 #endif /* BP_BASIC_I2C_FILESYSTEM */
 
-void handleelse(void) {
+void handle_else_statement(void) {
   if (basic_program_area[basic_program_counter] == TOK_ELSE) {
     basic_program_counter++;
     while (basic_program_area[basic_program_counter] <= TOK_LEN) {
@@ -534,19 +534,16 @@ int handle_special_token(const uint8_t token) {
     return enabled_protocols[bus_pirate_configuration.bus_mode].read();
 
   case TOK_SEND:
-    return enabled_protocols[bus_pirate_configuration.bus_mode].send(
-        assign());
+    return enabled_protocols[bus_pirate_configuration.bus_mode].send(assign());
 
   case TOK_AUX:
     return bpAuxRead();
 
   case TOK_DAT:
-    return enabled_protocols[bus_pirate_configuration.bus_mode]
-        .data_state();
+    return enabled_protocols[bus_pirate_configuration.bus_mode].data_state();
 
   case TOK_BITREAD:
-    return enabled_protocols[bus_pirate_configuration.bus_mode]
-        .read_bit();
+    return enabled_protocols[bus_pirate_configuration.bus_mode].read_bit();
 
   case TOK_PSU:
     return BP_VREGEN;
@@ -569,7 +566,7 @@ int handle_special_token(const uint8_t token) {
   }
 }
 
-int getnumvar(void) {
+int get_number_or_variable(void) {
   int temp;
 
   temp = 0;
@@ -580,12 +577,16 @@ int getnumvar(void) {
     if ((basic_program_area[basic_program_counter] == ')')) {
       basic_program_counter++;
     }
-  } else if ((basic_program_area[basic_program_counter] >= 'A') &&
-             (basic_program_area[basic_program_counter] <= 'Z')) {
-    return basic_variables[basic_program_area[basic_program_counter++] - 'A'];
-  } else if (basic_program_area[basic_program_counter] > TOKENS) {
-    return handle_special_token(basic_program_area[basic_program_counter++]);
   } else {
+    if ((basic_program_area[basic_program_counter] >= 'A') &&
+        (basic_program_area[basic_program_counter] <= 'Z')) {
+      return basic_variables[basic_program_area[basic_program_counter++] - 'A'];
+    }
+
+    if (basic_program_area[basic_program_counter] > TOKENS) {
+      return handle_special_token(basic_program_area[basic_program_counter++]);
+    }
+
     while ((basic_program_area[basic_program_counter] >= '0') &&
            (basic_program_area[basic_program_counter] <= '9')) {
       temp *= 10;
@@ -597,35 +598,31 @@ int getnumvar(void) {
   return temp;
 }
 
-int getmultdiv(void) {
+int get_multiplication_division_bitwise_ops(void) {
   int temp;
-  temp = getnumvar();
-  while (1) {
-    if ((basic_program_area[basic_program_counter] != '*') &&
-        (basic_program_area[basic_program_counter] != '/') &&
-        (basic_program_area[basic_program_counter] != '&') &&
-        (basic_program_area[basic_program_counter] != '|')) {
+
+  temp = get_number_or_variable();
+
+  for (;;) {
+    switch (basic_program_area[basic_program_counter++]) {
+    case '*':
+      temp *= get_number_or_variable();
+      break;
+
+    case '/':
+      temp /= get_number_or_variable();
+      break;
+
+    case '&':
+      temp &= get_number_or_variable();
+      break;
+
+    case '|':
+      temp |= get_number_or_variable();
+      break;
+
+    default:
       return temp;
-    } else // assume operand
-    {      // bpWstring("op ");
-      // UART1TX(pgmspace[pc]);
-      // bpSP;
-      switch (basic_program_area[basic_program_counter++]) {
-      case '*': // UART1TX('*');
-        temp *= getnumvar();
-        break;
-      case '/': // UART1TX('/');
-        temp /= getnumvar();
-        break;
-      case '&': // UART1TX('/');
-        temp &= getnumvar();
-        break;
-      case '|': // UART1TX('/');
-        temp |= getnumvar();
-        break;
-      default:
-        break;
-      }
     }
   }
 }
@@ -633,47 +630,45 @@ int getmultdiv(void) {
 int assign(void) {
   unsigned int temp;
 
-  temp = getmultdiv();
+  temp = get_multiplication_division_bitwise_ops();
 
   for (;;) {
-    if ((basic_program_area[basic_program_counter] != '-') &&
-        (basic_program_area[basic_program_counter] != '+') &&
-        (basic_program_area[basic_program_counter] != '<') &&
-        (basic_program_area[basic_program_counter] != '>') &&
-        (basic_program_area[basic_program_counter] != '=')) {
-      return temp;
-    } else {
-      switch (basic_program_area[basic_program_counter++]) {
-      case '-': // UART1TX('-');
-        temp -= getmultdiv();
-        break;
-      case '+': // UART1TX('+');
-        temp += getmultdiv();
-        break;
-      case '>': // UART1TX('+');
-        if (basic_program_area[basic_program_counter + 1] == '=') {
-          temp = (temp >= getmultdiv() ? 1 : 0);
-          basic_program_counter++;
-        } else {
-          temp = (temp > getmultdiv() ? 1 : 0);
-        }
-        break;
-      case '<': // UART1TX('+');
-        if (basic_program_area[basic_program_counter + 1] == '>') {
-          temp = (temp != getmultdiv() ? 1 : 0);
-          basic_program_counter++;
-        } else if (basic_program_area[basic_program_counter + 1] == '=') {
-          temp = (temp <= getmultdiv() ? 1 : 0);
-          basic_program_counter++;
-        } else {
-          temp = (temp < getmultdiv() ? 1 : 0);
-        }
-        break;
-      case '=': // UART1TX('+');
-        temp = (temp == getmultdiv() ? 1 : 0);
-      default:
-        break;
+    switch (basic_program_area[basic_program_counter++]) {
+    case '-':
+      temp -= get_multiplication_division_bitwise_ops();
+      break;
+
+    case '+':
+      temp += get_multiplication_division_bitwise_ops();
+      break;
+
+    case '>':
+      if (basic_program_area[basic_program_counter + 1] == '=') {
+        temp = (temp >= get_multiplication_division_bitwise_ops());
+        basic_program_counter++;
+      } else {
+        temp = (temp > get_multiplication_division_bitwise_ops());
       }
+      break;
+
+    case '<':
+      if (basic_program_area[basic_program_counter + 1] == '>') {
+        temp = (temp != get_multiplication_division_bitwise_ops());
+        basic_program_counter++;
+      } else if (basic_program_area[basic_program_counter + 1] == '=') {
+        temp = (temp <= get_multiplication_division_bitwise_ops());
+        basic_program_counter++;
+      } else {
+        temp = (temp < get_multiplication_division_bitwise_ops());
+      }
+      break;
+
+    case '=':
+      temp = (temp == get_multiplication_division_bitwise_ops());
+      break;
+
+    default:
+      return temp;
     }
   }
 }
@@ -722,7 +717,7 @@ void interpreter(void) {
 
       basic_variables[basic_program_area[basic_program_counter - 2] - 0x41] =
           assign();
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_IF:
@@ -827,7 +822,7 @@ void interpreter(void) {
         bpBR;
         bus_pirate_configuration.quiet = 1;
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_INPUT:
@@ -852,7 +847,7 @@ void interpreter(void) {
       basic_variables[basic_program_area[basic_program_counter] - 'A'] =
           getnumber(0, 0, 0x7FFF, 0);
       basic_program_counter++;
-      handleelse();
+      handle_else_statement();
       bus_pirate_configuration.quiet = ON;
       break;
 
@@ -887,7 +882,7 @@ void interpreter(void) {
       } else {
         stop = SYNTAXERROR;
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_NEXT:
@@ -908,7 +903,7 @@ void interpreter(void) {
           stop = 0;
         }
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_READ:
@@ -930,7 +925,8 @@ void interpreter(void) {
       }
       temp = basic_program_counter;
       basic_program_counter = basic_data_read_pointer;
-      basic_variables[basic_program_area[temp] - 'A'] = getnumvar();
+      basic_variables[basic_program_area[temp] - 'A'] =
+          get_number_or_variable();
       basic_data_read_pointer = basic_program_counter;
       basic_program_counter = temp + 1;
 
@@ -945,7 +941,7 @@ void interpreter(void) {
         }
       }
 
-      handleelse();
+      handle_else_statement();
 
       break;
     case TOK_DATA:
@@ -958,16 +954,15 @@ void interpreter(void) {
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode].start();
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_STARTR:
       pcupdated = 1;
       basic_program_counter += 4;
 
-      enabled_protocols[bus_pirate_configuration.bus_mode]
-          .start_with_read();
-      handleelse();
+      enabled_protocols[bus_pirate_configuration.bus_mode].start_with_read();
+      handle_else_statement();
       break;
 
     case TOK_STOP:
@@ -975,24 +970,22 @@ void interpreter(void) {
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode].stop();
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_STOPR:
       pcupdated = 1;
       basic_program_counter += 4;
 
-      enabled_protocols[bus_pirate_configuration.bus_mode]
-          .stop_from_read();
-      handleelse();
+      enabled_protocols[bus_pirate_configuration.bus_mode].stop_from_read();
+      handle_else_statement();
       break;
 
     case TOK_SEND:
       pcupdated = 1;
       basic_program_counter += 4;
-      enabled_protocols[bus_pirate_configuration.bus_mode].send(
-          (int)assign());
-      handleelse();
+      enabled_protocols[bus_pirate_configuration.bus_mode].send((int)assign());
+      handle_else_statement();
       break;
 
     case TOK_AUX:
@@ -1004,7 +997,7 @@ void interpreter(void) {
       } else {
         bpAuxLow();
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_PSU:
@@ -1016,7 +1009,7 @@ void interpreter(void) {
       } else {
         BP_VREG_OFF();
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_AUXPIN:
@@ -1028,7 +1021,7 @@ void interpreter(void) {
       } else {
         mode_configuration.alternate_aux = OFF;
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_FREQ:
@@ -1046,7 +1039,7 @@ void interpreter(void) {
         PWMduty = 99;
 
       updatePWM();
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_DUTY:
@@ -1064,7 +1057,7 @@ void interpreter(void) {
         PWMduty = 99;
 
       updatePWM();
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_DAT:
@@ -1072,13 +1065,11 @@ void interpreter(void) {
       basic_program_counter += 4;
 
       if (assign()) {
-        enabled_protocols[bus_pirate_configuration.bus_mode]
-            .data_high();
+        enabled_protocols[bus_pirate_configuration.bus_mode].data_high();
       } else {
-        enabled_protocols[bus_pirate_configuration.bus_mode]
-            .data_low();
+        enabled_protocols[bus_pirate_configuration.bus_mode].data_low();
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_CLK:
@@ -1087,19 +1078,16 @@ void interpreter(void) {
 
       switch (assign()) {
       case 0:
-        enabled_protocols[bus_pirate_configuration.bus_mode]
-            .clock_low();
+        enabled_protocols[bus_pirate_configuration.bus_mode].clock_low();
         break;
       case 1:
-        enabled_protocols[bus_pirate_configuration.bus_mode]
-            .clock_high();
+        enabled_protocols[bus_pirate_configuration.bus_mode].clock_high();
         break;
       case 2:
-        enabled_protocols[bus_pirate_configuration.bus_mode]
-            .clock_pulse();
+        enabled_protocols[bus_pirate_configuration.bus_mode].clock_pulse();
         break;
       }
-      handleelse();
+      handle_else_statement();
 
       break;
     case TOK_PULLUP:
@@ -1111,7 +1099,7 @@ void interpreter(void) {
       } else {
         BP_PULLUP_OFF();
       }
-      handleelse();
+      handle_else_statement();
       break;
 
     case TOK_DELAY:
@@ -1119,16 +1107,15 @@ void interpreter(void) {
       basic_program_counter += 4;
       temp = assign();
       bp_delay_ms(temp);
-      handleelse();
+      handle_else_statement();
 
       break;
     case TOK_MACRO:
       pcupdated = 1;
       basic_program_counter += 4;
       temp = assign();
-      enabled_protocols[bus_pirate_configuration.bus_mode].run_macro(
-          temp);
-      handleelse();
+      enabled_protocols[bus_pirate_configuration.bus_mode].run_macro(temp);
+      handle_else_statement();
       break;
 
     case TOK_END:
