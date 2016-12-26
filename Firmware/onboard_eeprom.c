@@ -38,7 +38,7 @@
  *        ||||||+---- A0 = 0
  *        |||||+----- A1 = 0
  *        ||||+------ A2 = 0
- *        ++++-------- A7-A3 = 1010
+ *        ++++------- A7-A3 = 1010
  */
 #define EEPROM_I2C_WRITE_ADDRESS 0xA0
 
@@ -51,7 +51,7 @@
  *        ||||||+---- A0 = 0
  *        |||||+----- A1 = 0
  *        ||||+------ A2 = 0
- *        ++++-------- A7-A3 = 1010
+ *        ++++------- A7-A3 = 1010
  */
 #define EEPROM_I2C_READ_ADDRESS 0xA1
 
@@ -204,7 +204,7 @@ bool eeprom_test(void) {
   bp_delay_ms(I2C_WRITE_DELAY_TIME);
 
   /* Checks if writing 0x10 actually succeeded. */
-  result = (eeprom_read_byte(0) == 0x10) ? true : false;
+  result = (eeprom_read_byte(0) == 0x10);
 
   /* Set offset 0 to the appropriate value. */
   eeprom_write_byte(0xFF, 0);
@@ -221,7 +221,8 @@ void eeprom_start(void) {
   I2C1CONbits.SEN = ON;
 
   /* Wait until start condition has been set. */
-  while (I2C1CONbits.SEN == ON);
+  while (I2C1CONbits.SEN == ON) {
+  }
 }
 
 void eeprom_stop(void) {
@@ -230,8 +231,8 @@ void eeprom_stop(void) {
   I2C1CONbits.PEN = ON;
 
   /* Wait until stop condition has been set. */
-  while (I2C1CONbits.PEN == ON)
-    ;
+  while (I2C1CONbits.PEN == ON) {
+  }
 }
 
 bool eeprom_i2c_get_ack(void) {
@@ -249,8 +250,8 @@ void eeprom_i2c_send_ack(bool ack) {
   I2C1CONbits.ACKEN = ON;
 
   /* Wait for acknowledgment. */
-  while (I2C1CONbits.ACKEN == ON)
-    ;
+  while (I2C1CONbits.ACKEN == ON) {
+  }
 }
 
 void eeprom_i2c_write(uint8_t value) {
@@ -259,8 +260,8 @@ void eeprom_i2c_write(uint8_t value) {
   I2C1TRN = value;
 
   /* Waits for the transmission to be over. */
-  while (I2C1STATbits.TRSTAT == ON)
-    ;
+  while (I2C1STATbits.TRSTAT == ON) {
+  }
 }
 
 uint8_t eeprom_i2c_read(void) {
@@ -269,8 +270,8 @@ uint8_t eeprom_i2c_read(void) {
   I2C1CONbits.RCEN = ON;
 
   /* Waits until a full byte has been received. */
-  while (I2C1CONbits.RCEN == ON)
-    ;
+  while (I2C1CONbits.RCEN == ON) {
+  }
 
   /* Returns the byte that has just been read. */
   return I2C1RCV & 0xFF;
