@@ -205,21 +205,21 @@ bool bitbang_i2c_start(void);
 void bitbang_i2c_stop(void);
 
 /**
- * @def bitbang_i2c_ack
+ * @def BITBANG_I2C_ACK
  *
  * Sends an I2C ACK signal over the bus.
  */
-#define bitbang_i2c_ack()                                                      \
+#define BITBANG_I2C_ACK()                                                      \
   do {                                                                         \
     bitbang_write_bit(LOW);                                                    \
   } while (0)
 
 /**
- * @def bitbang_i2c_nack
+ * @def BITBANG_I2C_NACK
  *
  * Sends an I2C NACK signal over the bus.
  */
-#define bitbang_i2c_nack()                                                     \
+#define BITBANG_I2C_NACK()                                                     \
   do {                                                                         \
     bitbang_write_bit(HIGH);                                                   \
   } while (0)

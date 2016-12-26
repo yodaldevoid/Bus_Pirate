@@ -84,7 +84,7 @@ unsigned int I2Cread(void) {
     
     if (i2c_state.i2c_acknowledgment_pending) {
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bitbang_i2c_ack();
+            BITBANG_I2C_ACK();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -117,7 +117,7 @@ unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
         BPMSG1060;
         bpSP;
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bitbang_i2c_ack();
+            BITBANG_I2C_ACK();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -153,7 +153,7 @@ void I2Cstart(void) {
         BPMSG1061;
         bpBR; //bpWline(OUMSG_I2C_READ_PEND_NACK);
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bitbang_i2c_nack();
+            BITBANG_I2C_NACK();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -184,7 +184,7 @@ void I2Cstop(void) {
         BPMSG1061;
         bpBR; //bpWline(OUMSG_I2C_READ_PEND_NACK);
         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-            bitbang_i2c_nack();
+            BITBANG_I2C_NACK();
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
@@ -367,7 +367,7 @@ void I2Cmacro(unsigned int c) {
                     } else {
                         if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
                             bitbang_read_value();
-                            bitbang_i2c_nack(); //bbWriteBit(1);//high bit is NACK
+                            BITBANG_I2C_NACK(); //bbWriteBit(1);//high bit is NACK
                         }
 #ifdef BP_I2C_USE_HW_BUS
                         else {
@@ -862,11 +862,11 @@ void binI2C(void) {
                         UART1TX(bitbang_read_value());
                         break;
                     case 6://I2C send ACK
-                        bitbang_i2c_ack();
+                        BITBANG_I2C_ACK();
                         UART1TX(1);
                         break;
                     case 7://I2C send NACK
-                        bitbang_i2c_nack();
+                        BITBANG_I2C_NACK();
                         UART1TX(1);
                         break;
                     case 8: //write-then-read
@@ -920,9 +920,9 @@ I2C_write_read_error: //use this for the read error too
                             bus_pirate_configuration.terminal_input[j] = bitbang_read_value();
 
                             if (j < fw) {
-                                bitbang_i2c_ack();
+                                BITBANG_I2C_ACK();
                             } else {
-                                bitbang_i2c_nack();
+                                BITBANG_I2C_NACK();
                             }
                         }
                         //I2C stop
