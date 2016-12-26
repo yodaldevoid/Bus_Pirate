@@ -82,7 +82,7 @@ uint16_t bitbang_read_with_write(const uint16_t value);
 configuration structure (up to 16).
  *
  * @param[in] value the value to write on the bus.
-\ */
+ */
 void bitbang_write_value(const uint16_t value);
 
 /**
