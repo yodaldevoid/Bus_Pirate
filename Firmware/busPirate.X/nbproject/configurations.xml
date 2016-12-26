@@ -289,7 +289,7 @@
         <property key="extra-include-directories"
                   value="../../microchip/include;..;../translations"/>
         <property key="isolate-each-function" value="false"/>
-        <property key="keep-inline" value="false"/>
+        <property key="keep-inline" value="true"/>
         <property key="oXC16gcc-align-arr" value="false"/>
         <property key="oXC16gcc-cnsts-mauxflash" value="false"/>
         <property key="oXC16gcc-data-sects" value="false"/>
@@ -309,7 +309,7 @@
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros" value=""/>
         <property key="scalar-model" value="default"/>
-        <property key="use-cci" value="false"/>
+        <property key="use-cci" value="true"/>
         <property key="use-iar" value="false"/>
         <appendMe value="-save-temps -finline"/>
       </C30>
@@ -851,7 +851,7 @@
         <property key="extra-include-directories"
                   value="../../microchip/include;..;../translations"/>
         <property key="isolate-each-function" value="false"/>
-        <property key="keep-inline" value="false"/>
+        <property key="keep-inline" value="true"/>
         <property key="oXC16gcc-align-arr" value="false"/>
         <property key="oXC16gcc-cnsts-mauxflash" value="false"/>
         <property key="oXC16gcc-data-sects" value="false"/>
@@ -871,7 +871,7 @@
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros" value=""/>
         <property key="scalar-model" value="default"/>
-        <property key="use-cci" value="false"/>
+        <property key="use-cci" value="true"/>
         <property key="use-iar" value="false"/>
         <appendMe value="-save-temps -finline"/>
       </C30>
