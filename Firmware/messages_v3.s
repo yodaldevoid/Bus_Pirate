@@ -728,6 +728,36 @@ _bp_messages:
 	; BPMSG1255
 	.pascii "Servo active"
 
+	; BPMSG1256
+	.pascii "#12    \t#11    \t#10    \t#09   \t#08   \t#07   \t#06   \t#05   \t#04   \t#03   \t#02   \t#01   "
+
+	; BPMSG1257
+	.pascii "GND\t5.0V\t3.3V\tVPU\tADC\tAUX2\tAUX1\tAUX\t"
+
+	; BPMSG1258
+	.pascii "CS\tMISO\tCLK\tMOSI"
+
+	; BPMSG1259
+	.pascii "-\t-\t-\tOWD"
+
+	; BPMSG1260
+	.pascii "-\tRxD\t-\tTxD"
+
+	; BPMSG1261
+	.pascii "-\t-\tSCL\tSDA"
+
+	; BPMSG1262
+	.pascii "-\t-\tPGC\tPGD"
+
+	; BPMSG1263
+	.pascii "a/A/@ controls AUX1 pin"
+
+	; BPMSG1264
+	.pascii "a/A/@ controls AUX2 pin"
+
+	; BPMSG1265
+	.pascii "EEPROM"
+
 	; BPMSG1280
 	.pascii "Waiting activity..."
 

@@ -3,6 +3,40 @@
 import argparse
 import csv
 
+
+def get_messages(handle):
+    read_lines = []
+
+    for row in csv.reader(handle, delimiter='\t', quotechar='\\',
+                          dialect='unix'):
+        if len(row) == 0:
+            continue
+        stripped = row[0].strip()
+        if stripped.startswith('#'):
+            items = stripped.split()
+            if items[0] == '#include':
+                with open(' '.join(items[1:]), 'r') as include_handle:
+                    include_lines = get_messages(include_handle)
+                    if len(include_lines) > 0:
+                        read_lines += include_lines
+            continue
+        if len(row) != 3:
+            continue
+        if row[0].strip().startswith('//'):
+            continue
+        if row[1] not in ('0', '1'):
+            continue
+        row[2] = row[2].strip()
+        if not (row[2].startswith('"') and row[2].endswith('"')):
+            continue
+        row[2] = row[2][1:-1].replace('\\r', '\r').replace('\\n', '\n').replace(
+            '\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+
+        read_lines.append(row)
+
+    return read_lines
+
+
 parser = argparse.ArgumentParser(
     description='Pack Bus Pirate strings into something that can be '
                 'included by the firmware.')
@@ -14,24 +48,8 @@ parser.add_argument('guard', metavar='GUARD', type=str,
                     help='an additional marker to put in the C header '
                          '#include guard block')
 
-lines = []
-
 args = parser.parse_args()
-for row in csv.reader(args.source, delimiter='\t', quotechar='\\',
-                      dialect='unix'):
-    if len(row) != 3:
-        continue
-    if row[0].strip().startswith('//'):
-        continue
-    if row[1] not in ('0', '1'):
-        continue
-    row[2] = row[2].strip()
-    if not (row[2].startswith('"') and row[2].endswith('"')):
-        continue
-    row[2] = row[2][1:-1].replace('\\r', '\r').replace('\\n', '\n').replace(
-        '\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
-
-    lines.append(row)
+lines = get_messages(args.source)
 
 with open(args.outbase + '.s', 'w') as assembly_output:
     assembly_output.write('.global _bp_messages\n\n')
