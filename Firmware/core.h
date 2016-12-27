@@ -230,7 +230,7 @@ typedef enum {
 #endif /* BP_ENABLE_DIO_SUPPORT */
 
   ENABLED_PROTOCOLS_COUNT
-} bus_pirate_available_protocols_t;
+} __attribute__((packed)) bus_pirate_available_protocols_t;
 
 /**
  * The numeric base in which to display numbers to the user.
@@ -244,17 +244,16 @@ typedef enum {
   BIN,
   /** Display numbers as raw bytes. */
   RAW
-} bus_pirate_display_mode_t;
+} __attribute__((packed)) bus_pirate_display_mode_t;
 
 typedef struct {
   uint8_t *terminal_input;
-  uint8_t terminal_speed;
-  bus_pirate_display_mode_t display_mode;
-  bus_pirate_available_protocols_t bus_mode;
-  // Device IDs from the chip
   uint16_t device_type;
   uint16_t device_revision;
   uint8_t hardware_version;
+  uint8_t terminal_speed;
+  bus_pirate_display_mode_t display_mode;
+  bus_pirate_available_protocols_t bus_mode;
   uint8_t quiet : 1;
   uint8_t overflow : 1;
 #ifdef BP_ENABLE_BASIC_SUPPORT
