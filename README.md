@@ -1,6 +1,10 @@
 # Bus Pirate
 The Bus Pirate is an open source hacker multi-tool that talks to electronic stuff. It's got a bunch of features an intrepid hacker might need to prototype their next project.
 
+The community firmware was forked from the Dangerous Prototypes firmware due to perceived lack of interest in upkeep of the Bus Pirate firmware.  This repository represents the hard work of community members to sustain and continue the legacy of the Bus Pirate device.
+
+As of this writing (Dec, 2016), it is our opinion that this repository contains the latest code for the Bus Pirate.
+
 ## Protocols
     
 * 1-Wire
