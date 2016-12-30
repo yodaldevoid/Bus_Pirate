@@ -800,6 +800,40 @@ void hardware_i2c_setup(void) {
      *    +--------------> SCLREL: Holds SCLx clock low (clock stretch).
      */
     I2C1CON &= ~((1 << 10) | (1 << 12) | (1 << 8));
+    
+    /*
+     * PIC24FJ64GA004 Errata - item #10:
+     * 
+     * When using I2C1, the SDA1 line state may not be detected properly unless
+     * it is first held low for 150ns after enabling the I2C module.
+     * 
+     * In Master mode, this error may cause a bus collision to occur instead of
+     * a Start bit transmission. Transmissions after the SDA1 pin that have
+     * been held low will occur correctly.
+     * 
+     * In Slave mode, the device may not Acknowledge the first packet sent after
+     * enabling the I2C module. In this case, it will return a NACK instead of
+     * an ACK. The device will correctly respond to packets after detecting a
+     * low level on the line for 150ns.
+     */
+    
+    /* 
+     * From the errata workaround section:
+     * 
+     * If no external devices or additional I/O pins are available, it is
+     * sometimes possible to perform the work around internally, using the
+     * following steps:
+     * 
+     * * With the module in Master mode, configure the RB9 pin as an output.
+     * * Clear the LATB9 bit (for the default I2C1 assignment) or LATB5 (for the
+     * alternate I2C1 assignment) to drive the pin low.
+     * * Enable I2C1 by setting the I2CENbit (I2C1CON<15>).
+     */
+    
+    BP_MOSI_DIR = OUTPUT;
+    bp_delay_us(200);
+    BP_MOSI = LOW;
+    bp_delay_us(200);
 
     /*
      * MSB
