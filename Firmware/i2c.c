@@ -832,7 +832,7 @@ void hardware_i2c_setup(void) {
     
     BP_MOSI_DIR = OUTPUT;
     bp_delay_us(200);
-    BP_MOSI = LOW;
+    LATBbits.LATB9 = OFF;
     bp_delay_us(200);
 
     /*
