@@ -92,14 +92,20 @@ void hardware_i2c_setup(void);
  */
 void hardware_i2c_start(void);
 
-void hwi2cstop(void);
-void hwi2csendack(unsigned char ack);
+void hardware_i2c_stop(void);
+void hardware_i2c_send_ack(bool ack);
 unsigned char hwi2cgetack(void);
 void hwi2cwrite(unsigned char c);
 unsigned char hwi2cread(void);
 
 #ifdef BP_I2C_USE_HW_BUS
-static const uint8_t I2Cspeed[] = {157, 37, 13}; //100,400,1000khz; datasheet pg 145
+
+static const uint8_t I2C_BRG_SPEEDS[] = {
+    157, /*  100 kHz */
+    37,  /*  400 kHz */
+    13   /* 1000 kHz */
+};
+
 #endif /* BP_I2C_USE_HW_BUS */
 
 //software functions
@@ -117,7 +123,7 @@ unsigned int I2Cread(void) {
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
-            hwi2csendack(0); //all other reads get an ACK
+            hardware_i2c_send_ack(0); //all other reads get an ACK
         }
 #endif /* BP_I2C_USE_HW_BUS */
 	bpSP;
@@ -148,7 +154,7 @@ unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
         }
 #ifdef BP_I2C_USE_HW_BUS
         else {
-            hwi2csendack(0); //all other reads get an ACK
+            hardware_i2c_send_ack(0); //all other reads get an ACK
         }
 #endif /* BP_I2C_USE_HW_BUS */
         i2c_state.acknowledgment_pending = false;
@@ -185,7 +191,7 @@ void i2c_start(void) {
             BITBANG_I2C_NACK();
         } else {
 #ifdef BP_I2C_USE_HW_BUS
-            hwi2csendack(I2C_NACK_BIT);
+            hardware_i2c_send_ack(I2C_NACK_BIT);
 #endif /* BP_I2C_USE_HW_BUS */
         }
         
@@ -216,23 +222,21 @@ void I2Cstop(void) {
         bpBR;
         if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
             BITBANG_I2C_NACK();
-        }
+        } else {
 #ifdef BP_I2C_USE_HW_BUS
-        else {
-            hwi2csendack(1); //the last read before a stop/start condition gets an NACK
-        }
+            hardware_i2c_send_ack(1); //the last read before a stop/start condition gets an NACK
 #endif /* BP_I2C_USE_HW_BUS */
+        }
         i2c_state.acknowledgment_pending = false;
     }
 
     if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
         bitbang_i2c_stop();
-    }
+    } else {
 #ifdef BP_I2C_USE_HW_BUS
-    else {
-        hwi2cstop();
-    }
+        hardware_i2c_stop();
 #endif /* BP_I2C_USE_HW_BUS */
+    }
     
     MSG_I2C_STOP_BIT;
 }
@@ -253,7 +257,8 @@ void I2Csettings(void) {
 }
 
 void I2Csetup(void) {
-    int HW, speed;
+    int HW;
+    int speed;
 
     HW = 0; // keep compiler happy if BP_USE_HW is not defined
 
@@ -336,14 +341,41 @@ void I2Csetup_exc(void) {
    }
 }
 
-   
-void I2Ccleanup(void) {
-    i2c_state.acknowledgment_pending = false; //clear any pending ACK from previous use
+void i2c_cleanup(void) {
+    /* Clear any pending ACK from previous use. */
+    i2c_state.acknowledgment_pending = false;
+    
+#ifdef BP_I2C_USE_HW_BUS
     if (i2c_state.mode == I2C_TYPE_HARDWARE) {
-        I2C1CONbits.I2CEN = 0; //disable I2C module
+        
 #ifdef BUSPIRATEV4
-        I2C3CONbits.I2CEN = 0; //disable I2C module
-#endif
+        /* Disable external I2C module. */
+        I2C3CONbits.I2CEN = 0;
+        
+        /* Disable EEPROM I2C module. */
+        I2C1CONbits.I2CEN = 0;
+#else
+        
+        /* 
+         * PIC24FJ64GA004 Errata - item #26:
+         * 
+         * Bit and byte-based operations may not have the intended affect on the
+         * I2CxSTAT register. It is possible for bit and byte operations, performed
+         * on the lower byte of I2CxSTAT, to clear the BCL bit (I2CxSTAT<10>). Bit
+         * and byte operation performed on the upper byte of I2CxSTAT, or on the
+         * BCL bit directly, may not be able to clear the BCL bit.
+         */
+    
+         /*
+          * MSB
+          * 0-xxxxxxxxxxxxxx
+          * |
+          * +-----------------> I2CEN: Disable I2C module.
+          */
+         I2C1CON &= ~(1 << 15);
+  
+#endif /* BUSPIRATEV4 */
+#endif /* BP_I2C_USE_HW_BUS */
     }
 }
 
@@ -401,7 +433,7 @@ void I2Cmacro(unsigned int c) {
 #ifdef BP_I2C_USE_HW_BUS
                         else {
                             hwi2cread();
-                            hwi2csendack(1); //high bit is NACK
+                            hardware_i2c_send_ack(1); //high bit is NACK
                         }
 #endif /* BP_I2C_USE_HW_BUS */
                         bp_write_string(" R");
@@ -410,15 +442,49 @@ void I2Cmacro(unsigned int c) {
                     bpSP;
                 }
                 if (i2c_state.mode == I2C_TYPE_SOFTWARE) bitbang_i2c_stop();
+                
 #ifdef BP_I2C_USE_HW_BUS
-                else hwi2cstop();
+                else hardware_i2c_stop();
 #endif /* BP_I2C_USE_HW_BUS */
             }
             bpBR;
 
             break;
+            
         case 2:
-            if (i2c_state.mode == I2C_TYPE_HARDWARE)I2C1CONbits.I2CEN = 0; //disable I2C module
+#ifdef BP_I2C_USE_HW_BUS
+            if (i2c_state.mode == I2C_TYPE_HARDWARE) {
+                
+                /* Disable I2C hardware module. */
+                
+#if defined(BUSPIRATEV3)
+                
+                /* 
+                 * PIC24FJ64GA004 Errata - item #26:
+                 * 
+                 * Bit and byte-based operations may not have the intended affect on the
+                 * I2CxSTAT register. It is possible for bit and byte operations, performed
+                 * on the lower byte of I2CxSTAT, to clear the BCL bit (I2CxSTAT<10>). Bit
+                 * and byte operation performed on the upper byte of I2CxSTAT, or on the
+                 * BCL bit directly, may not be able to clear the BCL bit.
+                 */
+    
+                /*
+                 * MSB
+                 * 0-xxxxxxxxxxxxxx
+                 * |
+                 * +-----------------> I2CEN: Disable I2C module.
+                 */
+                I2C1CON &= ~(1 << 15);
+                
+#else
+
+                I2C1CONbits.I2CEN = OFF;
+                
+#endif /* BUSPIRATEV3 */
+            }
+            
+#endif /* BP_I2C_USE_HW_BUS */
 
             //bpWline(OUMSG_I2C_MACRO_SNIFFER);
             BPMSG1071;
@@ -426,8 +492,11 @@ void I2Cmacro(unsigned int c) {
             I2C_Sniffer(1); //set for terminal output
 
 #ifdef BP_I2C_USE_HW_BUS
-            if (i2c_state.mode == I2C_TYPE_HARDWARE) hardware_i2c_setup(); //setup hardware I2C again
+            if (i2c_state.mode == I2C_TYPE_HARDWARE) {
+                hardware_i2c_setup(); //setup hardware I2C again
+            }
 #endif /* BP_I2C_USE_HW_BUS */
+            
             break;
 #if defined (BUSPIRATEV4)
         case 3: //in hardware mode (or software, I guess) we can edit the on-board EEPROM -software mode unimplemented...
@@ -443,7 +512,7 @@ void I2Cmacro(unsigned int c) {
             I2C1CONbits.SMEN = 0;
 
             // Baud rate setting
-            I2C1BRG = I2Cspeed[mode_configuration.speed];
+            I2C1BRG = I2C_BRG_SPEEDS[mode_configuration.speed];
 
             // Enable I2C module
             I2C1CONbits.I2CEN = 1;
@@ -489,12 +558,39 @@ void hardware_i2c_start(void) {
     /*
      * Start condition on the external v3 I2C bus or on the v4 EEPROM I2C bus.
      */
+
+#if defined(BUSPIRATEV3)
+    
+    /* 
+     * PIC24FJ64GA004 Errata - item #26:
+     * 
+     * Bit and byte-based operations may not have the intended affect on the
+     * I2CxSTAT register. It is possible for bit and byte operations, performed
+     * on the lower byte of I2CxSTAT, to clear the BCL bit (I2CxSTAT<10>). Bit
+     * and byte operation performed on the upper byte of I2CxSTAT, or on the
+     * BCL bit directly, may not be able to clear the BCL bit.
+     */
+
+    /*
+     * MSB
+     * xxxxxxxxxxxxxxx1
+     *                |
+     *                +--> SEN: Initiates Start condition on SDAx and SCLx pins.
+     */
+    
+    I2C1CON |= (1 << 0);
+    
+#else
+
     I2C1CONbits.SEN = ON;
+    
+#endif /* BUSPIRATEV3 */
+    
     while (I2C1CONbits.SEN == ON) {
     }
 }
 
-void hwi2cstop(void) {
+void hardware_i2c_stop(void) {
 
 #if defined (BUSPIRATEV4)
     if (i2c_state.to_eeprom == 0) {
@@ -502,63 +598,152 @@ void hwi2cstop(void) {
         while (I2C3CONbits.PEN == 1); //wait
         return;
     }
-#endif
+#endif /* BUSPIRATEV4 */
+    
+#if defined(BUSPIRATEV3)
+    
+    /* 
+     * PIC24FJ64GA004 Errata - item #26:
+     * 
+     * Bit and byte-based operations may not have the intended affect on the
+     * I2CxSTAT register. It is possible for bit and byte operations, performed
+     * on the lower byte of I2CxSTAT, to clear the BCL bit (I2CxSTAT<10>). Bit
+     * and byte operation performed on the upper byte of I2CxSTAT, or on the
+     * BCL bit directly, may not be able to clear the BCL bit.
+     */
+
+    /*
+     * MSB
+     * xxxxxxxxxxxxx1xx
+     *              |
+     *              +----> PEN: Stop condition is not in progress.
+     */
+    
+    I2C1CON |= (1 << 2);
+    
+#else
     
     I2C1CONbits.PEN = 1;
-    while (I2C1CONbits.PEN == 1); //wait
+    
+#endif /* BUSPIRATEV3 */
+    
+    while (I2C1CONbits.PEN == ON) {
+    }
 }
 
 unsigned char hwi2cgetack(void) {
 
-#if defined (BUSPIRATEV4)
+#if defined(BUSPIRATEV4)
     if (i2c_state.to_eeprom == 0) {
         return I2C3STATbits.ACKSTAT;
     }
-#endif
+#endif /* BUSPIRATEV4 */
+    
     return I2C1STATbits.ACKSTAT;
 }
 
-void hwi2csendack(unsigned char ack) {
-#if defined (BUSPIRATEV4)
+void hardware_i2c_send_ack(bool ack) {
+#if defined(BUSPIRATEV4)
     if (i2c_state.to_eeprom == 0) {
         I2C3CONbits.ACKDT = ack; //send ACK (0) or NACK(1)?
-        I2C3CONbits.ACKEN = 1;
-        while (I2C3CONbits.ACKEN == 1);
+        I2C3CONbits.ACKEN = ON;
+        while (I2C3CONbits.ACKEN == ON) {
+        }
         return;
     }
-#endif
+#endif /* BUSPIRATEV4 */
     
-    I2C1CONbits.ACKDT = ack; //send ACK (0) or NACK(1)?
-    I2C1CONbits.ACKEN = 1;
-    while (I2C1CONbits.ACKEN == 1);
+#if defined(BUSPIRATEV3)
+    
+    /* 
+     * PIC24FJ64GA004 Errata - item #26:
+     * 
+     * Bit and byte-based operations may not have the intended affect on the
+     * I2CxSTAT register. It is possible for bit and byte operations, performed
+     * on the lower byte of I2CxSTAT, to clear the BCL bit (I2CxSTAT<10>). Bit
+     * and byte operation performed on the upper byte of I2CxSTAT, or on the
+     * BCL bit directly, may not be able to clear the BCL bit.
+     */
+
+    /*
+     * MSB
+     * xxxxxxxxxx?1xxxx
+     *           ||
+     *           |+------> ACKEN: Initiates Acknowledge sequence.
+     *           +-------> ACKDT: ACK/NACK flag.
+     */
+
+    I2C1CON |= (1 << 4) | (ack ? (1 << 5) : 0);
+    
+#else
+    
+    I2C1CONbits.ACKDT = ack;
+    I2C1CONbits.ACKEN = ON;
+    
+#endif /* BUSPIRATEV3 */
+    
+    while (I2C1CONbits.ACKEN == ON) {
+    }
 }
 
-void hwi2cwrite(unsigned char c) {
-#if defined (BUSPIRATEV4)
+void hwi2cwrite(uint8_t value) {
+#if defined(BUSPIRATEV4)
     if (i2c_state.to_eeprom == 0) {
-        I2C3TRN = c;
-        while (I2C3STATbits.TRSTAT == 1);
+        I2C3TRN = value;
+        while (I2C3STATbits.TRSTAT == ON) {
+        }
+        
         return;
     }
-#endif
-    I2C1TRN = c;
-    while (I2C1STATbits.TRSTAT == 1);
+#endif /* BUSPIRATEV4 */
+    
+    I2C1TRN = value;
+    while (I2C1STATbits.TRSTAT == ON) {
+    }
 }
 
 unsigned char hwi2cread(void) {
-    unsigned char c;
-#if defined (BUSPIRATEV4)
+#if defined(BUSPIRATEV4)
     if (i2c_state.to_eeprom == 0) {
-        I2C3CONbits.RCEN = 1;
-        while (I2C3CONbits.RCEN == 1);
-        c = I2C3RCV;
-        return c;
+        I2C3CONbits.RCEN = ON;
+        while (I2C3CONbits.RCEN == ON) {
+        }
+        
+        return I2C3RCV;
     }
-#endif
-    I2C1CONbits.RCEN = 1;
-    while (I2C1CONbits.RCEN == 1);
-    c = I2C1RCV;
-    return c;
+#endif /* BUSPIRATEV4 */
+    
+#if defined(BUSPIRATEV3)
+    
+    /* 
+     * PIC24FJ64GA004 Errata - item #26:
+     * 
+     * Bit and byte-based operations may not have the intended affect on the
+     * I2CxSTAT register. It is possible for bit and byte operations, performed
+     * on the lower byte of I2CxSTAT, to clear the BCL bit (I2CxSTAT<10>). Bit
+     * and byte operation performed on the upper byte of I2CxSTAT, or on the
+     * BCL bit directly, may not be able to clear the BCL bit.
+     */
+
+    /*
+     * MSB
+     * xxxxxxxxxxxx1xxx
+     *             |
+     *             +-----> RCEN: Enables Receive mode for I2C.
+     */
+
+    I2C1CON |= (1 << 3);
+    
+#else
+    
+    I2C1CONbits.RCEN = ON;
+    
+#endif /* BUSPIRATEV3 */
+    
+    while (I2C1CONbits.RCEN == ON) {
+    }
+    
+    return I2C1RCV;
 }
 
 void hardware_i2c_setup(void) {
@@ -580,33 +765,50 @@ void hardware_i2c_setup(void) {
     I2C3CONbits.SMEN = OFF;
     
     /* Set the I2C baud rate generator speed. */
-    I2C3BRG = I2Cspeed[mode_configuration.speed];
+    I2C3BRG = I2C_BRG_SPEEDS[mode_configuration.speed];
     
     /* Enable the I2C module. */
     I2C3CONbits.I2CEN = ON;
+    
 #else
-    
-    /* 7-bits slave address. */
-    I2C1CONbits.A10M = OFF;
-    
-    /* Enable clock stretching. */
-    I2C1CONbits.SCLREL = OFF;
-    
+
     /* General call address. */
     I2C1ADD = 0;
     
     /* Do not mask address bits. */
     I2C1MSK = 0;
-    
-    /* Disable SMBus. */
-    I2C1CONbits.SMEN = OFF;
-    
-    /* Set the I2C baud rate generator speed. */
-    I2C1BRG = I2Cspeed[mode_configuration.speed];
 
-    /* Enable the I2C module. */
-    I2C1CONbits.I2CEN = ON;
+    /* Set the I2C baud rate generator speed. */
+    I2C1BRG = I2C_BRG_SPEEDS[mode_configuration.speed];
     
+    /* 
+     * PIC24FJ64GA004 Errata - item #26:
+     * 
+     * Bit and byte-based operations may not have the intended affect on the
+     * I2CxSTAT register. It is possible for bit and byte operations, performed
+     * on the lower byte of I2CxSTAT, to clear the BCL bit (I2CxSTAT<10>). Bit
+     * and byte operation performed on the upper byte of I2CxSTAT, or on the
+     * BCL bit directly, may not be able to clear the BCL bit.
+     */
+    
+    /*
+     * MSB
+     * x-x0x0x0xxxxxxxx
+     *    | | |
+     *    | | +----------> SMEN:   Disables the SMBus input thresholds.
+     *    | +------------> A10M:   I2CxADD is a 7-bit slave address.
+     *    +--------------> SCLREL: Holds SCLx clock low (clock stretch).
+     */
+    I2C1CON &= ~((1 << 10) | (1 << 12) | (1 << 8));
+
+    /*
+     * MSB
+     * 1-xxxxxxxxxxxxxx
+     * |
+     * +-----------------> I2CEN: Enable I2C module.
+     */
+    I2C1CON |= (1 << 15);
+
 #endif /* BUSPIRATEV4 */
 }
 
