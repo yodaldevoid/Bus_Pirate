@@ -131,18 +131,6 @@ _bp_messages:
 	; BPMSG1059
 	.pascii "ERROR: command has no effect here"
 
-	; BPMSG1060
-	.pascii "ACK"
-
-	; BPMSG1061
-	.pascii "NACK"
-
-	; BPMSG1062
-	.pascii "I2C START BIT"
-
-	; BPMSG1063
-	.pascii "I2C STOP BIT"
-
 	; BPMSG1064
 	.pascii "I2C mode:\r\n 1. Software\r\n 2. Hardware"
 
@@ -788,8 +776,20 @@ _bp_messages:
 	; MSG_FINISH_SETUP_PROMPT
 	.pascii "To finish setup, start up the power supplies with command 'W'"
 
+	; MSG_I2C_ACK
+	.pascii "ACK"
+
 	; MSG_I2C_MODE_IDENTIFIER
 	.pascii "I2C1"
+
+	; MSG_I2C_NACK
+	.pascii "NACK"
+
+	; MSG_I2C_START_BIT
+	.pascii "I2C START BIT"
+
+	; MSG_I2C_STOP_BIT
+	.pascii "I2C STOP BIT"
 
 	; MSG_NO_VOLTAGE_ON_PULLUP_PIN
 	.pascii "Warning: no voltage on Vpullup pin"

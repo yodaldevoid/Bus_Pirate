@@ -146,330 +146,317 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
-bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {{
-                                           /* start */
-                                           null_operation_callback,
-                                           /* start_with_read */
-                                           null_operation_callback,
-                                           /* stop */
-                                           null_operation_callback,
-                                           /* stop_from_read */
-                                           null_operation_callback,
-                                           /* send */
-                                           null_send_callback,
-                                           /* read */
-                                           null_data_read_callback,
-                                           /* clock_high */
-                                           null_operation_callback,
-                                           /* clock_low */
-                                           null_operation_callback,
-                                           /* data_high */
-                                           null_operation_callback,
-                                           /* data_low */
-                                           null_operation_callback,
-                                           /* data_state */
-                                           null_data_read_callback,
-                                           /* clock_pulse */
-                                           null_operation_callback,
-                                           /* read_bit */
-                                           null_bit_read_callback,
-                                           /* periodic_update */
-                                           null_bit_read_callback,
-                                           /* run_macro */
-                                           null_macro_callback,
-                                           /* setup */
-                                           reset_mode_to_8_bits,
-                                           /* get_ready */
-                                           reset_mode_to_8_bits,
-                                           /* cleanup */
-                                           reset_mode_to_8_bits,
-                                           /* print_pins_state */
-                                           hiz_print_pins_state,
-                                           /* print_settings */
-                                           empty_print_settings_implementation,
-                                           /* name */
-                                           "HiZ"}
+bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
+    {/* start */
+     null_operation_callback,
+     /* start_with_read */
+     null_operation_callback,
+     /* stop */
+     null_operation_callback,
+     /* stop_from_read */
+     null_operation_callback,
+     /* send */
+     null_send_callback,
+     /* read */
+     null_data_read_callback,
+     /* clock_high */
+     null_operation_callback,
+     /* clock_low */
+     null_operation_callback,
+     /* data_high */
+     null_operation_callback,
+     /* data_low */
+     null_operation_callback,
+     /* data_state */
+     null_data_read_callback,
+     /* clock_pulse */
+     null_operation_callback,
+     /* read_bit */
+     null_bit_read_callback,
+     /* periodic_update */
+     null_bit_read_callback,
+     /* run_macro */
+     null_macro_callback,
+     /* setup */
+     reset_mode_to_8_bits,
+     /* get_ready */
+     reset_mode_to_8_bits,
+     /* cleanup */
+     reset_mode_to_8_bits,
+     /* print_pins_state */
+     hiz_print_pins_state,
+     /* print_settings */
+     empty_print_settings_implementation,
+     /* name */
+     "HiZ"}
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
-                                          ,
-                                          {/* start */
-                                           onewire_reset,
-                                           /* start_with_read */
-                                           onewire_reset,
-                                           /* stop */
-                                           null_operation_callback,
-                                           /* stop_from_read */
-                                           null_operation_callback,
-                                           /* send */
-                                           onewire_write,
-                                           /* read */
-                                           onewire_read,
-                                           /* clock_high */
-                                           null_operation_callback,
-                                           /* clock_low */
-                                           null_operation_callback,
-                                           /* data_high */
-                                           onewire_data_high,
-                                           /* data_low */
-                                           onewire_data_low,
-                                           /* data_state */
-                                           onewire_data_state,
-                                           /* clock_pulse */
-                                           onewire_clock_pulse,
-                                           /* read_bit */
-                                           onewire_read_bit,
-                                           /* periodic_update */
-                                           null_bit_read_callback,
-                                           /* run_macro */
-                                           onewire_run_macro,
-                                           /* setup */
-                                           onewire_setup,
-                                           /* get_ready */
-                                           onewire_setup,
-                                           /* cleanup */
-                                           reset_mode_to_8_bits,
-                                           /* print_pins_state */
-                                           onewire_pins_state,
-                                           /* print_settings */
-                                           empty_print_settings_implementation,
-                                           /* name */
-                                           "1-WIRE"}
+    ,
+    {/* start */
+     onewire_reset,
+     /* start_with_read */
+     onewire_reset,
+     /* stop */
+     null_operation_callback,
+     /* stop_from_read */
+     null_operation_callback,
+     /* send */
+     onewire_write,
+     /* read */
+     onewire_read,
+     /* clock_high */
+     null_operation_callback,
+     /* clock_low */
+     null_operation_callback,
+     /* data_high */
+     onewire_data_high,
+     /* data_low */
+     onewire_data_low,
+     /* data_state */
+     onewire_data_state,
+     /* clock_pulse */
+     onewire_clock_pulse,
+     /* read_bit */
+     onewire_read_bit,
+     /* periodic_update */
+     null_bit_read_callback,
+     /* run_macro */
+     onewire_run_macro,
+     /* setup */
+     onewire_setup,
+     /* get_ready */
+     onewire_setup,
+     /* cleanup */
+     reset_mode_to_8_bits,
+     /* print_pins_state */
+     onewire_pins_state,
+     /* print_settings */
+     empty_print_settings_implementation,
+     /* name */
+     "1-WIRE"}
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
 
 #ifdef BP_ENABLE_UART_SUPPORT
-                                          ,
-                                          {UARTstart,
-                                           UARTstart,
-                                           UARTstop,
-                                           UARTstop,
-                                           UARTwrite,
-                                           UARTread,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_data_read_callback,
-                                           null_operation_callback,
-                                           null_bit_read_callback,
-                                           UARTperiodic,
-                                           UARTmacro,
-                                           UARTsetup,
-                                           UARTsetup_exc,
-                                           UARTcleanup,
-                                           UARTpins,
-                                           UARTsettings,
-                                           "UART"}
+    ,
+    {UARTstart,
+     UARTstart,
+     UARTstop,
+     UARTstop,
+     UARTwrite,
+     UARTread,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_data_read_callback,
+     null_operation_callback,
+     null_bit_read_callback,
+     UARTperiodic,
+     UARTmacro,
+     UARTsetup,
+     UARTsetup_exc,
+     UARTcleanup,
+     UARTpins,
+     UARTsettings,
+     "UART"}
 #endif /* BP_ENABLE_UART_SUPPORT */
 
 #ifdef BP_ENABLE_I2C_SUPPORT
-                                          ,
-                                          {I2Cstart,
-                                           I2Cstart,
-                                           I2Cstop,
-                                           I2Cstop,
-                                           I2Cwrite,
-                                           I2Cread,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_data_read_callback,
-                                           null_operation_callback,
-                                           null_bit_read_callback,
-                                           null_bit_read_callback,
-                                           I2Cmacro,
-                                           I2Csetup,
-                                           I2Csetup_exc,
-                                           I2Ccleanup,
-                                           I2Cpins,
-                                           I2Csettings,
-                                           "I2C"}
+    ,
+    {/* start */
+     i2c_start,
+     /* start */
+     i2c_start, I2Cstop, I2Cstop, I2Cwrite, I2Cread, null_operation_callback,
+     null_operation_callback, null_operation_callback, null_operation_callback,
+     null_data_read_callback, null_operation_callback, null_bit_read_callback,
+     null_bit_read_callback, I2Cmacro, I2Csetup, I2Csetup_exc, I2Ccleanup,
+     I2Cpins, I2Csettings, "I2C"}
 #endif /* BP_ENABLE_I2C_SUPPORT */
 
 #ifdef BP_ENABLE_SPI_SUPPORT
-                                          ,
-                                          {SPIstart,
-                                           SPIstartr,
-                                           SPIstop,
-                                           SPIstop,
-                                           SPIwrite,
-                                           SPIread,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_data_read_callback,
-                                           null_operation_callback,
-                                           null_bit_read_callback,
-                                           null_bit_read_callback,
-                                           SPImacro,
-                                           SPIsetup,
-                                           SPIsetup_exc,
-                                           SPIcleanup,
-                                           SPIpins,
-                                           SPIsettings,
-                                           "SPI"}
+    ,
+    {SPIstart,
+     SPIstartr,
+     SPIstop,
+     SPIstop,
+     SPIwrite,
+     SPIread,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_data_read_callback,
+     null_operation_callback,
+     null_bit_read_callback,
+     null_bit_read_callback,
+     SPImacro,
+     SPIsetup,
+     SPIsetup_exc,
+     SPIcleanup,
+     SPIpins,
+     SPIsettings,
+     "SPI"}
 #endif /* BP_ENABLE_SPI_SUPPORT */
 
 #ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
-                                          ,
-                                          {R2Wstart,     R2Wstart,
-                                           R2Wstop,      R2Wstop,
-                                           R2Wwrite,     R2Wread,
-                                           R2Wclkh,      R2Wclkl,
-                                           R2Wdath,      R2Wdatl,
-                                           R2Wbitp,      R2Wclk,
-                                           R2Wbitr,      null_bit_read_callback,
-                                           R2Wmacro,     R2Wsetup,
-                                           R2Wsetup_exc, reset_mode_to_8_bits,
-                                           R2Wpins,      R2Wsettings,
-                                           "2WIRE"}
+    ,
+    {R2Wstart,     R2Wstart,
+     R2Wstop,      R2Wstop,
+     R2Wwrite,     R2Wread,
+     R2Wclkh,      R2Wclkl,
+     R2Wdath,      R2Wdatl,
+     R2Wbitp,      R2Wclk,
+     R2Wbitr,      null_bit_read_callback,
+     R2Wmacro,     R2Wsetup,
+     R2Wsetup_exc, reset_mode_to_8_bits,
+     R2Wpins,      R2Wsettings,
+     "2WIRE"}
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
 
 #ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
-                                          ,
-                                          {R3Wstart,
-                                           R3Wstartr,
-                                           R3Wstop,
-                                           R3Wstop,
-                                           R3Wwrite,
-                                           R3Wread,
-                                           R3Wclkh,
-                                           R3Wclkl,
-                                           R3Wdath,
-                                           R3Wdatl,
-                                           R3Wbitp,
-                                           R3Wclk,
-                                           R3Wbitr,
-                                           null_bit_read_callback,
-                                           null_macro_callback,
-                                           R3Wsetup,
-                                           R3Wsetup_exc,
-                                           reset_mode_to_8_bits,
-                                           R3Wpins,
-                                           R3Wsettings,
-                                           "3WIRE"}
+    ,
+    {R3Wstart,
+     R3Wstartr,
+     R3Wstop,
+     R3Wstop,
+     R3Wwrite,
+     R3Wread,
+     R3Wclkh,
+     R3Wclkl,
+     R3Wdath,
+     R3Wdatl,
+     R3Wbitp,
+     R3Wclk,
+     R3Wbitr,
+     null_bit_read_callback,
+     null_macro_callback,
+     R3Wsetup,
+     R3Wsetup_exc,
+     reset_mode_to_8_bits,
+     R3Wpins,
+     R3Wsettings,
+     "3WIRE"}
 #endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
 
 #ifdef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
-                                          ,
-                                          {null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           KEYBwrite,
-                                           KEYBread,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_data_read_callback,
-                                           null_operation_callback,
-                                           null_bit_read_callback,
-                                           null_bit_read_callback,
-                                           KEYBmacro,
-                                           KEYBsetup,
-                                           KEYBsetup_exc,
-                                           reset_mode_to_8_bits,
-                                           hiz_print_pins_state,
-                                           empty_print_settings_implementation,
-                                           "KEYB"}
+    ,
+    {null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     KEYBwrite,
+     KEYBread,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_data_read_callback,
+     null_operation_callback,
+     null_bit_read_callback,
+     null_bit_read_callback,
+     KEYBmacro,
+     KEYBsetup,
+     KEYBsetup_exc,
+     reset_mode_to_8_bits,
+     hiz_print_pins_state,
+     empty_print_settings_implementation,
+     "KEYB"}
 #endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
 
 #ifdef BP_ENABLE_HD44780_SUPPORT
-                                          ,
-                                          {LCDstart,
-                                           LCDstart,
-                                           LCDstop,
-                                           LCDstop,
-                                           LCDwrite,
-                                           null_data_read_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_data_read_callback,
-                                           null_operation_callback,
-                                           null_bit_read_callback,
-                                           null_bit_read_callback,
-                                           LCDmacro,
-                                           LCDsetup,
-                                           LCDsetup_exc,
-                                           spiDisable,
-                                           LCDpins,
-                                           empty_print_settings_implementation,
-                                           "LCD"}
+    ,
+    {LCDstart,
+     LCDstart,
+     LCDstop,
+     LCDstop,
+     LCDwrite,
+     null_data_read_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_data_read_callback,
+     null_operation_callback,
+     null_bit_read_callback,
+     null_bit_read_callback,
+     LCDmacro,
+     LCDsetup,
+     LCDsetup_exc,
+     spiDisable,
+     LCDpins,
+     empty_print_settings_implementation,
+     "LCD"}
 #endif /* BP_ENABLE_HD44780_SUPPORT */
 
 #ifdef BP_ENABLE_PIC_SUPPORT
-                                          ,
-                                          {picstart,
-                                           picstart,
-                                           picstop,
-                                           picstop,
-                                           picwrite,
-                                           picread,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_operation_callback,
-                                           null_data_read_callback,
-                                           null_operation_callback,
-                                           null_bit_read_callback,
-                                           null_bit_read_callback,
-                                           picmacro,
-                                           picinit,
-                                           picinit_exc,
-                                           piccleanup,
-                                           picpins,
-                                           empty_print_settings_implementation,
-                                           "PIC"}
+    ,
+    {picstart,
+     picstart,
+     picstop,
+     picstop,
+     picwrite,
+     picread,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_operation_callback,
+     null_data_read_callback,
+     null_operation_callback,
+     null_bit_read_callback,
+     null_bit_read_callback,
+     picmacro,
+     picinit,
+     picinit_exc,
+     piccleanup,
+     picpins,
+     empty_print_settings_implementation,
+     "PIC"}
 #endif /* BP_ENABLE_PIC_SUPPORT */
 
 #ifdef BP_ENABLE_DIO_SUPPORT
-                                          ,
-                                          {/* start */
-                                           null_operation_callback,
-                                           /* start_with_read */
-                                           null_operation_callback,
-                                           /* stop */
-                                           null_operation_callback,
-                                           /* stop_from_read */
-                                           null_operation_callback,
-                                           /* send */
-                                           dio_write,
-                                           /* read */
-                                           dio_read,
-                                           /* clock_high */
-                                           null_operation_callback,
-                                           /* clock_low */
-                                           null_operation_callback,
-                                           /* data_high */
-                                           null_operation_callback,
-                                           /* data_low */
-                                           null_operation_callback,
-                                           /* data_state */
-                                           null_data_read_callback,
-                                           /* clock_pulse */
-                                           null_operation_callback,
-                                           /* read_bit */
-                                           null_bit_read_callback,
-                                           /* periodic_update */
-                                           null_bit_read_callback,
-                                           /* run_macro */
-                                           null_macro_callback,
-                                           /* setup */
-                                           silent_null_operation_callback,
-                                           /* get_ready */
-                                           silent_null_operation_callback,
-                                           /* cleanup */
-                                           reset_mode_to_8_bits,
-                                           /* print_pins_state */
-                                           hiz_print_pins_state,
-                                           /* print_settings */
-                                           empty_print_settings_implementation,
-                                           /* name */
-                                           "DIO"}
+    ,
+    {/* start */
+     null_operation_callback,
+     /* start_with_read */
+     null_operation_callback,
+     /* stop */
+     null_operation_callback,
+     /* stop_from_read */
+     null_operation_callback,
+     /* send */
+     dio_write,
+     /* read */
+     dio_read,
+     /* clock_high */
+     null_operation_callback,
+     /* clock_low */
+     null_operation_callback,
+     /* data_high */
+     null_operation_callback,
+     /* data_low */
+     null_operation_callback,
+     /* data_state */
+     null_data_read_callback,
+     /* clock_pulse */
+     null_operation_callback,
+     /* read_bit */
+     null_bit_read_callback,
+     /* periodic_update */
+     null_bit_read_callback,
+     /* run_macro */
+     null_macro_callback,
+     /* setup */
+     silent_null_operation_callback,
+     /* get_ready */
+     silent_null_operation_callback,
+     /* cleanup */
+     reset_mode_to_8_bits,
+     /* print_pins_state */
+     hiz_print_pins_state,
+     /* print_settings */
+     empty_print_settings_implementation,
+     /* name */
+     "DIO"}
 #endif /* BP_ENABLE_DIO_SUPPORT */
 };
 

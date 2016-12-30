@@ -21,10 +21,10 @@
 #include "base.h"
 #include "bitbang.h"
 #include "binary_io.h"
-#include "core.h"//need access to bpConfig
+#include "core.h"
 #include "aux_pin.h"
 
-#include "proc_menu.h"		// for the userinteraction subs
+#include "proc_menu.h"
 
 #if defined(BUSPIRATEV4) && !defined(BP_I2C_USE_HW_BUS)
 #error "Bus Pirate v4 must be able to use the hardware I2C interface!"
@@ -40,15 +40,37 @@
  */
 #define I2C_TYPE_HARDWARE 1
 
+#define I2C_ACK_BIT 0
+#define I2C_NACK_BIT 1
+
 typedef struct {
-    uint8_t i2c_mode : 1;
-    uint8_t i2c_acknowledgment_pending : 1;
+    
+    /**
+     * Flag indicating whether a software-only I2C implementation should be
+     * used instead of the built-in hardware I2C interface.
+     * 
+     * @see I2C_TYPE_SOFTWARE
+     * @see I2C_TYPE_HARDWARE
+     */
+    uint8_t mode : 1;
+    
+    /**
+     * Flag indicating whether there is either an ACK/NACK to be received.
+     */
+    uint8_t acknowledgment_pending : 1;
+    
 #ifdef BUSPIRATEV4
-    uint8_t i2c_internal : 1;
+    
+    /**
+     * Flag indicating whether it is sending commands to the I2C EEPROM or not.
+     */
+    uint8_t to_eeprom : 1;
+    
 #endif /* BUSPIRATEV4 */
+    
 } i2c_state_t;
 
-i2c_state_t i2c_state = { 0 };
+static i2c_state_t i2c_state = { 0 };
 
 #define SCL 		BP_CLK
 #define SCL_TRIS 	BP_CLK_DIR     //-- The SCL Direction Register Bit
@@ -60,8 +82,16 @@ extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bool command_error;
 
-void hwi2cSetup(void);
-void hwi2cstart(void);
+/**
+ * Performs hardware initialisation on the chosen hardware I2C interface.
+ */
+void hardware_i2c_setup(void);
+
+/**
+ * Sends a start condition on the chosen hardware I2C interface.
+ */
+void hardware_i2c_start(void);
+
 void hwi2cstop(void);
 void hwi2csendack(unsigned char ack);
 unsigned char hwi2cgetack(void);
@@ -81,8 +111,8 @@ void I2C_Sniffer(unsigned char termMode);
 unsigned int I2Cread(void) {
     unsigned char c = 0;
     
-    if (i2c_state.i2c_acknowledgment_pending) {
-        if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+    if (i2c_state.acknowledgment_pending) {
+        if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
             BITBANG_I2C_ACK();
         }
 #ifdef BP_I2C_USE_HW_BUS
@@ -91,13 +121,12 @@ unsigned int I2Cread(void) {
         }
 #endif /* BP_I2C_USE_HW_BUS */
 	bpSP;
-        //bpWmessage(MSG_ACK);
-        BPMSG1060;
+    MSG_I2C_ACK;
         bpSP;
-        i2c_state.i2c_acknowledgment_pending = false;
+        i2c_state.acknowledgment_pending = false;
     }
 
-    if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+    if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
         c = bitbang_read_value();
     }
 #ifdef BP_I2C_USE_HW_BUS
@@ -105,17 +134,16 @@ unsigned int I2Cread(void) {
         c = hwi2cread();
     }
 #endif /* BP_I2C_USE_HW_BUS */
-    i2c_state.i2c_acknowledgment_pending = true;
+    i2c_state.acknowledgment_pending = true;
     return c;
 }
 
 unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
-    if (i2c_state.i2c_acknowledgment_pending) {
+    if (i2c_state.acknowledgment_pending) {
         bpSP;
-        //bpWmessage(MSG_ACK);
-        BPMSG1060;
+        MSG_I2C_ACK;
         bpSP;
-        if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+        if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
             BITBANG_I2C_ACK();
         }
 #ifdef BP_I2C_USE_HW_BUS
@@ -123,10 +151,10 @@ unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
             hwi2csendack(0); //all other reads get an ACK
         }
 #endif /* BP_I2C_USE_HW_BUS */
-        i2c_state.i2c_acknowledgment_pending = false;
+        i2c_state.acknowledgment_pending = false;
     }
 
-    if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+    if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
         bitbang_write_value(c);
         c = bitbang_read_bit();
     }
@@ -137,52 +165,56 @@ unsigned int I2Cwrite(unsigned int c) { //unsigned char c;
     }
 #endif /* BP_I2C_USE_HW_BUS */
     bpSP;
-    if (c == 0) { //bpWmessage(MSG_ACK);
-        BPMSG1060;
+    if (c == 0) {
+        MSG_I2C_ACK;
         return 0x300; // bit 9=ack
     }
     
-    //bpWmessage(MSG_NACK);
-    BPMSG1061;
+    MSG_I2C_NACK;
     return 0x100; // bit 9=ack
 }
 
-void I2Cstart(void) {
-    if (i2c_state.i2c_acknowledgment_pending) { //bpWmessage(MSG_NACK);
-        BPMSG1061;
-        bpBR; //bpWline(OUMSG_I2C_READ_PEND_NACK);
-        if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+void i2c_start(void) {
+    /* Reset the bus state if an acknowledgment is pending. */
+    
+    if (i2c_state.acknowledgment_pending) {
+        MSG_I2C_NACK;
+        bpBR;
+        
+        if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
             BITBANG_I2C_NACK();
-        }
+        } else {
 #ifdef BP_I2C_USE_HW_BUS
-        else {
-            hwi2csendack(1); //the last read before a stop/start condition gets an NACK
-        }
+            hwi2csendack(I2C_NACK_BIT);
 #endif /* BP_I2C_USE_HW_BUS */
-        i2c_state.i2c_acknowledgment_pending = false;
+        }
+        
+        i2c_state.acknowledgment_pending = false;
     }
-
-    if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-        if (bitbang_i2c_start()) {//bus contention
-            BPMSG1019; //warning
-            BPMSG1020; //short or no pullups
+    
+    /* Send a start signal on the bus. */
+    
+    if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
+        if (bitbang_i2c_start()) {
+            /* There is a short or pull-ups are wrong. */
+            BPMSG1019;
+            BPMSG1020;
             bpBR;
         }
-    }
+    } else {
 #ifdef BP_I2C_USE_HW_BUS
-    else {
-        hwi2cstart();
-    }
+        hardware_i2c_start();
 #endif /* BP_I2C_USE_HW_BUS */
-    //bpWmessage(MSG_I2C_START);
-    BPMSG1062;
+    }
+    
+    MSG_I2C_START_BIT;
 }
 
 void I2Cstop(void) {
-    if (i2c_state.i2c_acknowledgment_pending) { //bpWmessage(MSG_NACK);
-        BPMSG1061;
-        bpBR; //bpWline(OUMSG_I2C_READ_PEND_NACK);
-        if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+    if (i2c_state.acknowledgment_pending) {
+        MSG_I2C_NACK;
+        bpBR;
+        if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
             BITBANG_I2C_NACK();
         }
 #ifdef BP_I2C_USE_HW_BUS
@@ -190,10 +222,10 @@ void I2Cstop(void) {
             hwi2csendack(1); //the last read before a stop/start condition gets an NACK
         }
 #endif /* BP_I2C_USE_HW_BUS */
-        i2c_state.i2c_acknowledgment_pending = false;
+        i2c_state.acknowledgment_pending = false;
     }
 
-    if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+    if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
         bitbang_i2c_stop();
     }
 #ifdef BP_I2C_USE_HW_BUS
@@ -201,15 +233,15 @@ void I2Cstop(void) {
         hwi2cstop();
     }
 #endif /* BP_I2C_USE_HW_BUS */
-    //bpWmessage(MSG_I2C_STOP);
-    BPMSG1063;
+    
+    MSG_I2C_STOP_BIT;
 }
 
 void I2Csettings(void) {
     //bpWstring("I2C (mod spd)=( ");
     BPMSG1068;
 #ifdef BP_I2C_USE_HW_BUS
-    bpWdec(i2c_state.i2c_mode);
+    bpWdec(i2c_state.mode);
     bpSP;
 #else
     bpWdec(0);
@@ -229,7 +261,7 @@ void I2Csetup(void) {
     consumewhitechars();
     HW = getint();
 #else
-    i2c_state.i2c_mode = I2C_TYPE_SOFTWARE;
+    i2c_state.mode = I2C_TYPE_SOFTWARE;
 #endif /* BP_I2C_USE_HW_BUS */
 
     consumewhitechars();
@@ -237,7 +269,7 @@ void I2Csetup(void) {
 
 #ifdef BP_I2C_USE_HW_BUS
     if ((HW > 0) && (HW <= 2)) {
-        i2c_state.i2c_mode = HW - 1;
+        i2c_state.mode = HW - 1;
     } else {
         speed = 0;
     }
@@ -255,12 +287,12 @@ void I2Csetup(void) {
 #ifdef BP_I2C_USE_HW_BUS
         //bpWline(OUMSG_I2C_CON);
         BPMSG1064;
-        i2c_state.i2c_mode = (getnumber(1, 1, 2, 0) - 1);
+        i2c_state.mode = (getnumber(1, 1, 2, 0) - 1);
 #else
-        i2c_state.i2c_mode = I2C_TYPE_SOFTWARE;
+        i2c_state.mode = I2C_TYPE_SOFTWARE;
 #endif /* BP_I2C_USE_HW_BUS */
 
-        if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+        if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
             //bpWmessage(MSG_OPT_BB_SPEED);
             BPMSG1065;
             mode_configuration.speed = (getnumber(1, 1, 4, 0) - 1);
@@ -282,7 +314,7 @@ void I2Csetup(void) {
 #endif /* BUSPIRATEV3 */
         I2Csettings();
 
-        i2c_state.i2c_acknowledgment_pending = false;
+        i2c_state.acknowledgment_pending = false;
         //		I2Cstop();			// this needs to be done after a mode change??
     }
 
@@ -290,26 +322,24 @@ void I2Csetup(void) {
     mode_configuration.high_impedance = 1; //yes, always hiz
 }
 
-void I2Csetup_exc(void) //Executes the setup.. controlled with 'P' command
-{
-   if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
-       SDA_TRIS = 1;
-       SCL_TRIS = 1;
-       SCL = 0; //B8 scl
-       SDA = 0; //B9 sda
-       bitbang_setup(2, mode_configuration.speed); //configure the bitbang library for 2-wire, set the speed
-   }
+void I2Csetup_exc(void) {
+   if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
+       SDA_TRIS = INPUT;
+       SCL_TRIS = INPUT;
+       SCL = LOW;
+       SDA = LOW;
+       bitbang_setup(2, mode_configuration.speed);
+   } else {
 #ifdef BP_I2C_USE_HW_BUS
-   else {
-       hwi2cSetup();
-   }
+       hardware_i2c_setup();
 #endif /* BP_I2C_USE_HW_BUS */
+   }
 }
 
    
 void I2Ccleanup(void) {
-    i2c_state.i2c_acknowledgment_pending = false; //clear any pending ACK from previous use
-    if (i2c_state.i2c_mode == I2C_TYPE_HARDWARE) {
+    i2c_state.acknowledgment_pending = false; //clear any pending ACK from previous use
+    if (i2c_state.mode == I2C_TYPE_HARDWARE) {
         I2C1CONbits.I2CEN = 0; //disable I2C module
 #ifdef BUSPIRATEV4
         I2C3CONbits.I2CEN = 0; //disable I2C module
@@ -331,9 +361,9 @@ void I2Cmacro(unsigned int c) {
             //bpWline(OUMSG_I2C_MACRO_SEARCH);
             BPMSG1070;
 #ifdef BUSPIRATEV4
-            if (((i2c_state.i2c_internal == 0) &&
+            if (((i2c_state.to_eeprom == 0) &&
                     (BP_CLK == 0 || BP_MOSI == 0)) ||
-                    ((i2c_state.i2c_internal == 1) && (BP_EE_SDA == 0 && BP_EE_SCL == 0))) {
+                    ((i2c_state.to_eeprom == 1) && (BP_EE_SDA == 0 && BP_EE_SCL == 0))) {
 #else
             if (BP_CLK == 0 || BP_MOSI == 0) {
 #endif
@@ -344,14 +374,14 @@ void I2Cmacro(unsigned int c) {
             }
             for (i = 0; i < 0x100; i++) {
 
-                if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+                if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
                     bitbang_i2c_start(); //send start
                     bitbang_write_value(i); //send address
                     c = bitbang_read_bit(); //look for ack
                 }
 #ifdef BP_I2C_USE_HW_BUS
                 else {
-                    hwi2cstart();
+                    hardware_i2c_start();
                     hwi2cwrite(i);
                     c = hwi2cgetack();
                 }
@@ -364,7 +394,7 @@ void I2Cmacro(unsigned int c) {
                     if ((i & 0b1) == 0) {//if the first bit is set it's a read address, send a byte plus nack to clean up
                         bp_write_string(" W");
                     } else {
-                        if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) {
+                        if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
                             bitbang_read_value();
                             BITBANG_I2C_NACK(); //bbWriteBit(1);//high bit is NACK
                         }
@@ -379,7 +409,7 @@ void I2Cmacro(unsigned int c) {
                     bp_write_string(")");
                     bpSP;
                 }
-                if (i2c_state.i2c_mode == I2C_TYPE_SOFTWARE) bitbang_i2c_stop();
+                if (i2c_state.mode == I2C_TYPE_SOFTWARE) bitbang_i2c_stop();
 #ifdef BP_I2C_USE_HW_BUS
                 else hwi2cstop();
 #endif /* BP_I2C_USE_HW_BUS */
@@ -388,7 +418,7 @@ void I2Cmacro(unsigned int c) {
 
             break;
         case 2:
-            if (i2c_state.i2c_mode == I2C_TYPE_HARDWARE)I2C1CONbits.I2CEN = 0; //disable I2C module
+            if (i2c_state.mode == I2C_TYPE_HARDWARE)I2C1CONbits.I2CEN = 0; //disable I2C module
 
             //bpWline(OUMSG_I2C_MACRO_SNIFFER);
             BPMSG1071;
@@ -396,13 +426,13 @@ void I2Cmacro(unsigned int c) {
             I2C_Sniffer(1); //set for terminal output
 
 #ifdef BP_I2C_USE_HW_BUS
-            if (i2c_state.i2c_mode == I2C_TYPE_HARDWARE) hwi2cSetup(); //setup hardware I2C again
+            if (i2c_state.mode == I2C_TYPE_HARDWARE) hardware_i2c_setup(); //setup hardware I2C again
 #endif /* BP_I2C_USE_HW_BUS */
             break;
 #if defined (BUSPIRATEV4)
         case 3: //in hardware mode (or software, I guess) we can edit the on-board EEPROM -software mode unimplemented...
             MSG_USING_ONBOARD_I2C_EEPROM;
-            i2c_state.i2c_internal = 1;
+            i2c_state.to_eeprom = 1;
             I2C1CONbits.A10M = 0;
             I2C1CONbits.SCLREL = 0;
 
@@ -422,7 +452,7 @@ void I2Cmacro(unsigned int c) {
             I2C3CONbits.I2CEN = 0;
             break;
         case 4:
-            if (i2c_state.i2c_internal == 1) {
+            if (i2c_state.to_eeprom == 1) {
                 MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED;
                 BP_EE_WP = 0;
             }
@@ -441,37 +471,39 @@ void I2Cpins(void) {
        	BPMSG1231; //bpWline("SCL\tSDA\t-\t-");
 #endif
 }
-//
-//
-//	HARDWARE I2C BASE FUNCTIONS
-//
-//
-#if defined BP_I2C_USE_HW_BUS 
 
-void hwi2cstart(void) {
+#if defined(BP_I2C_USE_HW_BUS)
 
-#if defined (BUSPIRATEV4)
-    if (i2c_state.i2c_internal == 0) {
-        // Enable a start condition
-        I2C3CONbits.SEN = 1;
-        while (I2C3CONbits.SEN == 1); //wait
+void hardware_i2c_start(void) {
+#if defined(BUSPIRATEV4)
+    if (!i2c_state.to_eeprom) {
+        /* Start condition on the external v4 I2C bus. */
+        I2C3CONbits.SEN = ON;
+        while (I2C3CONbits.SEN == ON) {
+        }
+        
         return;
     }
-#endif
-    // Enable a start condition
-    I2C1CONbits.SEN = 1;
-    while (I2C1CONbits.SEN == 1); //wait
+#endif /* BUSPIRATEV4 */
+    
+    /*
+     * Start condition on the external v3 I2C bus or on the v4 EEPROM I2C bus.
+     */
+    I2C1CONbits.SEN = ON;
+    while (I2C1CONbits.SEN == ON) {
+    }
 }
 
 void hwi2cstop(void) {
 
 #if defined (BUSPIRATEV4)
-    if (i2c_state.i2c_internal == 0) {
+    if (i2c_state.to_eeprom == 0) {
         I2C3CONbits.PEN = 1;
         while (I2C3CONbits.PEN == 1); //wait
         return;
     }
 #endif
+    
     I2C1CONbits.PEN = 1;
     while (I2C1CONbits.PEN == 1); //wait
 }
@@ -479,7 +511,7 @@ void hwi2cstop(void) {
 unsigned char hwi2cgetack(void) {
 
 #if defined (BUSPIRATEV4)
-    if (i2c_state.i2c_internal == 0) {
+    if (i2c_state.to_eeprom == 0) {
         return I2C3STATbits.ACKSTAT;
     }
 #endif
@@ -488,13 +520,14 @@ unsigned char hwi2cgetack(void) {
 
 void hwi2csendack(unsigned char ack) {
 #if defined (BUSPIRATEV4)
-    if (i2c_state.i2c_internal == 0) {
+    if (i2c_state.to_eeprom == 0) {
         I2C3CONbits.ACKDT = ack; //send ACK (0) or NACK(1)?
         I2C3CONbits.ACKEN = 1;
         while (I2C3CONbits.ACKEN == 1);
         return;
     }
 #endif
+    
     I2C1CONbits.ACKDT = ack; //send ACK (0) or NACK(1)?
     I2C1CONbits.ACKEN = 1;
     while (I2C1CONbits.ACKEN == 1);
@@ -502,7 +535,7 @@ void hwi2csendack(unsigned char ack) {
 
 void hwi2cwrite(unsigned char c) {
 #if defined (BUSPIRATEV4)
-    if (i2c_state.i2c_internal == 0) {
+    if (i2c_state.to_eeprom == 0) {
         I2C3TRN = c;
         while (I2C3STATbits.TRSTAT == 1);
         return;
@@ -515,7 +548,7 @@ void hwi2cwrite(unsigned char c) {
 unsigned char hwi2cread(void) {
     unsigned char c;
 #if defined (BUSPIRATEV4)
-    if (i2c_state.i2c_internal == 0) {
+    if (i2c_state.to_eeprom == 0) {
         I2C3CONbits.RCEN = 1;
         while (I2C3CONbits.RCEN == 1);
         c = I2C3RCV;
@@ -528,42 +561,57 @@ unsigned char hwi2cread(void) {
     return c;
 }
 
-void hwi2cSetup(void) {
-    I2C3CONbits.A10M = 0;
-    I2C3CONbits.SCLREL = 0;
-
+void hardware_i2c_setup(void) {
+#if defined(BUSPIRATEV4)
+    
+    /* 7-bits slave address. */
+    I2C3CONbits.A10M = OFF;
+    
+    /* Enable clock stretching. */
+    I2C3CONbits.SCLREL = OFF;
+    
+    /* General call address. */
     I2C3ADD = 0;
+    
+    /* Do not mask address bits. */
     I2C3MSK = 0;
-
-    // Enable SMBus
-    I2C3CONbits.SMEN = 0;
-
-
-    // Baud rate setting
+    
+    /* Disable SMBus. */
+    I2C3CONbits.SMEN = OFF;
+    
+    /* Set the I2C baud rate generator speed. */
     I2C3BRG = I2Cspeed[mode_configuration.speed];
+    
+    /* Enable the I2C module. */
+    I2C3CONbits.I2CEN = ON;
+#else
+    
+    /* 7-bits slave address. */
+    I2C1CONbits.A10M = OFF;
+    
+    /* Enable clock stretching. */
+    I2C1CONbits.SCLREL = OFF;
+    
+    /* General call address. */
+    I2C1ADD = 0;
+    
+    /* Do not mask address bits. */
+    I2C1MSK = 0;
+    
+    /* Disable SMBus. */
+    I2C1CONbits.SMEN = OFF;
+    
+    /* Set the I2C baud rate generator speed. */
+    I2C1BRG = I2Cspeed[mode_configuration.speed];
 
-    // Enable I2C module
-    I2C3CONbits.I2CEN = 1;
-
-    //
-    // This work around didn't work for me...
-    //
-    /*
-            //NICE TRY, BUT NO CIGAR
-            //for revision 3, the SDA has to be hit once manually before
-            //it will work, we use the connected pullup resistor to jump start
-            //the broken hardware module.
-            bpDelayUS(200);
-            LATBbits.LATB11=0;//hold to ground
-            TRISBbits.TRISB11=0;//SDA Pullup
-            bpDelayUS(250);
-            TRISBbits.TRISB11=1;//SDA Pullup
-            LATBbits.LATB11=1;//release
-     */
-
+    /* Enable the I2C module. */
+    I2C1CONbits.I2CEN = ON;
+    
+#endif /* BUSPIRATEV4 */
 }
 
 #endif /* BP_I2C_USE_HW_BUS */
+
 //*******************/
 //
 //
@@ -1012,7 +1060,6 @@ I2C_write_read_error: //use this for the read error too
                 break;
         }//command switch
     }//while loop
-
 }
 
 #endif /* BP_ENABLE_I2C_SUPPORT */
