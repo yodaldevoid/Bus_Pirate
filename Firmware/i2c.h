@@ -22,6 +22,8 @@
 
 #ifdef BP_ENABLE_I2C_SUPPORT
 
+#include <stdint.h>
+
 /**
  * Start I2C operations.
  */
@@ -32,10 +34,16 @@ void i2c_start(void);
  */
 void i2c_cleanup(void);
 
+/**
+ * Prints the I2C mode settings to the serial port.
+ */
+void i2c_print_settings(void);
+
+uint16_t i2c_read(void);
+
 void i2cProcess(void);
 void binI2C(void);
 
-unsigned int I2Cread(void);
 unsigned int I2Cwrite(unsigned int c);
 
 void I2Cstop(void);
@@ -43,7 +51,6 @@ void I2Csetup(void);
 void I2Csetup_exc(void);
 void I2Cmacro(unsigned int c);
 void I2Cpins(void);
-void I2Csettings(void);
 
 #endif /* BP_ENABLE_I2C_SUPPORT */
 

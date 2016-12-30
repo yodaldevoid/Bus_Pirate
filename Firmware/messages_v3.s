@@ -734,6 +734,9 @@ _bp_messages:
 	; MSG_1WIRE_MODE_IDENTIFIER
 	.pascii "1W01"
 
+	; MSG_ACK
+	.pascii "ACK"
+
 	; MSG_BASE_CONVERTER_EQUAL_SIGN
 	.pascii " = "
 
@@ -776,20 +779,17 @@ _bp_messages:
 	; MSG_FINISH_SETUP_PROMPT
 	.pascii "To finish setup, start up the power supplies with command 'W'"
 
-	; MSG_I2C_ACK
-	.pascii "ACK"
-
 	; MSG_I2C_MODE_IDENTIFIER
 	.pascii "I2C1"
-
-	; MSG_I2C_NACK
-	.pascii "NACK"
 
 	; MSG_I2C_START_BIT
 	.pascii "I2C START BIT"
 
 	; MSG_I2C_STOP_BIT
 	.pascii "I2C STOP BIT"
+
+	; MSG_NACK
+	.pascii "NACK"
 
 	; MSG_NO_VOLTAGE_ON_PULLUP_PIN
 	.pascii "Warning: no voltage on Vpullup pin"

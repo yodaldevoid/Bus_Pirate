@@ -62,16 +62,14 @@ void R2Wstart(void)
 {	bitbang_i2c_start();
 	//bpWstring("(\\-/_\\)");
 	BPMSG1138;
-	//bpWmessage(MSG_I2C_START);
-	BPMSG1062;
+	MSG_I2C_START_BIT;
 }
 
 void R2Wstop(void)
 {	bitbang_i2c_stop();
 	//bpWstring("(_/-\\)");
 	BPMSG1140;
-	//bpWmessage(MSG_I2C_STOP);
-	BPMSG1063;
+	MSG_I2C_STOP_BIT;
 }
 
 bool R2Wbitr(void)

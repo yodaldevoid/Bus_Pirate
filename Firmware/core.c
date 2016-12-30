@@ -266,11 +266,11 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
     {/* start */
      i2c_start,
      /* start */
-     i2c_start, I2Cstop, I2Cstop, I2Cwrite, I2Cread, null_operation_callback,
+     i2c_start, I2Cstop, I2Cstop, I2Cwrite, i2c_read, null_operation_callback,
      null_operation_callback, null_operation_callback, null_operation_callback,
      null_data_read_callback, null_operation_callback, null_bit_read_callback,
      null_bit_read_callback, I2Cmacro, I2Csetup, I2Csetup_exc, i2c_cleanup,
-     I2Cpins, I2Csettings, "I2C"}
+     I2Cpins, i2c_print_settings, "I2C"}
 #endif /* BP_ENABLE_I2C_SUPPORT */
 
 #ifdef BP_ENABLE_SPI_SUPPORT

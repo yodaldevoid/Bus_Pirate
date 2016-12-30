@@ -56,22 +56,21 @@ unsigned int KEYBread(void)
 	return scan_code;
 }
 
-unsigned int KEYBwrite(unsigned int c)
-{	unsigned char temp;
+unsigned int KEYBwrite(unsigned int value) {
+    switch (kbWriteByte(value)) {
+        case 0:
+            MSG_ACK;
+            break;
+            
+        case 1:
+            MSG_NACK;
+            break;
+            
+        default:
+            BPMSG1237;
+            break;
+    }
 
-	temp=kbWriteByte(c);//send to bus
-	if(temp==0) //ack bit
-	{	//bpWmessage(MSG_ACK);
-		BPMSG1060;
-	}
-	else if (temp==1)
-	{	//bpWmessage(MSG_NACK);
-		BPMSG1061;
-	}
-	else
-	{	//bpWstring(OUMSG_KB_TIMEOUT);
-		BPMSG1237;
-	}
 	return 0x100;
 }
 
