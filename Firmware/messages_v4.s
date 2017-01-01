@@ -806,6 +806,9 @@ _bp_messages:
 	; MSG_BBIO_MODE_IDENTIFIER
 	.pascii "BBIO1"
 
+	; MSG_BINARY_NUMBER_PREFIX
+	.pascii "0b"
+
 	; MSG_CFG0_FIELD
 	.pascii "CFG0: "
 
@@ -829,6 +832,9 @@ _bp_messages:
 
 	; MSG_FINISH_SETUP_PROMPT
 	.pascii "To finish setup, start up the power supplies with command 'W'"
+
+	; MSG_HEXADECIMAL_NUMBER_PREFIX
+	.pascii "0x"
 
 	; MSG_I2C_MODE_IDENTIFIER
 	.pascii "I2C1"

@@ -47,32 +47,27 @@ void bp_write_string(const char *string) {
 }
 
 void bp_write_line(const char *string) {
-  char character;
-  while ((character = *string++)) {
-    UART1TX(character);
-  }
+  bp_write_string(string);
 
   UART1TX(0x0D);
   UART1TX(0x0A);
 }
 
-// output an 8bit/byte binary value to the user terminal
+void bp_write_bin_byte(uint8_t value) {
+  uint8_t mask;
+  size_t index;
+ 
+  mask = 0x80;
 
-void bp_write_bin_byte(unsigned char c) {
-  unsigned char i, j;
-  j = 0b10000000;
+  MSG_BINARY_NUMBER_PREFIX;
 
-  bp_write_string("0b");
-
-  for (i = 0; i < 8; i++) {
-      UART1TX((c & j) ? '1' : '0');
-    j >>= 1;
+  for (index = 0; index < 8; index++) {
+    UART1TX((value & mask) ? '1' : '0');
+    mask >>= 1;
   }
 }
 
-// output an 32bit/long decimal value to the user terminal
-
-void bp_write_dec_dword(unsigned long l) {
+void bp_write_dec_dword(uint32_t l) {
   unsigned long c, m;
   unsigned char j, k = 0;
 
@@ -177,7 +172,7 @@ void bp_write_dec_byte(unsigned char c) {
 }
 
 void bp_write_hex_byte(uint8_t value) {
-  bp_write_buffer(&HEX_PREFIX[0], sizeof(HEX_PREFIX));
+  MSG_HEXADECIMAL_NUMBER_PREFIX;
   UART1TX(HEXASCII[(value >> 4) & 0x0F]);
   UART1TX(HEXASCII[(value >> 4) & 0x0F]);
 }
@@ -192,7 +187,7 @@ void bp_write_hex_byte_to_ringbuffer(uint8_t value) {
 // output a 16bit hex value to the user terminal
 
 void bp_write_hex_word(uint16_t value) {
-  bp_write_buffer(&HEX_PREFIX[0], sizeof(HEX_PREFIX));
+  MSG_HEXADECIMAL_NUMBER_PREFIX;
   UART1TX(HEXASCII[(value >> 12) & 0x0F]);
   UART1TX(HEXASCII[(value >> 8) & 0x0F]);
   UART1TX(HEXASCII[(value >> 4) & 0x0F]);

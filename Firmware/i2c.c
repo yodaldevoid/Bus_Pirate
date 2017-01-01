@@ -24,7 +24,6 @@
 #include "binary_io.h"
 #include "bitbang.h"
 #include "core.h"
-
 #include "proc_menu.h"
 
 #if defined(BUSPIRATEV4) && !defined(BP_I2C_USE_HW_BUS)
@@ -50,6 +49,12 @@
  * I2C NACK bit value.
  */
 #define I2C_NACK_BIT 1
+
+#define I2C_SNIFFER_ESCAPE '\\'
+#define I2C_SNIFFER_NACK '-'
+#define I2C_SNIFFER_ACK '+'
+#define I2C_SNIFFER_START '['
+#define I2C_SNIFFER_STOP ']'
 
 typedef struct {
 
@@ -122,6 +127,8 @@ unsigned char hwi2cgetack(void);
 void hwi2cwrite(unsigned char c);
 unsigned char hwi2cread(void);
 
+static void i2c_sniffer(bool interactive_mode);
+
 #ifdef BP_I2C_USE_HW_BUS
 
 static const uint8_t I2C_BRG_SPEEDS[] = {
@@ -131,8 +138,6 @@ static const uint8_t I2C_BRG_SPEEDS[] = {
 };
 
 #endif /* BP_I2C_USE_HW_BUS */
-
-void I2C_Sniffer(unsigned char termMode);
 
 uint16_t i2c_read(void) {
   unsigned char value = 0;
@@ -499,7 +504,7 @@ void I2Cmacro(unsigned int c) {
 
     BPMSG1071;
     BPMSG1250;
-    I2C_Sniffer(1); // set for terminal output
+    i2c_sniffer(true);
 
 #ifdef BP_I2C_USE_HW_BUS
     if (i2c_state.mode == I2C_TYPE_HARDWARE) {
@@ -892,109 +897,114 @@ void hardware_i2c_setup(void) {
 
 #endif /* BP_I2C_USE_HW_BUS */
 
-#define ESCAPE_CHAR '\\'
+void i2c_sniffer(bool interactive_mode) {
+  bool new_sda;
+  bool old_sda;
+  bool new_scl;
+  bool old_scl;
 
-void I2C_Sniffer(unsigned char termMode) {
-  unsigned char SDANew, SDAOld;
-  unsigned char SCLNew, SCLOld;
+  bool collect_data;
+  uint8_t data_bits;
+  uint8_t data_value;
 
-  unsigned char DataState = 0;
-  unsigned char DataBits = 0;
-  unsigned char dat = 0;
+  collect_data = false;
+  data_bits = 0;
+  data_value = 0;
 
-  // unsigned char *BitBuffer=bpConfig.terminalInput;
-  // unsigned short BufferPos=0;
-  // unsigned short AckPos=0;
-  // unsigned short DataPos=0;
-
-  // setup ring buffer pointers
+  /* Setup UART ringbuffer. */
   UARTbufSetup();
 
   SDA_TRIS = INPUT;
   SCL_TRIS = INPUT;
-
   SCL = LOW;
   SDA = LOW;
 
-  BP_MOSI_CN = ON; // enable change notice on SCL and SDA
+  /* Enable change notice on SCL and SDA. */
+  BP_MOSI_CN = ON;
   BP_CLK_CN = ON;
 
-  IFS1bits.CNIF = OFF; // clear the change interrupt flag
+  /* Clear the change interrupt flag. */
+  IFS1bits.CNIF = OFF;
 
-  SDAOld = SDANew = SDA;
-  SCLOld = SDANew = SCL;
+  old_sda = SDA;
+  old_scl = SCL;
+  new_sda = old_sda;
+  new_scl = old_scl;
 
   for (;;) {
-    if (!IFS1bits.CNIF) { // check change notice interrupt
-      // user IO service
+    if (!IFS1bits.CNIF) {
+      /* Change notice interrupt triggered. */
+
+      /* Handle user I/O. */
       UARTbufService();
+
       if (UART1RXRdy()) {
-        dat = UART1RX();
+        data_value = UART1RX();
         break;
       }
+
       continue;
     }
 
-    IFS1bits.CNIF = OFF; // clear interrupt flag
+    /* Clear change notice interrupt flag. */
+    IFS1bits.CNIF = OFF;
 
-    SDANew = SDA; // store current state right away
-    SCLNew = SCL;
+    /* Save I2C state. */
+    new_sda = SDA;
+    new_scl = SCL;
 
-    if (DataState && !SCLOld && SCLNew) // Sample When SCL Goes Low To High
-    {
-      if (DataBits < 8) // we're still collecting data bits
-      {
-        dat = dat << 1;
-        if (SDANew) {
-          dat |= 1;
-        }
-
-        DataBits++;
+    /* Sample on SCL rising edge. */
+    if (collect_data && !old_scl && new_scl) {
+      if (data_bits < 8) {
+        data_value = (data_value << 1) | new_sda;
+        data_bits++;
       } else {
-        // put the data byte in the terminal or binary output
-        if (termMode) { // output for the terminal
-          bp_write_hex_byte_to_ringbuffer(dat);
-        } else {                // output for binary mode
-          UARTbuf(ESCAPE_CHAR); // escape character
-          UARTbuf(dat);         // write byte value
+        if (interactive_mode) {
+          /* Show data to a human. */
+          bp_write_hex_byte_to_ringbuffer(data_value);
+        } else {
+          /* Report data via binary I/O. */
+          UARTbuf(I2C_SNIFFER_ESCAPE);
+          UARTbuf(data_value);
         }
 
-        if (SDANew) // SDA High Means NACK
-        {
-          UARTbuf('-');
-        } else // SDA Low Means ACK
-        {
-          UARTbuf('+'); // write ACK status
-        }
+        /* SDA high is NACK, SDA low is ACK. */
+        UARTbuf(new_sda ? I2C_SNIFFER_NACK : I2C_SNIFFER_ACK);
 
-        DataBits = 0; // Ready For Next Data Byte
+        /* Ready for next byte. */
+        data_bits = 0;
       }
-    } else if (SCLOld && SCLNew) // SCL High, Must Be Data Transition
-    {
-      if (SDAOld && !SDANew) // Start Condition (High To Low)
-      {
-        DataState = 1; // Allow Data Collection
-        DataBits = 0;
+    } else {
+      /* Data transition. */
+      if (old_scl && new_scl) {
+        /* Start condition. */
+        if (old_sda && !new_sda) {
+          collect_data = true;
+          data_bits = 0;
 
-        UARTbuf('['); // say start, use bus pirate syntax to display data
+          UARTbuf(I2C_SNIFFER_START);
+        } else {
+          /* Stop condition. */
+          if (!old_sda && new_sda) {
+            collect_data = false;
+            data_bits = 0;
 
-      } else if (!SDAOld && SDANew) // Stop Condition (Low To High)
-      {
-        DataState = 0; // Don't Allow Data Collection
-        DataBits = 0;
-
-        UARTbuf(']'); // say stop
+            UARTbuf(I2C_SNIFFER_STOP);
+          }
+        }
       }
     }
 
-    SDAOld = SDANew; // Save Last States
-    SCLOld = SCLNew;
+    /* Save last I2C state. */
+    old_sda = new_sda;
+    old_scl = new_scl;
   }
 
+  /* Disable I2C pin change interrupts. */
   BP_MOSI_CN = OFF;
   BP_CLK_CN = OFF;
 
-  if (termMode) {
+  if (interactive_mode) {
     bpBR;
   }
 }
@@ -1034,13 +1044,15 @@ void binI2C(void) {
 
   for (;;) {
     inByte = UART1RX();
-    rawCommand = (inByte >> 4); // get command bits in seperate variable
+    // get command bits in a separate variable
+    rawCommand = (inByte >> 4);
 
     switch (rawCommand) {
     case 0: // reset/setup/config commands
       switch (inByte) {
-      case 0:   // 0, reset exit
-        return; // exit
+          
+      case 0:
+        return;
 
       case 1: // 1 - id reply string
         MSG_I2C_MODE_IDENTIFIER;
@@ -1179,7 +1191,7 @@ void binI2C(void) {
         break;
 
       case 0b1111:
-        I2C_Sniffer(0); // set for raw output
+        i2c_sniffer(false);
         REPORT_IO_SUCCESS();
         break;
 
