@@ -36,6 +36,18 @@
 
 #endif /* __PIC24FJ256GB106__ || __PIC24FJ64GA002__ */
 
+#ifdef BUSPIRATEV3
+
+/**
+ * If this firmware is guaranteed to not run on MCUs revision A3 or A4 and this
+ * definition is enabled, all the workarounds for known erratas for
+ * PIC24FJ64GA002 will not be enabled.  This will save a few bytes of code
+ * overall.
+ */
+#define BPV3_IS_REV_B4_OR_LATER
+
+#endif /* BUSPIRATEV3 */
+
 /* Feature inclusion/exclusion definitions. */
 
 /**

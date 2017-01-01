@@ -261,7 +261,4 @@ typedef struct {
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 } bus_pirate_configuration_t;
 
-// bridge UART input in UART mode
-void busPirateAsyncUARTService(void);
-
 #endif /* !BP_CORE_H */

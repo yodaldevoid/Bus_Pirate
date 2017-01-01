@@ -41,7 +41,14 @@
  */
 #define I2C_TYPE_HARDWARE 1
 
+/**
+ * I2C ACK bit value.
+ */
 #define I2C_ACK_BIT 0
+
+/**
+ * I2C NACK bit value.
+ */
 #define I2C_NACK_BIT 1
 
 typedef struct {
@@ -71,6 +78,9 @@ typedef struct {
 
 } i2c_state_t;
 
+/**
+ * Current I2C module state.
+ */
 static i2c_state_t i2c_state = {0};
 
 #define SCL BP_CLK
@@ -98,7 +108,16 @@ void hardware_i2c_start(void);
  */
 void hardware_i2c_stop(void);
 
+/**
+ * Sends either an ACK or a NACK on the chosen hardware I2C interface.
+ *
+ * @param[in] ack false for ACK, true for NACK.
+ *
+ * @see I2C_ACK_BIT
+ * @see I2C_NACK_BIT
+ */
 void hardware_i2c_send_ack(bool ack);
+
 unsigned char hwi2cgetack(void);
 void hwi2cwrite(unsigned char c);
 unsigned char hwi2cread(void);
@@ -113,10 +132,6 @@ static const uint8_t I2C_BRG_SPEEDS[] = {
 
 #endif /* BP_I2C_USE_HW_BUS */
 
-// software functions
-void I2C_Setup(void);
-void I2Csetup_exc(void);
-void I2C_SnifferSetup(void);
 void I2C_Sniffer(unsigned char termMode);
 
 uint16_t i2c_read(void) {
@@ -125,12 +140,11 @@ uint16_t i2c_read(void) {
   if (i2c_state.acknowledgment_pending) {
     if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
       bitbang_write_bit(LOW);
-    }
+    } else {
 #ifdef BP_I2C_USE_HW_BUS
-    else {
-      hardware_i2c_send_ack(0); // all other reads get an ACK
-    }
+      hardware_i2c_send_ack(I2C_ACK_BIT);
 #endif /* BP_I2C_USE_HW_BUS */
+    }
     bpSP;
     MSG_ACK;
     bpSP;
@@ -155,12 +169,11 @@ unsigned int I2Cwrite(unsigned int c) { // unsigned char c;
     bpSP;
     if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
       bitbang_write_bit(LOW);
-    }
+    } else {
 #ifdef BP_I2C_USE_HW_BUS
-    else {
-      hardware_i2c_send_ack(0); // all other reads get an ACK
-    }
+      hardware_i2c_send_ack(I2C_ACK_BIT);
 #endif /* BP_I2C_USE_HW_BUS */
+    }
     i2c_state.acknowledgment_pending = false;
   }
 
@@ -192,7 +205,7 @@ void i2c_start(void) {
     bpBR;
 
     if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
-      bitbang_write_bit(HIGH);  
+      bitbang_write_bit(HIGH);
     } else {
 #ifdef BP_I2C_USE_HW_BUS
       hardware_i2c_send_ack(I2C_NACK_BIT);
@@ -225,11 +238,10 @@ void I2Cstop(void) {
     MSG_NACK;
     bpBR;
     if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
-      bitbang_write_bit(HIGH);  
+      bitbang_write_bit(HIGH);
     } else {
 #ifdef BP_I2C_USE_HW_BUS
-      // the last read before a stop/start condition gets an NACK
-      hardware_i2c_send_ack(1);
+      hardware_i2c_send_ack(I2C_NACK_BIT);
 #endif /* BP_I2C_USE_HW_BUS */
     }
     i2c_state.acknowledgment_pending = false;
@@ -292,7 +304,6 @@ void I2Csetup(void) {
     command_error = false;
 
 #ifdef BP_I2C_USE_HW_BUS
-    // bpWline(OUMSG_I2C_CON);
     BPMSG1064;
     i2c_state.mode = (getnumber(1, 1, 2, 0) - 1);
 #else
@@ -300,35 +311,29 @@ void I2Csetup(void) {
 #endif /* BP_I2C_USE_HW_BUS */
 
     if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
-      // bpWmessage(MSG_OPT_BB_SPEED);
       BPMSG1065;
       mode_configuration.speed = (getnumber(1, 1, 4, 0) - 1);
     } else {
-#ifdef BUSPIRATEV3
-      // There is a hardware incompatibility with <B4
-      // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
+#if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
       if (bus_pirate_configuration.device_revision <= PIC_REV_A3) {
         BPMSG1066;
       }
-#endif /* BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 && !BPV3_IS_REV_B4_OR_LATER */
       BPMSG1067;
       mode_configuration.speed = (getnumber(1, 1, 3, 0) - 1);
     }
   } else {
-#ifdef BUSPIRATEV3
-    // There is a hardware incompatibility with <B4
-    // See http://forum.microchip.com/tm.aspx?m=271183&mpage=1
+#if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
     if (bus_pirate_configuration.device_revision <= PIC_REV_A3) {
       BPMSG1066;
     }
-#endif /* BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 && !BPV3_IS_REV_B4_OR_LATER */
     i2c_print_settings();
 
     i2c_state.acknowledgment_pending = false;
   }
 
-  // set the options avaiable here....
-  mode_configuration.high_impedance = 1; // yes, always hiz
+  mode_configuration.high_impedance = ON;
 }
 
 void I2Csetup_exc(void) {
@@ -353,13 +358,13 @@ void i2c_cleanup(void) {
   if (i2c_state.mode == I2C_TYPE_HARDWARE) {
 
 #ifdef BUSPIRATEV4
-      
+
     /* Disable external I2C module. */
-    I2C3CONbits.I2CEN = 0;
+    I2C3CONbits.I2CEN = OFF;
 
     /* Disable EEPROM I2C module. */
-    I2C1CONbits.I2CEN = 0;
-    
+    I2C1CONbits.I2CEN = OFF;
+
 #else
 
     /*
@@ -389,71 +394,68 @@ void I2Cmacro(unsigned int c) {
   int i;
 
   switch (c) {
-  case 0: // menu
-    // bpWline(OUMSG_I2C_MACRO_MENU);// 2. I2C bus sniffer\x0D\x0A");
+
+  case 0:
     BPMSG1069;
     break;
+
   case 1:
     // setup both lines high first
-    bitbang_set_pins_high(MOSI + CLK, 0);
-    // bpWline(OUMSG_I2C_MACRO_SEARCH);
+    bitbang_set_pins_high(MOSI | CLK, 0);
     BPMSG1070;
 #ifdef BUSPIRATEV4
-    if (((i2c_state.to_eeprom == 0) && (BP_CLK == 0 || BP_MOSI == 0)) ||
-        ((i2c_state.to_eeprom == 1) && (BP_EE_SDA == 0 && BP_EE_SCL == 0))) {
+    if ((!i2c_state.to_eeprom && ((BP_CLK == LOW) || (BP_MOSI == LOW))) ||
+        (i2c_state.to_eeprom && ((BP_EE_SDA == LOW) && (BP_EE_SCL == LOW)))) {
 #else
-    if (BP_CLK == 0 || BP_MOSI == 0) {
-#endif
-      BPMSG1019; // warning
-      BPMSG1020; // short or no pullups
+    if ((BP_CLK == LOW) || (BP_MOSI == LOW)) {
+#endif /* BUSPIRATEV4 */
+      BPMSG1019;
+      BPMSG1020;
       bpBR;
       return;
     }
-    for (i = 0; i < 0x100; i++) {
 
+    for (i = 0; i < 0x100; i++) {
       if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
         bitbang_i2c_start();    // send start
         bitbang_write_value(i); // send address
         c = bitbang_read_bit(); // look for ack
-      }
+      } else {
 #ifdef BP_I2C_USE_HW_BUS
-      else {
         hardware_i2c_start();
         hwi2cwrite(i);
         c = hwi2cgetack();
+#endif /* BP_I2C_USE_HW_BUS */
       }
-#endif              /* BP_I2C_USE_HW_BUS */
-      if (c == 0) { // 0 is ACK
 
+      if (c == I2C_ACK_BIT) {
         bp_write_formatted_integer(i);
-        UART1TX('('); // bpWstring("(");
+        UART1TX('(');
         bp_write_formatted_integer((i >> 1));
-        if ((i & 0b1) == 0) { // if the first bit is set it's a read address,
-                              // send a byte plus nack to clean up
-          bp_write_string(" W");
+        /* If the first bit is set, this is a read address. */
+        if ((i & 1) == 0) {
+          bp_write_string(" W) ");
         } else {
           if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
             bitbang_read_value();
-           bitbang_write_bit(HIGH);  
-          }
+            bitbang_write_bit(HIGH);
+          } else {
 #ifdef BP_I2C_USE_HW_BUS
-          else {
             hwi2cread();
-            hardware_i2c_send_ack(1); // high bit is NACK
-          }
+            hardware_i2c_send_ack(I2C_NACK_BIT);
 #endif /* BP_I2C_USE_HW_BUS */
-          bp_write_string(" R");
+          }
+          bp_write_string(" R) ");
         }
-        bp_write_string(")");
-        bpSP;
       }
-      if (i2c_state.mode == I2C_TYPE_SOFTWARE)
-        bitbang_i2c_stop();
 
+      if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
+        bitbang_i2c_stop();
+      } else {
 #ifdef BP_I2C_USE_HW_BUS
-      else
         hardware_i2c_stop();
 #endif /* BP_I2C_USE_HW_BUS */
+      }
     }
     bpBR;
 
@@ -463,9 +465,9 @@ void I2Cmacro(unsigned int c) {
 #ifdef BP_I2C_USE_HW_BUS
     if (i2c_state.mode == I2C_TYPE_HARDWARE) {
 
-      /* Disable I2C hardware module. */
+/* Disable I2C hardware module. */
 
-#if defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
 
       /*
        * PIC24FJ64GA004 Errata - item #26:
@@ -490,12 +492,11 @@ void I2Cmacro(unsigned int c) {
 
       I2C1CONbits.I2CEN = OFF;
 
-#endif /* BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 && !BPV3_IS_REV_B4_OR_LATER */
     }
 
 #endif /* BP_I2C_USE_HW_BUS */
 
-    // bpWline(OUMSG_I2C_MACRO_SNIFFER);
     BPMSG1071;
     BPMSG1250;
     I2C_Sniffer(1); // set for terminal output
@@ -507,48 +508,59 @@ void I2Cmacro(unsigned int c) {
 #endif /* BP_I2C_USE_HW_BUS */
 
     break;
-    
-#if defined(BUSPIRATEV4)
-  case 3: // in hardware mode (or software, I guess) we can edit the on-board
-          // EEPROM -software mode unimplemented...
-    MSG_USING_ONBOARD_I2C_EEPROM;
-    i2c_state.to_eeprom = 1;
-    I2C1CONbits.A10M = 0;
-    I2C1CONbits.SCLREL = 0;
 
+#if defined(BUSPIRATEV4)
+
+  case 3: {
+    MSG_USING_ONBOARD_I2C_EEPROM;
+    i2c_state.to_eeprom = true;
+
+    /* 7-bits slave address. */
+    I2C1CONbits.A10M = OFF;
+
+    /* Enable clock stretching. */
+    I2C1CONbits.SCLREL = OFF;
+
+    /* General call address. */
     I2C1ADD = 0;
+
+    /* Do not mask address bits. */
     I2C1MSK = 0;
 
-    // Enable SMBus
-    I2C1CONbits.SMEN = 0;
+    /* Disable SMBus. */
+    I2C1CONbits.SMEN = OFF;
 
-    // Baud rate setting
+    /* Set the I2C baud rate generator speed. */
     I2C1BRG = I2C_BRG_SPEEDS[mode_configuration.speed];
 
-    // Enable I2C module
-    I2C1CONbits.I2CEN = 1;
+    /* Enable the internal I2C module. */
+    I2C1CONbits.I2CEN = ON;
 
-    // disable other I2C module
-    I2C3CONbits.I2CEN = 0;
+    /* Disable the external I2C module. */
+    I2C3CONbits.I2CEN = OFF;
     break;
+  }
+
   case 4:
-    if (i2c_state.to_eeprom == 1) {
+    if (i2c_state.to_eeprom) {
       MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED;
-      BP_EE_WP = 0;
+      BP_EE_WP = LOW;
     }
+
     break;
-#endif
+
+#endif /* BUSPIRATEV4 */
+
   default:
-    // bpWmessage(MSG_ERROR_MACRO);
     BPMSG1016;
   }
 }
 
 void I2Cpins(void) {
 #if defined(BUSPIRATEV4)
-  BPMSG1261; // bpWline("-\t-\tSCL\tSDA");
+  BPMSG1261;
 #else
-  BPMSG1231; // bpWline("SCL\tSDA\t-\t-");
+  BPMSG1231;
 #endif /* BUSPIRATEV4 */
 }
 
@@ -570,7 +582,7 @@ void hardware_i2c_start(void) {
  * Start condition on the external v3 I2C bus or on the v4 EEPROM I2C bus.
  */
 
-#if defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
 
   /*
    * PIC24FJ64GA004 Errata - item #26:
@@ -584,7 +596,7 @@ void hardware_i2c_start(void) {
 
   /*
    * MSB
-   * xxxxxxxxxxxxxxx1
+   * x-xxxxxxxxxxxxx1
    *                |
    *                +--> SEN: Initiates Start condition on SDAx and SCLx pins.
    */
@@ -595,7 +607,7 @@ void hardware_i2c_start(void) {
 
   I2C1CONbits.SEN = ON;
 
-#endif /* BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 && !BPV3_IS_REV_B4_OR_LATER */
 
   while (I2C1CONbits.SEN == ON) {
   }
@@ -604,15 +616,16 @@ void hardware_i2c_start(void) {
 void hardware_i2c_stop(void) {
 
 #if defined(BUSPIRATEV4)
-  if (i2c_state.to_eeprom == 0) {
-    I2C3CONbits.PEN = 1;
-    while (I2C3CONbits.PEN == 1)
-      ; // wait
+  if (!i2c_state.to_eeprom) {
+    I2C3CONbits.PEN = ON;
+    while (I2C3CONbits.PEN == ON) {
+    }
+
     return;
   }
 #endif /* BUSPIRATEV4 */
 
-#if defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
 
   /*
    * PIC24FJ64GA004 Errata - item #26:
@@ -626,7 +639,7 @@ void hardware_i2c_stop(void) {
 
   /*
    * MSB
-   * xxxxxxxxxxxxx1xx
+   * x-xxxxxxxxxxx1xx
    *              |
    *              +----> PEN: Stop condition is not in progress.
    */
@@ -635,9 +648,9 @@ void hardware_i2c_stop(void) {
 
 #else
 
-  I2C1CONbits.PEN = 1;
+  I2C1CONbits.PEN = ON;
 
-#endif /* BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 && !BPV3_IS_REV_B4_OR_LATER */
 
   while (I2C1CONbits.PEN == ON) {
   }
@@ -646,7 +659,7 @@ void hardware_i2c_stop(void) {
 unsigned char hwi2cgetack(void) {
 
 #if defined(BUSPIRATEV4)
-  if (i2c_state.to_eeprom == 0) {
+  if (!i2c_state.to_eeprom) {
     return I2C3STATbits.ACKSTAT;
   }
 #endif /* BUSPIRATEV4 */
@@ -656,16 +669,17 @@ unsigned char hwi2cgetack(void) {
 
 void hardware_i2c_send_ack(bool ack) {
 #if defined(BUSPIRATEV4)
-  if (i2c_state.to_eeprom == 0) {
-    I2C3CONbits.ACKDT = ack; // send ACK (0) or NACK(1)?
+  if (!i2c_state.to_eeprom) {
+    I2C3CONbits.ACKDT = ack;
     I2C3CONbits.ACKEN = ON;
     while (I2C3CONbits.ACKEN == ON) {
     }
+
     return;
   }
 #endif /* BUSPIRATEV4 */
 
-#if defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
 
   /*
    * PIC24FJ64GA004 Errata - item #26:
@@ -679,7 +693,7 @@ void hardware_i2c_send_ack(bool ack) {
 
   /*
    * MSB
-   * xxxxxxxxxx?1xxxx
+   * x-xxxxxxxx?1xxxx
    *           ||
    *           |+------> ACKEN: Initiates Acknowledge sequence.
    *           +-------> ACKDT: ACK/NACK flag.
@@ -692,7 +706,7 @@ void hardware_i2c_send_ack(bool ack) {
   I2C1CONbits.ACKDT = ack;
   I2C1CONbits.ACKEN = ON;
 
-#endif /* BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 && !BPV3_IS_REV_B4_OR_LATER */
 
   while (I2C1CONbits.ACKEN == ON) {
   }
@@ -700,7 +714,7 @@ void hardware_i2c_send_ack(bool ack) {
 
 void hwi2cwrite(uint8_t value) {
 #if defined(BUSPIRATEV4)
-  if (i2c_state.to_eeprom == 0) {
+  if (!i2c_state.to_eeprom) {
     I2C3TRN = value;
     while (I2C3STATbits.TRSTAT == ON) {
     }
@@ -716,7 +730,7 @@ void hwi2cwrite(uint8_t value) {
 
 unsigned char hwi2cread(void) {
 #if defined(BUSPIRATEV4)
-  if (i2c_state.to_eeprom == 0) {
+  if (!i2c_state.to_eeprom) {
     I2C3CONbits.RCEN = ON;
     while (I2C3CONbits.RCEN == ON) {
     }
@@ -725,7 +739,7 @@ unsigned char hwi2cread(void) {
   }
 #endif /* BUSPIRATEV4 */
 
-#if defined(BUSPIRATEV3)
+#if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
 
   /*
    * PIC24FJ64GA004 Errata - item #26:
@@ -739,7 +753,7 @@ unsigned char hwi2cread(void) {
 
   /*
    * MSB
-   * xxxxxxxxxxxx1xxx
+   * x-xxxxxxxxxx1xxx
    *             |
    *             +-----> RCEN: Enables Receive mode for I2C.
    */
@@ -750,7 +764,7 @@ unsigned char hwi2cread(void) {
 
   I2C1CONbits.RCEN = ON;
 
-#endif /* BUSPIRATEV3 */
+#endif /* BUSPIRATEV3 && !BPV3_IS_REV_B4_OR_LATER */
 
   while (I2C1CONbits.RCEN == ON) {
   }
@@ -792,6 +806,8 @@ void hardware_i2c_setup(void) {
 
   /* Set the I2C baud rate generator speed. */
   I2C1BRG = I2C_BRG_SPEEDS[mode_configuration.speed];
+
+#if defined(BPV3_IS_REV_B4_OR_LATER)
 
   /*
    * PIC24FJ64GA004 Errata - item #26:
@@ -855,143 +871,28 @@ void hardware_i2c_setup(void) {
    */
   I2C1CON |= (1 << 15);
 
+#else
+
+  /* 7-bits slave address. */
+  I2C1CONbits.A10M = OFF;
+
+  /* Enable clock stretching. */
+  I2C1CONbits.SCLREL = OFF;
+
+  /* Disable SMBus. */
+  I2C1CONbits.SMEN = OFF;
+
+  /* Enable the I2C module. */
+  I2C1CONbits.I2CEN = ON;
+
+#endif /* BPV3_IS_REV_B4_OR_LATER */
+
 #endif /* BUSPIRATEV4 */
 }
 
 #endif /* BP_I2C_USE_HW_BUS */
 
-//*******************/
-//
-//
-//	sofware I2C sniffer (very alpha)
-//
-//
-//*******************/
-/*
-void I2C_SnifferSetup(void){
-//we dont actually use interrupts, we poll the interrupt flag
-
-//1. Ensure that the CN pin is configured as a digital input by setting the
-associated bit in the
-//TRISx register.
-//2. Enable interrupts for the selected CN pins by setting the appropriate bits
-in the CNENx
-//registers.
-//3. Turn on the weak pull-up devices (if desired) for the selected CN pins by
-setting the
-//appropriate bits in the CNPUx registers.
-//4. Clear the CNxIF interrupt flag.
-
-        //-- Ensure pins are in high impedance mode --
-        SDA_TRIS=1;
-        SCL_TRIS=1;
-        //writes to the PORTs write to the LATCH
-        SCL=0;			//B8 scl
-        SDA=0;			//B9 sda
-
-        //enable change notice on SCL and SDA
-        CNEN2bits.CN21IE=1;//MOSI
-        CNEN2bits.CN22IE=1;
-
-        //clear the CNIF interrupt flag
-        IFS1bits.CNIF=0;
-
-        I2Csniff.datastate=0;
-        I2Csniff.bits=0;
-        I2Csniff.I2CD|=SDA; //save current pin state in var
-        I2Csniff.I2CC|=SCL; //use to see which pin changes on interrupt
-
-}
- */
-
-// \ - escape character
-//[ - start
-// 0xXX - data
-//+ - ACK +
-//- - NACK -
-//] - stop
 #define ESCAPE_CHAR '\\'
-
-/*
-void I2C_Sniffer(unsigned char termMode){
-        unsigned char c;
-
-        //setup ring buffer pointers
-        UARTbufSetup();
-        I2C_SnifferSetup();
-
-        while(1){
-
-                //user IO service
-                UARTbufService();
-                if(UART1RXRdy == 1){//any key pressed, exit
-                        c=UART1RX(); // JTR usb port
-                        bpBR;
-                        break;
-                }
-
-                //check for change in pin state, if none, return
-                if(IFS1bits.CNIF==0) continue;
-
-                IFS1bits.CNIF=0;
-                I2Csniff.I2CD|=SDA; //save current pin state in var
-                I2Csniff.I2CC|=SCL; //use to see which pin changes on interrupt
-
-                if (I2Csniff.datastate==1 && I2Csniff.I2CC==0b01){//sample when
-clock goes low to high
-
-                        if(I2Csniff.bits<8){
-                                //the next 8 bits are data
-                                I2Csniff.data <<=1; //move over one bit
-                                I2Csniff.data |= (I2Csniff.I2CD & (~0b10));
-//set bit, clear previous bit
-                                I2Csniff.bits++;
-                        }else{
-                                I2Csniff.ACK=SDA; //check for ACK/NACK
-
-                                if(termMode){//output for the terminal
-                                        bpWhexBuf(I2Csniff.data);
-                                }else{ //output for binary mode
-                                        UARTbuf(ESCAPE_CHAR); //escape character
-                                        UARTbuf(I2Csniff.data); //write byte
-value
-                                }
-
-                                if(I2Csniff.ACK)
-                                        UARTbuf('-');
-                                else
-                                        UARTbuf('+'); //write ACK status
-
-                                I2Csniff.bits=0;
-                        }
-
-                }else if(I2Csniff.I2CC==0b11){//clock high, must be data
-transition
-                //if data changed while clock is high, start condition (HL) or
-stop condition (LH)
-
-                        if(I2Csniff.I2CD==0b10){//start condition
-                                I2Csniff.datastate=1;//start condition, allow
-data byte collection
-                                I2Csniff.bits=0;
-                                UARTbuf('[');//say start, use bus pirate syntax
-to display data
-                        }else if(I2Csniff.I2CD==0b01){//stop condition
-                                I2Csniff.datastate=0; //stop condition, don't
-allow byte collection
-                                I2Csniff.bits=0;
-                                UARTbuf(']');//say stop
-                        }
-
-                }
-
-                //move current pin state to previous pin state
-                I2Csniff.I2CD<<=1; //pSDA=I2Cpin.cSDA;
-                I2Csniff.I2CC<<=1; //pin.pSCL=I2Cpin.cSCL;
-
-        }
-}
- */
 
 void I2C_Sniffer(unsigned char termMode) {
   unsigned char SDANew, SDAOld;
@@ -1009,22 +910,21 @@ void I2C_Sniffer(unsigned char termMode) {
   // setup ring buffer pointers
   UARTbufSetup();
 
-  SDA_TRIS = 1; // -- Ensure pins are in high impedance mode --
-  SCL_TRIS = 1;
+  SDA_TRIS = INPUT;
+  SCL_TRIS = INPUT;
 
-  SCL = 0; // writes to the PORTs write to the LATCH
-  SDA = 0;
+  SCL = LOW;
+  SDA = LOW;
 
-  BP_MOSI_CN = 1; // enable change notice on SCL and SDA
-  BP_CLK_CN = 1;
+  BP_MOSI_CN = ON; // enable change notice on SCL and SDA
+  BP_CLK_CN = ON;
 
-  IFS1bits.CNIF = 0; // clear the change interrupt flag
+  IFS1bits.CNIF = OFF; // clear the change interrupt flag
 
   SDAOld = SDANew = SDA;
   SCLOld = SDANew = SCL;
 
-  // while(!UART1RXRdy&&(BufferPos<32768)) // BitBuffer Space = 4096*8 bits
-  while (1) {
+  for (;;) {
     if (!IFS1bits.CNIF) { // check change notice interrupt
       // user IO service
       UARTbufService();
@@ -1035,7 +935,7 @@ void I2C_Sniffer(unsigned char termMode) {
       continue;
     }
 
-    IFS1bits.CNIF = 0; // clear interrupt flag
+    IFS1bits.CNIF = OFF; // clear interrupt flag
 
     SDANew = SDA; // store current state right away
     SCLNew = SCL;
@@ -1091,8 +991,8 @@ void I2C_Sniffer(unsigned char termMode) {
     SCLOld = SCLNew;
   }
 
-  BP_MOSI_CN = 0; // clear change notice
-  BP_CLK_CN = 0;
+  BP_MOSI_CN = OFF;
+  BP_CLK_CN = OFF;
 
   if (termMode) {
     bpBR;
@@ -1118,91 +1018,79 @@ rawI2C mode:
 void binI2C(void) {
   static unsigned char inByte, rawCommand, i;
   unsigned int j, fw, fr;
-  // I2C setup
-  SDA_TRIS = 1;
-  SCL_TRIS = 1;
-  SCL = 0; // B8 scl
-  SDA = 0; // B9 sda
+
+  SDA_TRIS = INPUT;
+  SCL_TRIS = INPUT;
+  SCL = LOW;
+  SDA = LOW;
 
   // set CS pin direction to output on setup
-  BP_CS_DIR = 0; // B6 cs output
+  BP_CS_DIR = OUTPUT;
 
-  mode_configuration.high_impedance =
-      1; // yes, always hiz (bbio uses this setting, should be changed to a
-         // setup variable because stringing the modeconfig struct everyhwere is
-         // getting ugly!)
-  mode_configuration.lsbEN = 0;            // just in case!
-  bitbang_setup(2, BITBANG_SPEED_MAXIMUM); // configure the bitbang library for
-                                           // 2-wire, set the speed to
-                                           // default/high
+  mode_configuration.high_impedance = ON;
+  mode_configuration.lsbEN = OFF;
+  bitbang_setup(2, BITBANG_SPEED_MAXIMUM);
   MSG_I2C_MODE_IDENTIFIER;
 
-  while (1) {
-
-    // JTR Not requiredwhile (UART1RXRdy == 0); //wait for a byte
+  for (;;) {
     inByte = UART1RX();
     rawCommand = (inByte >> 4); // get command bits in seperate variable
 
     switch (rawCommand) {
     case 0: // reset/setup/config commands
       switch (inByte) {
-      case 0: // 0, reset exit
-        // cleanup!!!!!!!!!!
+      case 0:   // 0, reset exit
         return; // exit
-        break;
+
       case 1: // 1 - id reply string
         MSG_I2C_MODE_IDENTIFIER;
         break;
+
       case 2: // I2C start bit
         bitbang_i2c_start();
-        UART1TX(1);
+        REPORT_IO_SUCCESS();
         break;
+
       case 3: // I2C stop bit
         bitbang_i2c_stop();
-        UART1TX(1);
+        REPORT_IO_SUCCESS();
         break;
+
       case 4: // I2C read byte
         UART1TX(bitbang_read_value());
         break;
+
       case 6: // I2C send ACK
         bitbang_write_bit(LOW);
-        UART1TX(1);
+        REPORT_IO_SUCCESS();
         break;
+
       case 7: // I2C send NACK
         bitbang_write_bit(HIGH);
-        UART1TX(1);
+        REPORT_IO_SUCCESS();
         break;
+
       case 8: // write-then-read
         // get the number of commands that will follow
-        // JTR Not required while (!UART1RXRdy()); //wait for a byte
         fw = UART1RX();
-        /* JTR usb port; */; // get byte
         fw = fw << 8;
-        // JTR Not required while (!UART1RXRdy()); //wait for a byte
         fw |= UART1RX();
-        /* JTR usb port; */; // get byte
 
         // get the number of reads to do
-        // JTR Not required while (!UART1RXRdy()); //wait for a byte
         fr = UART1RX();
-        /* JTR usb port; */; // get byte
         fr = fr << 8;
-        // JTR Not required while (!UART1RXRdy()); //wait for a byte
         fr |= UART1RX();
-        /* JTR usb port; */; // get byte
 
         // check length and report error
         if (fw > BP_TERMINAL_BUFFER_SIZE || fr > BP_TERMINAL_BUFFER_SIZE) {
         I2C_write_read_error: // use this for the read error too
-          UART1TX(0);
+          REPORT_IO_FAILURE();
           break;
         }
 
         // get bytes
         for (j = 0; j < fw; j++) {
-          // JTR Not required while (!UART1RXRdy()); //wait for a byte
           bus_pirate_configuration.terminal_input[j] = UART1RX();
-          /* JTR usb port; */;
         }
 
         // start
@@ -1217,7 +1105,7 @@ void binI2C(void) {
             goto I2C_write_read_error;
         }
 
-        fw = fr - 1;               // reuse fw
+        fw = fr - 1;
         for (j = 0; j < fr; j++) { // read bulk bytes from SPI
           // send ack
           // i flast byte, send NACK
@@ -1232,19 +1120,22 @@ void binI2C(void) {
         // I2C stop
         bitbang_i2c_stop();
 
-        UART1TX(1); // send 1/OK
+        REPORT_IO_SUCCESS();
 
         for (j = 0; j < fr; j++) { // send the read buffer contents over serial
           UART1TX(bus_pirate_configuration.terminal_input[j]);
         }
+        break; // 00001001 xxxxxxxx
 
-        break;      // 00001001 xxxxxxxx
-      case 9:       // extended AUX command
-        UART1TX(1); // confirm that the command is known
+      case 9: // extended AUX command
+        // confirm that the command is known
+        REPORT_IO_SUCCESS();
         // inByte - used as extended commmand
         // fr - used as result
-        while (U1STAbits.URXDA == 0)
-          ;               // wait for subcommand byte
+        // wait for subcommand byte
+        while (U1STAbits.URXDA == OFF) {
+        }
+
         inByte = U1RXREG; // get byte
         // 0x00 - AUX/CS low
         // 0x01 - AUX/CS high
@@ -1254,47 +1145,56 @@ void binI2C(void) {
         // 0x20 - use CS
         fr = 1;
         switch (inByte) {
+
         case 0x00:
           bp_aux_pin_set_low();
           break;
+
         case 0x01:
           bp_aux_pin_set_high();
           break;
+
         case 0x02:
           bp_aux_pin_set_high_impedance();
           break;
+
         case 0x03:
           fr = bp_aux_pin_read();
           break;
+
         case 0x10:
           mode_configuration.alternate_aux = 0;
           break;
+
         case 0x20:
           mode_configuration.alternate_aux = 1;
           break;
+
         default:
           fw = 0;
           break;
         }
+
         UART1TX(fr); // result
         break;
+
       case 0b1111:
         I2C_Sniffer(0); // set for raw output
-        UART1TX(1);
+        REPORT_IO_SUCCESS();
         break;
+
       default:
-        UART1TX(0);
+        REPORT_IO_FAILURE();
         break;
       }
       break;
 
-    case 0b0001:               // get x+1 bytes
-      inByte &= (~0b11110000); // clear command portion
-      inByte++;                // increment by 1, 0=1byte
-      UART1TX(1);              // send 1/OK
+    case 0b0001:            // get x+1 bytes
+      inByte &= 0b00001111; // clear command portion
+      inByte++;             // increment by 1, 0=1byte
+      REPORT_IO_SUCCESS();
 
       for (i = 0; i < inByte; i++) {
-        // JTR Not required while (UART1RXRdy() == 0); //wait for a byte
         bitbang_write_value(UART1RX()); // JTR usb port //send byte
         UART1TX(bitbang_read_bit());    // return ACK0 or NACK1
       }
@@ -1302,25 +1202,27 @@ void binI2C(void) {
       break;
 
     case 0b0110:                // set speed
-      inByte &= (~0b11111100);  // clear command portion
+      inByte &= 0b00000011;     // clear command portion
       bitbang_setup(2, inByte); // set I2C speed
-      UART1TX(1);
+      REPORT_IO_SUCCESS();
       break;
 
     case 0b0100: // configure peripherals w=power, x=pullups, y=AUX, z=CS
       bp_binary_io_peripherals_set(inByte);
-      UART1TX(1); // send 1/OK
+      REPORT_IO_SUCCESS();
       break;
+
 #ifdef BUSPIRATEV4
     case 0b0101:
       UART1TX(bp_binary_io_pullup_control(inByte));
       break;
-#endif
+#endif /* BUSPIRATEV4 */
+
     default:
-      UART1TX(0x00); // send 0/Error
+      REPORT_IO_FAILURE();
       break;
-    } // command switch
-  }   // while loop
+    }
+  }
 }
 
 #endif /* BP_ENABLE_I2C_SUPPORT */
