@@ -21,25 +21,36 @@
 
 #include "base.h"
 #include "binary_io.h"
+#include "proc_menu.h"
 #include "uart2.h"
-
-#include "proc_menu.h"		// for the userinteraction subs
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bool command_error;
 
+#define UART_COMMON_BAUD_RATES_COUNT 15
+#define UART_BAUD_RATE_CALCULATION_SAMPLES 25
+#define UART_MACRO_MENU 0
+#define UART_MACRO_TRANSPARENT_BRIDGE 1
+#define UART_MACRO_RAW_UART 2
+#define UART_MACRO_BRIDGE_WITH_FLOW_CONTROL 3
+#define UART_MACRO_AUTO_BAUD_RATE_DETECTION 4
+
 typedef struct {
-    uint8_t databits_parity : 2;
-    uint8_t stop_bits : 1;
-    uint8_t receive_polarity : 1;
-    uint8_t echo_uart : 1;
+  uint8_t databits_parity : 2;
+  uint8_t stop_bits : 1;
+  uint8_t receive_polarity : 1;
+  uint8_t echo_uart : 1;
 #ifdef BUSPIRATEV4
-    uint8_t autobaud : 1;
+  uint8_t autobaud : 1;
 #endif /* BUSPIRATEV4 */
 } UARTSettings;
 
-static UARTSettings uart_settings = { 0 };
+static UARTSettings uart_settings = {0};
+
+static const uint32_t UART_COMMON_BAUD_RATES[] = {
+    0,     300,   600,   1200,  2400,  4800,   9600,   14400,
+    19200, 28800, 38400, 56000, 57600, 115200, 128000, 256000};
 
 const uint16_t UART_BRG_SPEED[] = {
     13332, /* 300 bps */
@@ -54,586 +65,662 @@ const uint16_t UART_BRG_SPEED[] = {
     127    /* 31250 bps */
 };
 
-static void UARTgetbaud_InitTimer(void);
-static void UARTgetbaud_clrTimer(void);
-static unsigned long UARTgetbaud_EstimatedBaud(unsigned long _abr_);
-static unsigned long UARTgetbaud(int DataOnly);
+/**
+ * Obtains the closest-matching common rate for the given baud rate.
+ *
+ * @param[in] baud_rate the baud rate to get a match for.
+ *
+ * @return the closest common baud rate for the given value, or 0 if there was
+ * no match.
+ */
+static uint32_t uart_get_closest_common_rate(const uint32_t baud_rate);
 
-unsigned int UARTread(void)
-{	unsigned int c;
-	if(uart2_rx_ready())
-	{	if(U2STAbits.PERR) BPMSG1194;	//bpWstring("-p "); //show any errors
-		if(U2STAbits.FERR) BPMSG1195;	//bpWstring("-f ");
-		c=uart2_rx();
+/**
+ * Calculates the UART baud rate from detected activity on the port.
+ *
+ * @param[in] quiet true if no messages should be printed on the console, false
+ * if no verbose reporting is needed.
+ *
+ * @return the calculated baud rate.
+ */
+static uint32_t uart_get_baud_rate(const bool quiet);
 
-		if(U2STAbits.OERR)
-		{	//bpWstring("*Bytes dropped*");
-			BPMSG1196;
-			U2STA &= (~0b10); //clear overrun error if exists
-		}
-		return c;
-	}
-	else
-	{	//bpWline(OUMSG_UART_READ_FAIL);
-		BPMSG1197;	
-	}
-	return 0;
+uint16_t uart_read(void) {
+  if (uart2_rx_ready()) {
+    uint16_t character;
+
+    /* Parity error? */
+    if (U2STAbits.PERR) {
+      BPMSG1194;
+    }
+
+    /* Framing error? */
+    if (U2STAbits.FERR) {
+      BPMSG1195;
+    }
+
+    character = uart2_rx();
+
+    /* Overrun error? */
+    if (U2STAbits.OERR) {
+      BPMSG1196;
+
+      /* Clear overrun flag. */
+      U2STAbits.OERR = OFF;
+    }
+
+    return character;
+  }
+
+  BPMSG1197;
+  return 0;
 }
 
-unsigned int UARTwrite(unsigned int c)
-{	uart2_tx(c);				//send byte
-	return 0;
+inline uint16_t uart_write(const uint16_t character) {
+  uart2_tx(character);
+  return 0;
 }
-
-// todo: read from cmdline for now it is ok
 
 void UARTsettings(void) {
-	BPMSG1202;
-	bp_write_dec_byte(mode_configuration.speed); bpSP;
-    bp_write_dec_word((mode_configuration.speed == 9) ?
-        U2BRG : UART_BRG_SPEED[mode_configuration.speed]);
-    bpSP;
-	bp_write_dec_byte(uart_settings.databits_parity); bpSP;
-	bp_write_dec_byte(uart_settings.stop_bits); bpSP;
-	bp_write_dec_byte(uart_settings.receive_polarity); bpSP;
-	bp_write_dec_byte(mode_configuration.high_impedance); bpSP;
-	BPMSG1162;
-}	
+  BPMSG1202;
+  bp_write_dec_byte(mode_configuration.speed);
+  bpSP;
+  bp_write_dec_word((mode_configuration.speed == 9)
+                        ? U2BRG
+                        : UART_BRG_SPEED[mode_configuration.speed]);
+  bpSP;
+  bp_write_dec_byte(uart_settings.databits_parity);
+  bpSP;
+  bp_write_dec_byte(uart_settings.stop_bits);
+  bpSP;
+  bp_write_dec_byte(uart_settings.receive_polarity);
+  bpSP;
+  bp_write_dec_byte(mode_configuration.high_impedance);
+  bpSP;
+  BPMSG1162;
+}
 
+void uart_setup(void) {
+  int speed, dbp, sb, rxp, output, brg = 0;
+  // autobaud detection; multi uses
+  unsigned long abd = 0;
 
-void UARTsetup(void)
-{	int speed, dbp, sb, rxp, output, brg=0;
-    //autobaud detection; multi uses
-	unsigned long abd=0;
-	
 #ifdef BUSPIRATEV4
-    uart_settings.autobaud = OFF;
+  uart_settings.autobaud = OFF;
 #endif /* BUSPIRATEV4 */
 
-	consumewhitechars();
-	speed=getint();
-	if(speed==10)   //weird this is totaly ignored later as the Speed == 0 check later skips the calculation I added it below..
-	{	consumewhitechars();
-		brg=getint();
-	}
-	consumewhitechars();
-	dbp=getint();
-	consumewhitechars();
-	sb=getint();
-	consumewhitechars();
-	rxp=getint();
-	consumewhitechars();
-	output=getint();
- 
-	if((speed>0)&&(speed<=10))
-	{	mode_configuration.speed=speed-1;
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-	
-	if((dbp>0)&&(dbp<=4))
-	{	
-        uart_settings.databits_parity = dbp - 1;
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-	
-	if((sb>0)&&(sb<=2))
-	{	
-        uart_settings.stop_bits = sb - 1;
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-	
-	if((rxp>0)&&(rxp<=2))
-	{	
-        uart_settings.receive_polarity = rxp - 1;
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-	
-	if((output>0)&&(output<=2))
-	{	
-        mode_configuration.high_impedance= ~(output - 1);
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
+  consumewhitechars();
+  speed = getint();
+  if (speed == 10) // weird this is totaly ignored later as the Speed == 0 check
+                   // later skips the calculation I added it below..
+  {
+    consumewhitechars();
+    brg = getint();
+  }
+  consumewhitechars();
+  dbp = getint();
+  consumewhitechars();
+  sb = getint();
+  consumewhitechars();
+  rxp = getint();
+  consumewhitechars();
+  output = getint();
 
-	if(speed==0)
-	{	command_error=false;
+  if ((speed > 0) && (speed <= 10)) {
+    mode_configuration.speed = speed - 1;
+  } else {
+    speed = 0; // when speed is 0 we ask the user
+  }
 
+  if ((dbp > 0) && (dbp <= 4)) {
+    uart_settings.databits_parity = dbp - 1;
+  } else {
+    speed = 0; // when speed is 0 we ask the user
+  }
 
-		BPMSG1133;
-		
+  if ((sb > 0) && (sb <= 2)) {
+    uart_settings.stop_bits = sb - 1;
+  } else {
+    speed = 0; // when speed is 0 we ask the user
+  }
+
+  if ((rxp > 0) && (rxp <= 2)) {
+    uart_settings.receive_polarity = rxp - 1;
+  } else {
+    speed = 0; // when speed is 0 we ask the user
+  }
+
+  if ((output > 0) && (output <= 2)) {
+    mode_configuration.high_impedance = ~(output - 1);
+  } else {
+    speed = 0; // when speed is 0 we ask the user
+  }
+
+  if (speed == 0) {
+    command_error = false;
+
+    BPMSG1133;
+
 #if defined(BUSPIRATEV4)
-		// BPv4 Mode; has custom BAUD entry and auto-baud detection
+    // BPv4 Mode; has custom BAUD entry and auto-baud detection
 
-		mode_configuration.speed=getnumber(1,1,11,0)-1; //get user reply
-		
-		if(mode_configuration.speed==10)
-		{
-			mode_configuration.speed=8; //Set to 115200 for now
-			abd=1;				//trigger to run baud detection
-            uart_settings.autobaud = ON;
-			MSG_BAUD_DETECTION_SELECTED;
-		}
-		
-		if(mode_configuration.speed==9)
-		{	
-			BPMSG1248;						//say input custom BAUD rate
-			abd=getlong(115200,1,999999,0); //get the baud rate from user
-			abd=(((32000000/abd)/8)-1);		//calculate BRG
-			brg=abd;						//set BRG
-			abd=0;							//set abd to 0; so 'Auto Baud Detection' routine isnt ran below
-			//hack hack hakc
-			U2BRG = brg;    //passing the brg variable to U2BRG so the UARTsetup_exc can use it to start UART2setup..
-		} 		
-#else
-		// Normal mode; input BRG and no autobaud detection
-		mode_configuration.speed=getnumber(1,1,10,0)-1; //get user reply
-		
-		if(mode_configuration.speed==9)
-		{	BPMSG1248;
-			brg=getnumber(34,1,32767,0);
-			//hack hack hack 
-			U2BRG = brg; //passing the brg variable to U2BRG so the UARTsetup_exc can use it to start UART2setup..
-		} 
-#endif /* BUSPIRATEV4 */
+    mode_configuration.speed = getnumber(1, 1, 11, 0) - 1; // get user reply
 
-		BPMSG1199;
-		uart_settings.databits_parity = getnumber(1, 1, 4, 0) - 1;
-	
-		BPMSG1200;
-		uart_settings.stop_bits =getnumber(1, 1, 2, 0) - 1;
-	
-		BPMSG1201;
-		uart_settings.receive_polarity = getnumber(1, 1, 2, 0) - 1;
-	
-		BPMSG1142;
-		mode_configuration.high_impedance = ~(getnumber(1, 1, 2, 0) - 1);
-
-	}
-	else
-	{
-    	if(mode_configuration.speed==9)
-		{
-    	    abd = brg;
-    	    abd=(((32000000/abd)/8)-1);		//calculate BRG
-		    brg=abd;						//set BRG
-		    abd=0;							//set abd to 0; so 'Auto Baud Detection' routine isnt ran below
-		    //hack hack hakc
-		    U2BRG = brg;    //passing the brg variable to U2BRG so the UARTsetup_exc can use it to start UART2setup..
-        }  	
-    	UARTsettings();
+    if (mode_configuration.speed == 10) {
+      mode_configuration.speed = 8; // Set to 115200 for now
+      abd = 1;                      // trigger to run baud detection
+      uart_settings.autobaud = ON;
+      MSG_BAUD_DETECTION_SELECTED;
     }
-}
 
-void UARTsetup_exc(void)
-{
-    uart2_setup(mode_configuration.speed == 9 ? U2BRG :
-        UART_BRG_SPEED[mode_configuration.speed], mode_configuration.high_impedance,
-            uart_settings.receive_polarity, uart_settings.databits_parity,
-            uart_settings.stop_bits);
-
-	if(uart_settings.databits_parity == 3) {
-        mode_configuration.numbits = 9;
-	}
-	
-    uart2_enable();
-
-#if !defined(BUSPIRATEV4) 
-	if(U2BRG<U1BRG) BPMSG1249;
-#endif /* !BUSPIRATEV4 */
-
-#if defined(BUSPIRATEV4)
-	unsigned long abd;
-    int brg;
-	if(uart_settings.autobaud == ON) {
-		uart2_disable();
-        bpBR;
-		abd = UARTgetbaud_EstimatedBaud(UARTgetbaud(0));
-        bpBR;
-
-		if (abd == 0) {
-            uart2_setup(UART_BRG_SPEED[8], mode_configuration.high_impedance,
-                    uart_settings.receive_polarity,
-                    uart_settings.databits_parity, uart_settings.stop_bits);
-		} else {
-			mode_configuration.speed=9;
-			abd=(((32000000/abd)/8)-1);
-			brg=abd;
-            uart2_setup(brg, mode_configuration.high_impedance,
-                    uart_settings.receive_polarity,
-                    uart_settings.databits_parity, uart_settings.stop_bits);
-		}
-		uart2_enable();
-	}
-#endif /* BUSPIRATEV4 */
-}    
-
-void UARTcleanup(void)
-{	uart2_disable();
-
-}
-
-
-void UARTmacro(unsigned int macro)
-{
-	switch(macro){
-		case 0://menu
-			//bpWline(OUMSG_UART_MACRO_MENU);
-			BPMSG1203;
-			break;
-		case 3://UART bridge with flow control
-			#if defined(BUSPIRATEV3)
-			//setup RTS CTS on FTDI chip side
-			FTDI_CTS_DIR=0; //CTS (PIC output to FTDI)
-			FTDI_RTS_DIR=1; //RTS (PIC input from FTDI)
-			//PORTAbits.RA4=0;
-			//PORTAbits.RA5=0;
-			BP_CS_DIR=1;//external CTS (PIC input from external circuit)
-			BP_CLK_DIR=0;//external RTS (PIC output mirrors output from FTDI)
-			//BP_CS=0;//external CTS (PIC input from external circuit)
-			//BP_CLK=0;//external RTS (PIC mirrors output from FTDI)
-			#elif defined(BUSPIRATEV4)
-			// do nothing but go into transparet UART. ##FIXME##
-			#endif
-		case 1://transparent UART
-			
-			//bpWline("UART bridge");
-			BPMSG1204;
-			#if defined(BUSPIRATEV4)
-			//bpWline("Normal to exit")
-			BPMSG1278;
-			#else			
-			//bpWline("Reset to exit");
-			BPMSG1205;
-			#endif 
-			if(!agree()) break;
-			// could use a lot of improvement
-			//buffers for baud rate differences
-			//it's best to adjust the terminal to the same speed you want to use to avoid buffer overuns
-			//it will fail silently
-			U2STA &= (~0b10); //clear overrun error if exists
-			while(1){//never ending loop, reset Bus Pirate to get out
-				#if defined(BUSPIRATEV4)
-				// Why is there no other real reference to the BP_BUTTON or RC14??
-				if (BP_BUTTON_ISDOWN()) { 
-					break; // get out if NORMAL button is pressed on BP v4 hardware
-				}
-				// This fix suggested by TES on http://dangerousprototypes.com/forum/viewtopic.php?f=28&t=3441 
-				if((U2STAbits.URXDA==1)){
-						UART1TX(U2RXREG);
-				}
-				#else
-				if((U2STAbits.URXDA==1)&& (U1STAbits.UTXBF == 0)){
-						U1TXREG = U2RXREG; //URXDA doesn't get cleared untill this happens
-				}
-				#endif
-				if((UART1RXRdy()==1)&& (U2STAbits.UTXBF == 0)){
-						U2TXREG = UART1RX(); /* JTR usb port; */ // URXDA doesn't get cleared untill this happens
-				}
-				#if defined(BUSPIRATEV3)
-				if(U2STAbits.OERR || U1STAbits.OERR){
-   					U2STA &= (~0b10); //clear overrun error if exists
-   					U1STA &= (~0b10); //clear overrun error if exists
-					BP_LEDMODE=0;//MODE LED off to signify overrun error
-				#else  //JTR July 2012 meaning BPv4
-				if(U2STAbits.OERR){
-   					U2STA &= (~0b10); //clear overrun error if exists
-  					BP_LEDMODE=0;//MODE LED off to signify overrun error				
-				#endif	
-				}
-				#if defined(BUSPIRATEV3)
-				if(macro==3){
-					//pass RTS/CTS
-					BP_CLK=FTDI_RTS;
-					FTDI_CTS=BP_CS;								
-				}
-				#endif
-			}
-			break;
-		case 2: //Watch raw UART
-			//bpWline("Raw UART input");
-			BPMSG1206;
-			BPMSG1250; //any key to exit
-			
-			// could use a lot of improvement
-			//buffers for baud rate differences
-			//it's best to adjust the terminal to the same speed you want to use to avoid buffer overuns
-			//it will fail silently
-			U2STA &= (~0b10); //clear overrun error if exists
-			while(1){//never ending loop, reset Bus Pirate to get out
-				#if defined(BUSPIRATEV4)
-				// Why is there no other real reference to the BP_BUTTON or RC14??
-				if (BP_BUTTON_ISDOWN()) { //JTR July 2012 copied this from above, may so well have button to break on send too.
-					break; // get out if NORMAL button is pressed on BP v4 hardware
-				}				
-				if (uart2_rx_ready())
-				{
-					UART1TX(uart2_rx());
-				}
-				#else
-				if((U2STAbits.URXDA==1)&& (U1STAbits.UTXBF == 0)){
-						U1TXREG = U2RXREG; //URXDA doesn't get cleared untill this happens
-				}
-				#endif
-				if (UART1RXRdy()==1){//escape
-				 	macro=UART1RX(); /* JTR usb port; */;//read it to discard the byte
-					break;//leave the loop
-				}
-			}
-			break;
-		case 4://auto UART baud rate
-			uart2_disable();
-			UARTgetbaud(0);
-			uart2_enable();
-#if !defined (BUSPIRATEV4)
-			if(U2BRG<U1BRG) BPMSG1249;
-#endif
-			break;			
-		default:
-			//bpWmessage(MSG_ERROR_MACRO);
-			BPMSG1016;
-	}
-}
-
-
-void UARTstart(void)
-{	U2STA &= (~0b10); //clear overrun error if exists
-	uart_settings.echo_uart = ON;
-	mode_configuration.periodicService=1;//start periodic service calls
-	//bpWline(OUMSG_UART_LIVE_DISPLAY_ON);
-	BPMSG1207;
-}
-
-void UARTstop(void)
-{	uart_settings.echo_uart = OFF;
-	mode_configuration.periodicService=0;//start periodic service calls
-	//bpWline(OUMSG_UART_LIVE_DISPLAY_OFF);
-	BPMSG1208;
-}
-
-bool UARTperiodic(void)
-{	unsigned int temp;
-
-	temp=0;
-	while(uart2_rx_ready())			//data ready
-	{	if (uart_settings.echo_uart) {
-            bpBR;
-			BPMSG1102;
-			if(U2STAbits.PERR) {
-                BPMSG1194;
-            }
-			if(U2STAbits.FERR) {
-                BPMSG1195;
-            }
-			bp_write_formatted_integer(uart2_rx());
-			if(U2STAbits.OERR) {
-				BPMSG1196;
-	 			U2STA &= (~0b10); //clear overrun error if exists
-			}	
-			bpBR;
-		}else {
-            uart2_rx();//clear the buffer....
-		}
-		temp=1;
-	}
-	return temp;
-}
-
-void UARTpins(void) {
-#ifdef BUSPIRATEV4
-    BPMSG1260; //bpWline("-\tRxD\t-\tTxD");
+    if (mode_configuration.speed == 9) {
+      BPMSG1248;                           // say input custom BAUD rate
+      abd = getlong(115200, 1, 999999, 0); // get the baud rate from user
+      abd = (((32000000 / abd) / 8) - 1);  // calculate BRG
+      brg = abd;                           // set BRG
+      abd = 0; // set abd to 0; so 'Auto Baud Detection' routine isnt ran below
+      // hack hack hakc
+      U2BRG = brg; // passing the brg variable to U2BRG so the UARTsetup_exc can
+                   // use it to start UART2setup..
+    }
 #else
-    BPMSG1230; //bpWline("-\tTxD\t-\tRxD");
+    // Normal mode; input BRG and no autobaud detection
+    mode_configuration.speed = getnumber(1, 1, 10, 0) - 1; // get user reply
+
+    if (mode_configuration.speed == 9) {
+      BPMSG1248;
+      brg = getnumber(34, 1, 32767, 0);
+      // hack hack hack
+      U2BRG = brg; // passing the brg variable to U2BRG so the UARTsetup_exc can
+                   // use it to start UART2setup..
+    }
+#endif /* BUSPIRATEV4 */
+
+    BPMSG1199;
+    uart_settings.databits_parity = getnumber(1, 1, 4, 0) - 1;
+
+    BPMSG1200;
+    uart_settings.stop_bits = getnumber(1, 1, 2, 0) - 1;
+
+    BPMSG1201;
+    uart_settings.receive_polarity = getnumber(1, 1, 2, 0) - 1;
+
+    BPMSG1142;
+    mode_configuration.high_impedance = ~(getnumber(1, 1, 2, 0) - 1);
+
+  } else {
+    if (mode_configuration.speed == 9) {
+      abd = brg;
+      abd = (((32000000 / abd) / 8) - 1); // calculate BRG
+      brg = abd;                          // set BRG
+      abd = 0; // set abd to 0; so 'Auto Baud Detection' routine isnt ran below
+      // hack hack hakc
+      U2BRG = brg; // passing the brg variable to U2BRG so the UARTsetup_exc can
+                   // use it to start UART2setup..
+    }
+    UARTsettings();
+  }
+}
+
+void UARTsetup_exc(void) {
+  uart2_setup(mode_configuration.speed == 9
+                  ? U2BRG
+                  : UART_BRG_SPEED[mode_configuration.speed],
+              mode_configuration.high_impedance, uart_settings.receive_polarity,
+              uart_settings.databits_parity, uart_settings.stop_bits);
+
+  if (uart_settings.databits_parity == 3) {
+    mode_configuration.numbits = 9;
+  }
+
+  uart2_enable();
+
+#ifdef BUSPIRATEV4
+  unsigned long abd;
+  int brg;
+  if (uart_settings.autobaud == ON) {
+    uart2_disable();
+    bpBR;
+    abd = uart_get_closest_common_rate(uart_get_baud_rate(false));
+    bpBR;
+
+    if (abd == 0) {
+      uart2_setup(UART_BRG_SPEED[8], mode_configuration.high_impedance,
+                  uart_settings.receive_polarity, uart_settings.databits_parity,
+                  uart_settings.stop_bits);
+    } else {
+      mode_configuration.speed = 9;
+      abd = (((32000000 / abd) / 8) - 1);
+      brg = abd;
+      uart2_setup(brg, mode_configuration.high_impedance,
+                  uart_settings.receive_polarity, uart_settings.databits_parity,
+                  uart_settings.stop_bits);
+    }
+    uart2_enable();
+  }
+#else
+  if (U2BRG < U1BRG) {
+    MSG_UART_POSSIBLE_OVERFLOW;
+  }
 #endif /* BUSPIRATEV4 */
 }
 
-void UARTgetbaud_InitTimer(void)
-{
-	T4CON=0;	//counters = off
-	T2CON=0;
+inline void uart_cleanup(void) { uart2_disable(); }
 
-	T2CON=0b001000; //(T32) = 32bit timer no prescale
+void uart_run_macro(const uint16_t macro) {
+  switch (macro) {
+  case UART_MACRO_MENU:
+    BPMSG1203;
+    break;
 
-	TMR3HLD=0x00;
-	TMR2=0x00;
+  case UART_MACRO_BRIDGE_WITH_FLOW_CONTROL:
+#ifdef BUSPIRATEV3
+    /* FTDI CTS and RTS setup. */
+    FTDI_CTS_DIR = OUTPUT;
+    FTDI_RTS_DIR = INPUT;
 
-	TMR5HLD=0x00;
-	TMR4=0x00;
-	T4CON=0b1000; //.T32=1, bit 3
+    /* External CTS and RTS setup. */
+    BP_CS_DIR = INPUT;
+    BP_CLK_DIR = OUTPUT;
+#else
+/* Do nothing for v4? */
+#endif /* BUSPIRATEV3 */
+
+  /* Intentional fall-through. */
+
+  case UART_MACRO_TRANSPARENT_BRIDGE:
+    BPMSG1204;
+#ifdef BUSPIRATEV4
+    MSG_UART_NORMAL_TO_EXIT;
+#else
+    MSG_UART_RESET_TO_EXIT;
+#endif /* BUSPIRATEV4 */
+
+    if (!agree()) {
+      break;
+    }
+
+    /* Make terminal speed match target speed to avoid overruns? */
+
+    /* Clear overrun flag. */
+    U2STAbits.OERR = OFF;
+
+    for (;;) {
+#ifdef BUSPIRATEV4
+      if (BP_BUTTON_ISDOWN()) {
+        break;
+      }
+
+      if (U2STAbits.URXDA == ON) {
+        UART1TX(U2RXREG);
+      }
+#else
+      if ((U2STAbits.URXDA == ON) && (U1STAbits.UTXBF == OFF)) {
+        U1TXREG = U2RXREG;
+      }
+#endif /* BUSPIRATEV4 */
+
+      if (UART1RXRdy() && (U2STAbits.UTXBF == OFF)) {
+        U2TXREG = UART1RX();
+      }
+
+#ifdef BUSPIRATEV3
+      if (U2STAbits.OERR || U1STAbits.OERR) {
+        U2STAbits.OERR = OFF;
+        U1STAbits.OERR = OFF;
+        BP_LEDMODE = LOW;
+      }
+#else
+      if (U2STAbits.OERR) {
+        U2STAbits.OERR = OFF;
+        BP_LEDMODE = LOW;
+      }
+#endif /* BUSPIRATEV3 */
+
+#ifdef BUSPIRATEV3
+      if (macro == UART_MACRO_BRIDGE_WITH_FLOW_CONTROL) {
+        /* Relay flow control bits. */
+        BP_CLK = FTDI_RTS;
+        FTDI_CTS = BP_CS;
+      }
+#endif /* BUSPIRATEV3 */
+    }
+    break;
+
+  case UART_MACRO_RAW_UART:
+    BPMSG1206;
+    BPMSG1250;
+
+    U2STAbits.OERR = OFF;
+    for (;;) {
+#ifdef BUSPIRATEV4
+      if (BP_BUTTON_ISDOWN()) {
+        break;
+      }
+
+      if (uart2_rx_ready()) {
+        UART1TX(uart2_rx());
+      }
+#else
+      if ((U2STAbits.URXDA == ON) && (U1STAbits.UTXBF == OFF)) {
+        U1TXREG = U2RXREG;
+      }
+#endif /* BUSPIRATEV4 */
+
+      if (UART1RXRdy()) {
+        volatile uint16_t dummy;
+
+        dummy = UART1RX();
+        break;
+      }
+    }
+    break;
+
+  case UART_MACRO_AUTO_BAUD_RATE_DETECTION:
+    uart2_disable();
+    uart_get_baud_rate(false);
+    uart2_enable();
+#ifdef BUSPIRATEV3
+    if (U2BRG < U1BRG) {
+      MSG_UART_POSSIBLE_OVERFLOW;
+    }
+#endif /* BUSPIRATEV3 */
+    break;
+
+  default:
+    BPMSG1016;
+  }
 }
 
-void UARTgetbaud_clrTimer(void)
-{
-	T2CONbits.TON=0;
-	T4CONbits.TON=0;
+void uart_start(void) {
+  /* Clear overrun flag. */
+  U2STAbits.OERR = OFF;
 
-	RPINR3bits.T2CKR=0b11111;
-	T4CON=0;
-	T2CON=0;
+  /* Enable UART echo on the console. */
+  uart_settings.echo_uart = ON;
 
-	TMR2=0;
-	TMR3HLD=0;
+  /* Start periodic service calls. */
+  mode_configuration.periodicService = ON;
+
+  BPMSG1207;
 }
 
-#define UARTgetbaud_CommonBauds_COUNT 15
-const static unsigned long UARTgetbaud_CommonBauds[]={0,300,600,1200,2400,4800,9600,14400,19200,28800,38400,56000,57600,115200,128000,256000};
+void uart_stop(void) {
+  /* Disable UART echo on the console. */
+  uart_settings.echo_uart = OFF;
 
-unsigned long UARTgetbaud_EstimatedBaud(unsigned long _abr_)
-{
-	unsigned long upper=0, lower=0, target=0;
-	int i;
-	
-	for(i=1;i<UARTgetbaud_CommonBauds_COUNT;i++){
-	    if (_abr_ < UARTgetbaud_CommonBauds[i]){
-	       lower = UARTgetbaud_CommonBauds[i-1];
-	       upper = UARTgetbaud_CommonBauds[i];
-	       target = (_abr_ > lower+(upper-lower)/2)?upper:lower;
-	       break;
-	    }
-	}
-	return target;
+  /* Stop periodic service calls. */
+  mode_configuration.periodicService = OFF;
+
+  BPMSG1208;
 }
 
-/*
-unsigned long UARTgetbaud_EstimatedBaud(unsigned long _abr_)
-{
-	if((_abr_>=250) && (_abr_<=450)) {
-		return 300;
-	} else if ((_abr_>=451)&&(_abr_<=900)) {
-		return 600;
-	} else if ((_abr_>=901)&&(_abr_<=1800)) {
-		return 1200;
-	} else if ((_abr_>=1801)&&(_abr_<=3500)) {
-		return 2400;
-	} else if ((_abr_>=3501)&&(_abr_<=7200)) {
-		return 4800;
-	} else if ((_abr_>=7201)&&(_abr_<=12000)) {
-		return 9600;
-	} else if ((_abr_>=12001)&&(_abr_<=16800)) {
-		return 14400;
-	} else if ((_abr_>=16801)&&(_abr_<=21600)) {
-		return 19200;
-	} else if ((_abr_>=21601)&&(_abr_<=31200)) {
-		return 28800;
-	}  else if ((_abr_>=31201)&&(_abr_<=40800)) {
-		return 38400;
-	}  else if ((_abr_>=40801)&&(_abr_<=56800)) {
-		return 56000;
-	}  else if ((_abr_>=56801)&&(_abr_<=86400)) {
-		return 57600;
-	}  else if ((_abr_>=86401)&&(_abr_<=121600)) {
-		return 115200;
-	}  else if ((_abr_>=121601)&&(_abr_<=192000)) {
-		return 128000;
-	} else if((_abr_>=192001)&&(_abr_<=300000)) {
-		return 256000;
-	} else {
-		return 0;
-	}
-}
-*/
+bool uart_periodic_callback(void) {
+  bool handled;
 
-unsigned long UARTgetbaud(int DataOnly)
-{
-	unsigned int i=0;
-	unsigned long CurrentSample=0,BitSample=0;
+  handled = false;
+  while (uart2_rx_ready()) {
+    handled = true;
 
-	// CalculatedBaud define just for readability
-	#define CalculatedBaud BitSample
+    if (!uart_settings.echo_uart) {
+      /* Clear RX queue. */
+      uart2_rx();
+      continue;
+    }
 
-	BP_MISO=0;
-	BP_MISO_DIR=1;
+    bpBR;
+    BPMSG1102;
 
-	if(DataOnly==0) {
-		//bpWline("Awaiting Activity...\n\r(Notice: Any key to exit at this point only...)\n\r");
-		BPMSG1280; // -BXRADDED-
-	}
-	
-	
-	while(BP_MISO==1 && U1STAbits.URXDA==0) {	// Wait for activity (stabilize)
-		asm( "nop" );							// you can exit by hitting any key at this point.
-	}
-	
-	if (U1STAbits.URXDA==1) {					// Emergency Exit.
-		i=U1RXREG;								// Get rid of the char from queue
-		UARTgetbaud_clrTimer();
-		//bpWline("\n\r** Early Exit...\n\r");
-		BPMSG1281; //-BXRADDED-
-		return 0;
-	}
-	
-	for(i=0;i<25;i++) {							// 25 samples?! Really 5 is good enough.
-		UARTgetbaud_InitTimer();				// Init the 32bit Timer
-		
-		while(BP_MISO==0) {	} 					// Wait until the line goes high == start of activity
-		
-		T4CONbits.TON=1;						// Start counter. (from Auxpin.c's GetFreq() function.)
-		T2CONbits.TON=1;						// []nil]
+    /* Parity error? */
+    if (U2STAbits.PERR) {
+      BPMSG1194;
+    }
 
-		while(BP_MISO==1) {	}					// The timer is doing the work now. count while high.
-		
-		T2CONbits.TON=0;						// Stop counter.
-		T4CONbits.TON=0;						// []nil]
-		
-		RPINR3bits.T2CKR=0b11111; 				// Assign T2 clock input to nothing
-		T4CON=0;								// Make sure the counters are off.
-		T2CON=0;								// []nil]
-		
-		//j=TMR2;								// (1) Get timer/counter values
-		//k=TMR3HLD;							// (2) and format a number with
-		CurrentSample=TMR3HLD;					// (3) the two registers that make
- 		CurrentSample<<=16;						// (4) up the 32bit counter.
-		CurrentSample+=TMR2;					// (5) []nil]
-				
-		if(i!=0) {								// (1) This little jewel is the
-			if(BitSample==0) {					// (2) most important peice of code
-				BitSample=CurrentSample;		// (3) it compares every sample with
-			} else {							// (4) the last and smalest and
-				if(BitSample>CurrentSample) {	// (5) only lets the smallest sample
-					BitSample=CurrentSample;	// (6) through, which should be a single
-				}								// (7) bit.
-			}									// (8) []nil]
-		}										// (9) Note the first sample is kicked.
-		CurrentSample=0;						
-	}
-	
-	UARTgetbaud_clrTimer();						// Disable timer/counter and cleanup.
-	#define BP_CPU_MIPS 16000000
-	CalculatedBaud = (BP_CPU_MIPS/BitSample);
-	
-	if(DataOnly==0) {
-		
-		if((CalculatedBaud)>150000)
-		{
-			//bpWline("\n\rNOTICE! ( Baud >= 256000 )\n\rThe sampled bus has a baud rate to fast for the BP hardware to");
-			//bpWline("calculate appropriatly. No estimated baud rate will be supplied. In order");
-			//bpWline("to get the baud rate, on this bus, you will need to use a logic analyzer");
-			//bpWline("at speeds around 50Mhz+. Open Bench Logic Sniffer reccommended. ;)");
-			BPMSG1282; //-BXRADDED-
+    /* Framing error? */
+    if (U2STAbits.FERR) {
+      BPMSG1195;
+    }
 
-		} else {
-			BPMSG1283; //bpWstring("\n\rActual Calculated Baud Rate: \t");
-			bp_write_dec_dword(CalculatedBaud);
-			BPMSG1285; //bpWstring(" bps (Estimated)");
-			
-			BPMSG1284; //bpWstring("\n\rNearest Common Baud Rate: \t");
-			bp_write_dec_dword(UARTgetbaud_EstimatedBaud(CalculatedBaud));
-			BPMSG1285; //bpWstring(" bps");
-		}
-	
-		//bpWline("\n\r\n\rEnd of Function. Good bye.");
-	}
-	return CalculatedBaud;
+    bp_write_formatted_integer(uart2_rx());
+
+    /* Overrun error? */
+    if (U2STAbits.OERR) {
+
+      /* Clear overrun flag. */
+      U2STAbits.OERR = OFF;
+
+      BPMSG1196;
+    }
+
+    bpBR;
+  }
+
+  return handled;
 }
 
+inline void uart_pins_state(void) { MSG_UART_PINS_STATE; }
+
+uint32_t uart_get_closest_common_rate(const uint32_t baud_rate) {
+  size_t counter;
+
+  for (counter = 1; counter < UART_COMMON_BAUD_RATES_COUNT; counter++) {
+    if (baud_rate < UART_COMMON_BAUD_RATES[counter]) {
+      uint32_t lower;
+      uint32_t upper;
+
+      lower = UART_COMMON_BAUD_RATES[counter - 1];
+      upper = UART_COMMON_BAUD_RATES[counter];
+
+      return (baud_rate > lower + (upper - lower) / 2) ? upper : lower;
+    }
+  }
+
+  return 0;
+}
+
+uint32_t uart_get_baud_rate(const bool quiet) {
+  size_t samples;
+  uint32_t current_sample;
+  uint32_t bit_sample;
+
+  BP_MISO = LOW;
+  BP_MISO_DIR = INPUT;
+
+  if (!quiet) {
+    BPMSG1280;
+  }
+
+  /* Wait for the UART to stabilise. */
+  while ((BP_MISO == HIGH) && (U1STAbits.URXDA == OFF)) {
+    Nop();
+  }
+
+  /* Key pressed during detection, bailing out. */
+  if (U1STAbits.URXDA == ON) {
+    volatile uint16_t dummy;
+
+    /* Clear RX queue. */
+    dummy = U1RXREG;
+
+    /* Stop timers. */
+
+    /*
+     * T4CON: TIMER4 CONTROL REGISTER
+     *
+     * MSB
+     * 0-0------0000-0-
+     * | |      |||| |
+     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
+     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
+     * | |      |++------> TCKPS: Input prescaler 1:1.
+     * | |      +--------> TGATE: Gated time accumulation is disabled.
+     * | +---------------> TSIDL  Continues module operation in Idle mode.
+     * +-----------------> TON:   Stops 16-bit Timerx.
+     */
+    T4CON = 0;
+
+    /*
+     * T2CON: TIMER2 CONTROL REGISTER
+     *
+     * MSB
+     * 0-0------0000-0-
+     * | |      |||| |
+     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
+     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
+     * | |      |++------> TCKPS: Input prescaler 1:1.
+     * | |      +--------> TGATE: Gated time accumulation is disabled.
+     * | +---------------> TSIDL  Continues module operation in Idle mode.
+     * +-----------------> TON:   Stops 16-bit Timerx.
+     */
+    T2CON = 0;
+
+    /* Merge timer 2 and 3. */
+    T2CONbits.T32 = ON;
+
+    /* Clear timer 3 holding register. */
+    TMR3HLD = 0;
+
+    /* Clear timer 2 register. */
+    TMR2 = 0;
+
+    /* Clear timer 5 holding register. */
+    TMR5HLD = 0;
+
+    /* Clear timer 4 register. */
+    TMR4 = 0;
+
+    /* Merge timer 4 and 5. */
+    T4CONbits.T32 = ON;
+
+    if (!quiet) {
+      BPMSG1281;
+    }
+
+    return 0;
+  }
+
+  for (samples = 0; samples < UART_BAUD_RATE_CALCULATION_SAMPLES; samples++) {
+
+    /* Wait for activity. */
+    while (BP_MISO == LOW) {
+    }
+
+    /* Start counting. */
+    T4CONbits.TON = ON;
+    T2CONbits.TON = ON;
+
+    /* Wait for line to go down. */
+    while (BP_MISO == HIGH) {
+    }
+
+    /* Stop counting. */
+    T2CONbits.TON = OFF;
+    T4CONbits.TON = OFF;
+
+    /* Neuter Timer2. */
+    RPINR3bits.T2CKR = 0b011111;
+
+    /* Stop timers. */
+
+    /*
+     * T4CON: TIMER4 CONTROL REGISTER
+     *
+     * MSB
+     * 0-0------0000-0-
+     * | |      |||| |
+     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
+     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
+     * | |      |++------> TCKPS: Input prescaler 1:1.
+     * | |      +--------> TGATE: Gated time accumulation is disabled.
+     * | +---------------> TSIDL  Continues module operation in Idle mode.
+     * +-----------------> TON:   Stops 16-bit Timerx.
+     */
+    T4CON = 0;
+
+    /*
+     * T2CON: TIMER2 CONTROL REGISTER
+     *
+     * MSB
+     * 0-0------0000-0-
+     * | |      |||| |
+     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
+     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
+     * | |      |++------> TCKPS: Input prescaler 1:1.
+     * | |      +--------> TGATE: Gated time accumulation is disabled.
+     * | +---------------> TSIDL  Continues module operation in Idle mode.
+     * +-----------------> TON:   Stops 16-bit Timerx.
+     */
+    T2CON = 0;
+
+    /* Get the smallest timing value after the first one. */
+
+    current_sample = ((uint32_t)TMR3HLD << 16) | TMR2;
+    if ((samples > 0) && ((bit_sample == 0) || (bit_sample > current_sample))) {
+      bit_sample = current_sample;
+    }
+  }
+
+  /* Stop timers. */
+
+  T2CONbits.TON = OFF;
+  T4CONbits.TON = OFF;
+
+  /* Neuter Timer2. */
+  RPINR3bits.T2CKR = 0b011111;
+
+  /*
+   * T4CON: TIMER4 CONTROL REGISTER
+   *
+   * MSB
+   * 0-0------0000-0-
+   * | |      |||| |
+   * | |      |||| +---> TCS:   Internal clock (FOSC/2)
+   * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
+   * | |      |++------> TCKPS: Input prescaler 1:1.
+   * | |      +--------> TGATE: Gated time accumulation is disabled.
+   * | +---------------> TSIDL  Continues module operation in Idle mode.
+   * +-----------------> TON:   Stops 16-bit Timerx.
+   */
+  T4CON = 0;
+
+  /*
+   * T4CON: TIMER4 CONTROL REGISTER
+   *
+   * MSB
+   * 0-0------0000-0-
+   * | |      |||| |
+   * | |      |||| +---> TCS:   Internal clock (FOSC/2)
+   * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
+   * | |      |++------> TCKPS: Input prescaler 1:1.
+   * | |      +--------> TGATE: Gated time accumulation is disabled.
+   * | +---------------> TSIDL  Continues module operation in Idle mode.
+   * +-----------------> TON:   Stops 16-bit Timerx.
+   */
+  T2CON = 0;
+
+  /* Clear timer 2 register. */
+  TMR2 = 0;
+
+  /* Clear timer 3 holding register. */
+  TMR3HLD = 0;
+
+  bit_sample = FCY / bit_sample;
+
+  if (!quiet) {
+    if (bit_sample > 150000) {
+      BPMSG1282;
+    } else {
+      BPMSG1283;
+      bp_write_dec_dword(bit_sample);
+      BPMSG1285;
+      BPMSG1284;
+      bp_write_dec_dword(uart_get_closest_common_rate(bit_sample));
+      BPMSG1285;
+    }
+  }
+
+  return bit_sample;
+}
 
 /*
 databits and parity (2bits)
@@ -651,164 +738,184 @@ peripheral settings
 # 00001111 - bridge mode (reset to exit)
 # 0001xxxx � Bulk transfer, send 1-16 bytes (0=1byte!)
 # 0100wxyz � Set peripheral w=power, x=pullups, y=AUX, z=CS
-# 0101wxyz � read peripherals 
-# 0110xxxx - Set speed,0000=300,0001=1200,10=2400,4800,9600,19200,31250, 38400,57600,1010=115200,
-# 0111xxxx - Read speed, 
-# 100wxxyz � config, w=output type, xx=databits and parity, y=stop bits, z=rx polarity (default :00000)
+# 0101wxyz � read peripherals
+# 0110xxxx - Set speed,0000=300,0001=1200,10=2400,4800,9600,19200,31250,
+38400,57600,1010=115200,
+# 0111xxxx - Read speed,
+# 100wxxyz � config, w=output type, xx=databits and parity, y=stop bits, z=rx
+polarity (default :00000)
 # 101wxxyz � read config
 */
-static const unsigned int binUARTspeed[]={13332,3332,1666,832,416,207,127,103,68,34,};//BRG:300,1200,2400,4800,9600,19200,31250,38400,57600,115200
 
-void binUART(void){
-	static unsigned char inByte, rawCommand,i;
-	static unsigned int BRGval;
+void binUART(void) {
+  uint16_t brg_value;
 
-	uart_settings.databits_parity=0; //startup defaults
-	uart_settings.stop_bits=0;
-	uart_settings.receive_polarity=0;
-	mode_configuration.high_impedance=1;
-	BRGval=binUARTspeed[0]; //start at 300bps
-	uart_settings.echo_uart=OFF;
-	uart2_setup(BRGval,mode_configuration.high_impedance,
-            uart_settings.receive_polarity, uart_settings.databits_parity,
-            uart_settings.stop_bits);
-	uart2_enable();
-    MSG_UART_MODE_IDENTIFIER;
+  uart_settings.databits_parity = 0;
+  uart_settings.stop_bits = 0;
+  uart_settings.receive_polarity = 0;
+  mode_configuration.high_impedance = ON;
+  brg_value = UART_BRG_SPEED[0]; // start at 300bps
+  uart_settings.echo_uart = OFF;
+  uart2_setup(brg_value, mode_configuration.high_impedance,
+              uart_settings.receive_polarity, uart_settings.databits_parity,
+              uart_settings.stop_bits);
+  uart2_enable();
+  MSG_UART_MODE_IDENTIFIER;
 
-	while(1){
+  for (;;) {
+    uint8_t input_byte;
 
-		//check for incomming bytes on UART2
-		//if echo enabled, send to USB
-		//else, just clear the buffer
-		if( uart2_rx_ready()){
-			if(uart_settings.echo_uart){ 
-				UART1TX(uart2_rx());
-			}else{
-				uart2_rx();//clear the buffer....
-			}
-		}
-		if(U2STAbits.OERR) U2STA &= (~0b10); //clear overrun error if exists
+    if (uart2_rx_ready()) {
+      if (uart_settings.echo_uart) {
+        UART1TX(uart2_rx());
+      } else {
+        uart2_rx();
+      }
+    }
+    
+    U2STAbits.OERR = OFF;
 
-		//process commands
-		if(UART1RXRdy() == 1){//wait for a byte
-			inByte=UART1RX(); /* JTR usb port; */ //grab it
-			rawCommand=(inByte>>4);//get command bits in seperate variable
-			
-			switch(rawCommand){
-				case 0://reset/setup/config commands
-					switch(inByte){
-						case 0://0, reset exit
-							uart2_disable();
-							return; //exit
-							break;
-						case 1://reply string
-                            MSG_UART_MODE_IDENTIFIER;
-							break;
-						case 2://00000010 � Show UART input
-							UART1TX(1);
-							if(U2STAbits.OERR) U2STA &= (~0b10); //clear overrun error if exists
-							uart_settings.echo_uart = ON;
-							break;
-						case 3://00000011 � Don't output UART input
-							uart_settings.echo_uart = OFF;
-							UART1TX(1);
-							break;
-						case 7://00000111 - UART speed manual config, 2 bytes (BRGH, BRGL)
-							UART1TX(1);
-							uart2_disable();
-							BRGval=(unsigned int)(UART1RX()<<8);
-							UART1TX(1);
-							BRGval|=UART1RX();
-							uart2_setup(BRGval,
-                                    mode_configuration.high_impedance,
-                                    uart_settings.receive_polarity,
-                                    uart_settings.databits_parity,
-                                    uart_settings.stop_bits);
-							uart2_enable();
-							UART1TX(1);
-							break;
-						case 15://00001111 - bridge mode (reset to exit)
-							UART1TX(1);
-							U2STA &= (~0b10); //clear overrun error if exists
-							while(1){//never ending loop, reset Bus Pirate to get out
+    if (!UART1RXRdy()) {
+      continue;
+    }
 
-								#if defined(BUSPIRATEV4)
-								// This fix suggested by TES on http://dangerousprototypes.com/forum/viewtopic.php?f=28&t=3441 
-								if((U2STAbits.URXDA==1)){
-										UART1TX(U2RXREG);
-								}
-								#else
-								if((U2STAbits.URXDA==1)&& (U1STAbits.UTXBF == 0)){
-										U1TXREG = U2RXREG; //URXDA doesn't get cleared untill this happens
-								}
-								#endif
-								if((UART1RXRdy()==1)&& (U2STAbits.UTXBF == 0)){
-										U2TXREG = UART1RX(); /* JTR usb port; */; //URXDA doesn't get cleared untill this happens
-								}
-							}
-						default:
-							UART1TX(0);
-							break;
-					}	
-					break;
-				case 0b0001://get x+1 bytes
-					inByte&=(~0b11110000); //clear command portion
-					inByte++; //increment by 1, 0=1byte
-					UART1TX(1);//send 1/OK		
-	
-					for(i=0;i<inByte;i++){
-						uart2_tx(UART1RX()); // JTR usb port;
-						UART1TX(1);
-					}
-	
-					break;
-				case 0b0100: //configure peripherals w=power, x=pullups, y=AUX, z=CS
-					bp_binary_io_peripherals_set(inByte);	
-					UART1TX(1);//send 1/OK		
-					break;
+    input_byte = UART1RX();
+
+    switch (input_byte & 0xF0) {
+    case 0:
+      switch (input_byte) {
+      case 0:
+        uart2_disable();
+        return;
+
+      case 1:
+        MSG_UART_MODE_IDENTIFIER;
+        break;
+        
+      case 2:
+        REPORT_IO_SUCCESS();
+        U2STAbits.OERR = OFF;
+        uart_settings.echo_uart = ON;
+        break;
+        
+      case 3:
+        uart_settings.echo_uart = OFF;
+        REPORT_IO_SUCCESS();
+        break;
+        
+      case 7:
+        REPORT_IO_SUCCESS();
+        uart2_disable();
+        brg_value = (uint16_t)UART1RX() << 8;
+        REPORT_IO_SUCCESS();
+        brg_value |= UART1RX();
+        uart2_setup(brg_value, mode_configuration.high_impedance,
+                    uart_settings.receive_polarity,
+                    uart_settings.databits_parity, uart_settings.stop_bits);
+        uart2_enable();
+        REPORT_IO_SUCCESS();
+        break;
+        
+      case 15:
+        REPORT_IO_SUCCESS();
+        U2STAbits.OERR = OFF;
+        for (;;) {
 
 #ifdef BUSPIRATEV4
-				case 0b0101:
-					UART1TX(bp_binary_io_pullup_control(inByte));
-					break;
-#endif
-				case 0b0110://set speed 
-					//0110xxxx - Set speed,0000=300,0001=1200,10=2400,4800,9600,19200,31250, 38400,57600,1010=115200,
-					inByte&=(~0b11110000);//clear command portion
-					if(inByte>0b1010) inByte=0b1010; //safe default if out of range
-					BRGval=binUARTspeed[inByte];
-					uart2_disable();
-					uart2_setup(BRGval, mode_configuration.high_impedance,
-                            uart_settings.receive_polarity, uart_settings.databits_parity,
-                            uart_settings.stop_bits);
-					uart2_enable();
-					UART1TX(1);//send 1/OK	
-					break;
-				case 0b1000: //set config
-				case 0b1001: //set config
-					//100wxxyz � config, w=output type, xx=databits and parity, y=stop bits, z=rx polarity (default :00000)
-					uart_settings.databits_parity=0;
-					uart_settings.stop_bits=0;
-					uart_settings.receive_polarity=0;
-					mode_configuration.high_impedance=0;
-					if(inByte&0b1000) uart_settings.databits_parity|=0b10;//set 
-					if(inByte&0b100) uart_settings.databits_parity|=0b1;//set 
-					if(inByte&0b10) uart_settings.stop_bits=1;//set 	
-					if(inByte&0b1) uart_settings.receive_polarity=1;//set 
-					if((inByte&0b10000)==0) mode_configuration.high_impedance=ON;
-					uart2_disable();
-					uart2_setup(BRGval, mode_configuration.high_impedance,
-                            uart_settings.receive_polarity, uart_settings.databits_parity,
-                            uart_settings.stop_bits);
-					uart2_enable();
-					UART1TX(1);//send 1/OK	
-					break;
-				default:
-					UART1TX(0x00);//send 0/Error
-					break;
-			}//command switch
-		}//if inbyte
-	}//while loop
-}//function
+          if (U2STAbits.URXDA == ON) {
+            UART1TX(U2RXREG);
+          }
+#else
+          if ((U2STAbits.URXDA == 1) && (U1STAbits.UTXBF == 0)) {
+            U1TXREG = U2RXREG;
+          }
+#endif /* BUSPIRATEV4 */
+          
+          if (UART1RXRdy() && (U2STAbits.UTXBF == 0)) {
+            U2TXREG = UART1RX();
+          }
+        }
+        break;
+        
+      default:
+        REPORT_IO_FAILURE();
+        break;
+      }
+      break;
+      
+    case 0b00010000: {
+      size_t counter;
+        
+      input_byte &= 0b00001111;
+      input_byte++;
+      REPORT_IO_SUCCESS();
+
+      for (counter = 0; counter < input_byte; counter++) {
+        uart2_tx(UART1RX());
+        REPORT_IO_SUCCESS();
+      }
+      break;
+    }
+      
+    case 0b01000000:
+      bp_binary_io_peripherals_set(input_byte);
+      REPORT_IO_SUCCESS();
+      break;
+
+#ifdef BUSPIRATEV4
+    case 0b01010000:
+      UART1TX(bp_binary_io_pullup_control(input_byte));
+      break;
+#endif /* BUSPIRATEV4 */
+      
+    case 0b01100000:
+      input_byte &= 0b00001111;
+      if (input_byte > 0b1010) {
+        input_byte = 0b1010;
+      }
+      brg_value = UART_BRG_SPEED[input_byte];
+      uart2_disable();
+      uart2_setup(brg_value, mode_configuration.high_impedance,
+                  uart_settings.receive_polarity, uart_settings.databits_parity,
+                  uart_settings.stop_bits);
+      uart2_enable();
+      REPORT_IO_SUCCESS();
+      break;
+      
+    case 0b10000000:
+    case 0b10010000:
+      uart_settings.databits_parity = 0;
+      uart_settings.stop_bits = 0;
+      uart_settings.receive_polarity = 0;
+      mode_configuration.high_impedance = OFF;
+      if (input_byte & 0b1000) {
+        uart_settings.databits_parity |= 0b10;
+      }
+      if (input_byte & 0b100) {
+        uart_settings.databits_parity |= 0b1;
+      }
+      if (input_byte & 0b10) {
+        uart_settings.stop_bits = 1;
+      }
+      if (input_byte & 0b1) {
+        uart_settings.receive_polarity = 1;
+      }
+      if ((input_byte & 0b10000) == 0) {
+        mode_configuration.high_impedance = ON;
+      }
+      uart2_disable();
+      uart2_setup(brg_value, mode_configuration.high_impedance,
+                  uart_settings.receive_polarity, uart_settings.databits_parity,
+                  uart_settings.stop_bits);
+      uart2_enable();
+      REPORT_IO_SUCCESS();
+      break;
+
+    default:
+      REPORT_IO_FAILURE();
+      break;
+    }
+  }
+}
 
 #endif /* BP_ENABLE_UART_SUPPORT */

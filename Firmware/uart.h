@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -22,20 +23,62 @@
 #ifdef BP_ENABLE_UART_SUPPORT
 
 #include <stdbool.h>
+#include <stdint.h>
 
 void uartProcess(void);
 void binUART(void);
 
-unsigned UARTwrite(unsigned int c);
-unsigned int UARTread(void);
-void UARTsetup(void);
+/**
+ * Reads a value from the UART.
+ *
+ * @return a character read from the UART.
+ */
+uint16_t uart_read(void);
+
+/**
+ * Writes the given value to the UART.
+ *
+ * @param[in] value the value to write.
+ *
+ * @return 0 as the function always succeeds.
+ */
+inline uint16_t uart_write(const uint16_t value);
+
+/**
+ * Cleans up the state of the UART module once its operations are done.
+ */
+inline void uart_cleanup(void);
+
+/**
+ * Starts UART operations.
+ */
+void uart_start(void);
+
+/**
+ * Stops UART operations.
+ */
+void uart_stop(void);
+
+/**
+ * Prints the current state of hardware pins when in the current protocol mode.
+ *
+ * @see bus_pirate_protocol_t.print_pins_state
+ */
+inline void uart_pins_state(void);
+
+/**
+ * Runs the macro identified by the given marker.
+ *
+ * @param[in] macro the macro identifier.
+ *
+ * @see bus_pirate_protocol_t.run_macro
+ */
+void uart_run_macro(const uint16_t macro);
+
+void uart_setup(void);
 void UARTsetup_exc(void);
-void UARTcleanup(void);
-void UARTmacro(unsigned int c);
-void UARTstart(void);
-void UARTstop(void);
-bool UARTperiodic(void);
-void UARTpins(void);
+
+bool uart_periodic_callback(void);
 void UARTsettings(void);
 
 #endif /* BP_ENABLE_UART_SUPPORT */

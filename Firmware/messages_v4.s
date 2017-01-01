@@ -620,9 +620,6 @@ _bp_messages:
 	; BPMSG1248
 	.pascii "Input a custom BAUD rate:"
 
-	; BPMSG1249
-	.pascii "WARNING: Possible bufferoverflow"
-
 	; BPMSG1250
 	.pascii "Any key to exit"
 
@@ -652,9 +649,6 @@ _bp_messages:
 
 	; BPMSG1259
 	.pascii "-\t-\t-\tOWD"
-
-	; BPMSG1260
-	.pascii "-\tRxD\t-\tTxD"
 
 	; BPMSG1261
 	.pascii "-\t-\tSCL\tSDA"
@@ -697,9 +691,6 @@ _bp_messages:
 
 	; BPMSG1274
 	.pascii "disabled"
-
-	; BPMSG1278
-	.pascii "Normal to exit"
 
 	; BPMSG1280
 	.pascii "Waiting activity..."
@@ -883,6 +874,12 @@ _bp_messages:
 
 	; MSG_UART_MODE_IDENTIFIER
 	.pascii "ART1"
+
+	; MSG_UART_NORMAL_TO_EXIT
+	.pascii "Normal to exit"
+
+	; MSG_UART_PINS_STATE
+	.pascii "-\tRxD\t-\tTxD"
 
 	; MSG_USING_ONBOARD_I2C_EEPROM
 	.pascii "Now using on-board EEPROM I2C interface"

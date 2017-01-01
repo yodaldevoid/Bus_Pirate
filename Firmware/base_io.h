@@ -109,7 +109,7 @@ extern unsigned int UART1TXAvailable;
 void UART1TXInt(void);
 
 // is byte available in RX buffer?
-unsigned char UART1RXRdy(void);
+inline bool UART1RXRdy(void);
 unsigned char UART1TXEmpty(void);
 // get a byte from UART
 unsigned char UART1RX(void);

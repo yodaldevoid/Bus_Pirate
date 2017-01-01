@@ -626,9 +626,6 @@ _bp_messages:
 	; BPMSG1248
 	.pascii "Raw value for BRG (MIDI=127)"
 
-	; BPMSG1249
-	.pascii "WARNING: Possible bufferoverflow"
-
 	; BPMSG1250
 	.pascii "Any key to exit"
 
@@ -835,6 +832,15 @@ _bp_messages:
 
 	; MSG_UART_MODE_IDENTIFIER
 	.pascii "ART1"
+
+	; MSG_UART_PINS_STATE
+	.pascii "-\tTxD\t-\tRxD"
+
+	; MSG_UART_POSSIBLE_OVERFLOW
+	.pascii "WARNING: Possible buffer overflow"
+
+	; MSG_UART_RESET_TO_EXIT
+	.pascii "Reset to exit"
 
 	; MSG_VREG_TOO_LOW
 	.pascii "VREG too low, is there a short?"

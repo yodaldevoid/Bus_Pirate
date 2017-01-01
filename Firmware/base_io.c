@@ -263,7 +263,7 @@ void InitializeUART1(void) {
 }
 unsigned char UART1TXEmpty(void) { return U1STAbits.TRMT; }
 
-unsigned char UART1RXRdy(void) { return U1STAbits.URXDA; }
+inline bool UART1RXRdy(void) { return U1STAbits.URXDA; }
 
 // new UART ring buffer
 // uses user terminal input buffer to buffer UART output
@@ -429,12 +429,8 @@ unsigned char UART1TXEmpty(void) { return 1; }
 
 // is data available?
 
-unsigned char UART1RXRdy(void) {
-  if (cdc_Out_len)
-    return 1;
-  if (getOutReady())
-    return 1;
-  return 0;
+inline bool UART1RXRdy(void) {
+    return cdc_Out_len || getOutReady();
 }
 
 // get a byte from UART

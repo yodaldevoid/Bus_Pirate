@@ -149,6 +149,6 @@ uint8_t uart2_rx(void) {
   return (uint8_t)(U2RXREG & 0xFF);
 }
 
-bool uart2_rx_ready(void) { return U2STAbits.URXDA; }
+inline bool uart2_rx_ready(void) { return U2STAbits.URXDA; }
 
 #endif /* BP_ENABLE_UART_SUPPORT */
