@@ -225,7 +225,7 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
      /* setup */
      onewire_setup,
      /* get_ready */
-     onewire_setup,
+     onewire_setup_exc,
      /* cleanup */
      reset_mode_to_8_bits,
      /* print_pins_state */

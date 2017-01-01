@@ -46,6 +46,7 @@
 
 #include "base.h"
 #include "binary_io.h"
+#include "proc_menu.h"
 
 /**
  * Size of a 1-Wire ROM number identifier, in bytes.
@@ -358,13 +359,34 @@ void onewire_data_high(void) {
 }
 
 void onewire_setup(void) {
+  int speed;
 
   /* Always start in high-impedance mode. */
   mode_configuration.high_impedance = true;
 
+  /* Assume standard speed. */
+  consumewhitechars();
+  speed = getint();
+  if ((speed >  0) && (speed <= 2)) {
+    mode_configuration.speed = speed - 1;
+  } else {
+    speed = 0;
+  }
+
+  if (speed == 0) {
+    command_error = false;
+  }
+
+  if (speed == 0) {
+    MSG_1WIRE_SPEED_PROMPT;
+    mode_configuration.speed = (getnumber(1, 1, 2, 0) - 1);
+  }
+
   /* Clear the saved device roster entries. */
   onewire_state.used_roster_entries = 0;
+}
 
+void onewire_setup_exc(void) {
   /* Set up pins. */
   ONEWIRE_DATA_DIRECTION = INPUT;
   ONEWIRE_DATA_LINE = LOW;
@@ -383,9 +405,9 @@ void print_device_information(size_t roster_id, uint8_t *rom_address) {
     bp_write_formatted_integer(rom_address[index]);
     bpSP;
   }
-  BPMSG1008;
 
 #ifdef BP_1WIRE_LOOKUP_FAMILY_ID
+  BPMSG1008;
   /* Print the device family identifier if known. */
   lookup_device_model(rom_address[0]);
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
@@ -568,18 +590,32 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
   /* Pull the bus line LOW. */
 
   ONEWIRE_DATA_DIRECTION = INPUT;
+  if (mode_configuration.speed == 1) {
+    /* AN126: Parameter G */
+    bp_delay_us(1);
+  }
   ONEWIRE_DATA_LINE = LOW;
   ONEWIRE_DATA_DIRECTION = OUTPUT;
 
   /*
    * According to specification a minimum of 480us need to be waited before
-   * reading the line.
+   * reading the line in standard mode, or no more than 70us for overdrive.
+   * AN126: Parameter H
    */
-  bp_delay_us(500);
+  if (mode_configuration.speed == 0) {
+    bp_delay_us(500);
+  } else {
+    bp_delay_us(70);
+  }
 
   /* Release the bus. */
   ONEWIRE_DATA_DIRECTION = INPUT;
-  bp_delay_us(65);
+  /* AN126: Parameter I */
+  if (mode_configuration.speed == 0) {
+    bp_delay_us(65);
+  } else {
+    bp_delay_us(6);
+  }
 
   /* Read the data line. */
   if (ONEWIRE_DATA_LINE) {
@@ -587,8 +623,12 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
     result = ONEWIRE_BUS_RESET_NO_DEVICE;
   }
 
-  /* Wait for 500us. */
-  bp_delay_us(500);
+  /* AN126: Parameter J */
+  if (mode_configuration.speed == 0) {
+    bp_delay_us(500);
+  } else {
+    bp_delay_us(32);
+  }
 
   /* Read the data line. */
   if (ONEWIRE_DATA_LINE == LOW) {
@@ -637,6 +677,8 @@ void lookup_device_model(uint8_t model) {
   default:
     BPMSG1027;
   }
+
+  bpBR;
 }
 
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
@@ -854,6 +896,31 @@ uint8_t update_crc8(uint8_t value) {
  * ...
  */
 #define BINARY_IO_ONEWIRE_COMMAND_BULK_TRANSFER 0x01
+
+/**
+ * Binary I/O 1-Wire configuration command.
+ *
+ * Once this command is received by the board, it will configure the 1-Wire
+ * parameters to those provided. At present this simply controls whether the
+ * bus speed is Standard or Overdrive.
+ *
+ * Current command format is as follows:
+ *
+ * MSB
+ * 0010xxss
+ *     ||||
+ *     ||++--> The speed to be configured.
+ *     ||      00 = Standard
+ *     ||      01 = Overdrive
+ *     ||      1x = Reserved
+ *     ++----> Ignored. Should be set to 0 to allow for future use.
+ *
+ * Interaction flow is as follows:
+ *
+ * PC         -> 0b001000ss
+ * Bus Pirate <- 0b00000001 (SUCCESS)
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_CONFIGURE 0x02
 
 /**
  * Binary I/O 1-Wire Peripherals configuration command.
@@ -1125,6 +1192,11 @@ void binary_io_enter_1wire_mode(void) {
       break;
     }
 
+    case BINARY_IO_ONEWIRE_COMMAND_CONFIGURE:
+      mode_configuration.speed = (input_byte & 1);
+      UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+      break;
+
     case BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS:
       bp_binary_io_peripherals_set(input_byte);
       REPORT_IO_SUCCESS();
@@ -1148,11 +1220,19 @@ bool onewire_internal_bit_io(bool bit_value) {
   ONEWIRE_DATA_LINE = LOW;
   ONEWIRE_DATA_DIRECTION = OUTPUT;
 
-  bp_delay_us(4);
+  /* AN126: Parameter A */
+  if (mode_configuration.speed == 0) {
+    bp_delay_us(4);
+  } else {
+    bp_delay_us(1);
+  }
   if (bit_value) {
     ONEWIRE_DATA_DIRECTION = INPUT;
   }
-  bp_delay_us(8);
+  /* AN126: Parameter E */
+  if (mode_configuration.speed == 0) {
+    bp_delay_us(8);
+  }
 
   /*
    * This is where the magic happens. If a bit_value value of 1 is sent to this
@@ -1165,16 +1245,33 @@ bool onewire_internal_bit_io(bool bit_value) {
 
   if (bit_value) {
     bit_value = ONEWIRE_DATA_LINE;
-    bp_delay_us(32);
+    /* AN126: Parameter F */
+    if (mode_configuration.speed == 0) {
+      bp_delay_us(32);
+    } else {
+      bp_delay_us(6);
+    }
   } else {
-    bp_delay_us(25);
+    /* AN126: Parameter C */
+    if (mode_configuration.speed == 0) {
+      bp_delay_us(25);
+    } else {
+      bp_delay_us(4);
+    }
     ONEWIRE_DATA_DIRECTION = INPUT;
-    bp_delay_us(7);
+    /* AN126: Parameter D */
+    if (mode_configuration.speed == 0) {
+      bp_delay_us(7);
+    } else {
+      bp_delay_us(2);
+    }
   }
 
-  /* Adjust timing to take 70us per bit. */
+  /* Adjust timing to take 70us per bit for standard mode. */
 
-  bp_delay_us(5);
+  if (mode_configuration.speed == 0) {
+    bp_delay_us(5);
+  }
 
   return bit_value;
 }
@@ -1202,7 +1299,9 @@ uint8_t onewire_internal_byte_io(uint8_t byte_value) {
     }
   }
 
-  bp_delay_us(8);
+  if (mode_configuration.speed == 0) {
+    bp_delay_us(8);
+  }
 
   return byte_value;
 }

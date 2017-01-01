@@ -78,12 +78,18 @@ void onewire_data_low(void);
 void onewire_data_high(void);
 
 /**
- * Prepares the protocol for operating on the bus.
+ * Configures the protocol for operating on the bus.
  *
  * @see bus_pirate_protocol_t.protocol_setup
- * @see bus_pirate_protocol_t.protocol_get_ready
  */
 void onewire_setup(void);
+
+/**
+ * Prepares the protocol ready to operate on the bus.
+ *
+ * @see bus_pirate_protocol_t.protocol_get_ready
+ */
+void onewire_setup_exc(void);
 
 /**
  * Runs the macro identified by the given marker.
