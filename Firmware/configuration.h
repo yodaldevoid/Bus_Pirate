@@ -44,7 +44,7 @@
  * PIC24FJ64GA002 will not be enabled.  This will save a few bytes of code
  * overall.
  */
-#define BPV3_IS_REV_B4_OR_LATER
+#undef BPV3_IS_REV_B4_OR_LATER
 
 #endif /* BUSPIRATEV3 */
 
