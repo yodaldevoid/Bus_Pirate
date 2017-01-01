@@ -65,7 +65,7 @@ command_t last_command;
 int main(void) {
   initialize_board();
 
-#if defined(BUSPIRATEV4) && !defined(BPV4_DEBUG)
+#if defined(BUSPIRATEV4)
   BP_LEDUSB_DIR = OUTPUT;
   BP_USBLED_ON();
 
@@ -84,7 +84,7 @@ int main(void) {
   BP_USBLED_OFF();
   usb_register_sof_handler(CDCFlushOnTimeout);
 
-#endif /* BUSPIRATEV4 && !BPV4_DEBUG */
+#endif /* BUSPIRATEV4 */
 
   /* Starts processing user requests. */
   serviceuser();
@@ -155,10 +155,7 @@ void initialize_board(void) {
 #ifdef BUSPIRATEV3
   BP_TERM_RX = BP_TERM_RX_RP;
   BP_TERM_TX_RP = BP_TERM_TX;
-#elif defined(BUSPIRATEV4) && defined(BPV4_DEBUG)
-  BP_TERM_RX = BP_TERM_RX_RP;
-  BP_TERM_TX_RP = BP_TERM_TX;
-#endif /* BUSPIRATEV3 || (BUSPIRATEV4 && BPV4_DEBUG) */
+#endif /* BUSPIRATEV3 */
 
   /* Set the UART port speed to 115200 bps. */
   bus_pirate_configuration.terminal_speed = 8;
@@ -174,20 +171,15 @@ void initialize_board(void) {
   InitializeUART1();
 #endif /* BUSPIRATEV3 */
 
-#if defined(BUSPIRATEV4) && !defined(BPV4_DEBUG)
-
+#if defined(BUSPIRATEV4)
+  
   /* Initialize the USB-based serial port. */
 
   initCDC();
   usb_init(cdc_device_descriptor, cdc_config_descriptor, cdc_str_descs,
            USB_NUM_STRINGS);
   usb_start();
-#endif /* BUSPIRATEV4 && !BPV4_DEBUG */
-
-#if defined(BUSPIRATEV4) && defined(BPV4_DEBUG)
-  /* Initialize the internal UART port for logging debug messages. */
-  InitializeUART1();
-#endif /* BUSPIRATEV4 && BPV4_DEBUG */
+#endif /* BUSPIRATEV4 */
 
 #ifdef BUSPIRATEV3
   /* Turn pull-ups ON. */

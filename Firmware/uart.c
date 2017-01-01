@@ -245,10 +245,9 @@ void UARTsetup_exc(void)
 	
     uart2_enable();
 
-#if !defined (BUSPIRATEV4) || defined(BPV4_DEBUG)
-	//BPv4 does not use U2BRG to communicate with PC unless it is in debug mode
+#if !defined(BUSPIRATEV4) 
 	if(U2BRG<U1BRG) BPMSG1249;
-#endif /* !BUSPIRATEV4 || BPV4_DEBUG */
+#endif /* !BUSPIRATEV4 */
 
 #if defined(BUSPIRATEV4)
 	unsigned long abd;
@@ -271,10 +270,6 @@ void UARTsetup_exc(void)
                     uartSettings.rxp, uartSettings.dbp, uartSettings.sb);
 		}
 		uart2_enable();
-#if defined(BPV4_DEBUG)
-		//BPv4 does not use U2BRG to communicate with PC unless it is in debug mode
-		if(U2BRG<U1BRG) BPMSG1249;
-#endif /* BPV4_DEBUG */
 	}
 #endif /* BUSPIRATEV4 */
 }    
@@ -396,8 +391,7 @@ void UARTmacro(unsigned int macro)
 			uart2_disable();
 			UARTgetbaud(0);
 			uart2_enable();
-#if !defined (BUSPIRATEV4) || defined(BPV4_DEBUG)
-			//BPv4 does not use U2BRG to communicate with PC unless it is in debug mode
+#if !defined (BUSPIRATEV4)
 			if(U2BRG<U1BRG) BPMSG1249;
 #endif
 			break;			
