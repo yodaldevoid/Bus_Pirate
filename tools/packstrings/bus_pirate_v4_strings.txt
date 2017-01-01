@@ -18,7 +18,6 @@
 
 // v4-only strings follow.
 
-BPMSG1052	1	"Syntax error"
 BPMSG1053	1	"No EEPROM"
 BPMSG1054	0	"Erasing"
 BPMSG1055	1	"done"

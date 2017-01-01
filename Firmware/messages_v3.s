@@ -128,6 +128,9 @@ _bp_messages:
 	; BPMSG1051
 	.pascii "Too long!"
 
+	; BPMSG1052
+	.pascii "Syntax error"
+
 	; BPMSG1059
 	.pascii "ERROR: command has no effect here"
 
