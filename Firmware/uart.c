@@ -29,11 +29,6 @@ extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bool command_error;
 
-static void UARTgetbaud_InitTimer(void);
-static void UARTgetbaud_clrTimer(void);
-static unsigned long UARTgetbaud_EstimatedBaud(unsigned long _abr_);
-static unsigned long UARTgetbaud(int DataOnly);
-
 typedef struct {
     uint8_t databits_parity : 2;
     uint8_t stop_bits : 1;
@@ -46,9 +41,23 @@ typedef struct {
 
 static UARTSettings uart_settings = { 0 };
 
-void UARTsetup_exc(void);
+const uint16_t UART_BRG_SPEED[] = {
+    13332, /* 300 bps */
+    3332,  /* 1200 bps */
+    1666,  /* 2400 bps */
+    832,   /* 4800 bps */
+    416,   /* 9600 bps */
+    207,   /* 19200 bps */
+    103,   /* 38400 bps */
+    68,    /* 57600 bps */
+    34,    /* 115200 bps */
+    127    /* 31250 bps */
+};
 
-static const unsigned int UART2speed[]={13332,3332,1666,832,416,207,103,68,34,127};//BRG:300,1200,2400,4800,9600,19200,38400,57600,115200, 31250,
+static void UARTgetbaud_InitTimer(void);
+static void UARTgetbaud_clrTimer(void);
+static unsigned long UARTgetbaud_EstimatedBaud(unsigned long _abr_);
+static unsigned long UARTgetbaud(int DataOnly);
 
 unsigned int UARTread(void)
 {	unsigned int c;
@@ -81,12 +90,9 @@ unsigned int UARTwrite(unsigned int c)
 void UARTsettings(void) {
 	BPMSG1202;
 	bp_write_dec_byte(mode_configuration.speed); bpSP;
-	if(mode_configuration.speed==9)
-	{	bp_write_dec_word(U2BRG); bpSP;
-	}
-	else
-	{	bp_write_dec_word(UART2speed[mode_configuration.speed]); bpSP;
-	}
+    bp_write_dec_word((mode_configuration.speed == 9) ?
+        U2BRG : UART_BRG_SPEED[mode_configuration.speed]);
+    bpSP;
 	bp_write_dec_byte(uart_settings.databits_parity); bpSP;
 	bp_write_dec_byte(uart_settings.stop_bits); bpSP;
 	bp_write_dec_byte(uart_settings.receive_polarity); bpSP;
@@ -230,7 +236,7 @@ void UARTsetup(void)
 void UARTsetup_exc(void)
 {
     uart2_setup(mode_configuration.speed == 9 ? U2BRG :
-        UART2speed[mode_configuration.speed], mode_configuration.high_impedance,
+        UART_BRG_SPEED[mode_configuration.speed], mode_configuration.high_impedance,
             uart_settings.receive_polarity, uart_settings.databits_parity,
             uart_settings.stop_bits);
 
@@ -254,7 +260,7 @@ void UARTsetup_exc(void)
         bpBR;
 
 		if (abd == 0) {
-            uart2_setup(UART2speed[8], mode_configuration.high_impedance,
+            uart2_setup(UART_BRG_SPEED[8], mode_configuration.high_impedance,
                     uart_settings.receive_polarity,
                     uart_settings.databits_parity, uart_settings.stop_bits);
 		} else {

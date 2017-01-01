@@ -234,25 +234,26 @@ unsigned int bpReadFlash(unsigned int page, unsigned int addr) {
 
 #ifdef BUSPIRATEV3
 
-//
-//
-// Base user terminal UART functions
-//
-//
+#ifndef BP_ENABLE_UART_SUPPORT
+static const uint16_t UART_BRG_SPEED[] = {
+    13332, /* 300 bps */
+    3332,  /* 1200 bps */
+    1666,  /* 2400 bps */
+    832,   /* 4800 bps */
+    416,   /* 9600 bps */
+    207,   /* 19200 bps */
+    103,   /* 38400 bps */
+    68,    /* 57600 bps */
+    34     /* 115200 bps */
+};
+#else
+extern const uint16_t UART_BRG_SPEED[];
+#endif /* !BP_ENABLE_UART_SUPPORT */
 
-// Initialize the terminal UART for the speed currently set in
-// bpConfig.termSpeed
-static unsigned int UARTspeed[] = {
-    13332, 3332, 1666, 832, 416, 207, 103, 68, 34,
-}; // BRG:300,1200,2400,4800,9600,19200,38400,57600,115200
-
-void InitializeUART1(void) { // if termspeed==9 it is custom
-  // dunno if the additional settings are needed but justin kaas!
-  if (bus_pirate_configuration.terminal_speed != 9)
-    U1BRG = UARTspeed[bus_pirate_configuration.terminal_speed]; // 13332=300,
-                                                                // 1666=2400,
-                                                                // 416=9600,
-  // 34@32mhz=115200....
+void InitializeUART1(void) {
+  if (bus_pirate_configuration.terminal_speed != 9) {
+    U1BRG = UART_BRG_SPEED[bus_pirate_configuration.terminal_speed];
+  }
   U1MODE = 0;
   U1MODEbits.BRGH = 1;
   U1STA = 0;
