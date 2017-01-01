@@ -14,8 +14,8 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef BP_BASEIO_H
-#define BP_BASEIO_H
+#ifndef BP_BASE_IO_H
+#define BP_BASE_IO_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -150,5 +150,5 @@ unsigned char USBUSARTIsTxTrfReady(void);
 // Read the lower 16 bits from programming flash memory
 unsigned int bpReadFlash(unsigned int page, unsigned int addr);
 
-#endif /* !BP_BASEIO_H */
+#endif /* !BP_BASE_IO_H */
 

@@ -92,7 +92,7 @@
 #error "No hardware defined in base.h."
 #endif /* BUSPIRATEV3 || BUSPIRATEV4 */
 
-#include "baseIO.h"
+#include "base_io.h"
 
 // Debugging mode for BPv4, comment out for normal compiling
 // Adds alternative communicaton to UART1 over AUX1 and AUX2 instead of USB.
