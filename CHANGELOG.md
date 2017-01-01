@@ -7,6 +7,7 @@
 * PIC mode is available for Bus Pirate v3 once more. (#19)
 * Firmware demos have been migrated to MPLAB X.
 * Bootloader v4.5 has been migrated to MPLAB X.
+* Experimental support for hardware I2C has been added. (#39)
 
 ### Bus Pirate v4 specific changes:
 
@@ -25,6 +26,7 @@
 * General refactoring and code cleanups have reduced both memory and code footprint when building without optimisations enabled.
 * Firmware code sections do not overlap each other anymore. (#10)
 * Delays are more accurate. (#23)
+* 1-Wire now supports Overdrive mode. (#40)
 
 ### Other:
 
