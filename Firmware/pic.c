@@ -80,8 +80,8 @@ void picinit(void)
 	if(!interactive)
 	{	//bpWstring("PIC(mod dly)=(");
 		BPMSG1074;
-		bpWdec(picmode); bpSP;
-		bpWdec(piccmddelay);
+		bp_write_dec_byte(picmode); bpSP;
+		bp_write_dec_byte(piccmddelay);
 		bp_write_line(")");
 	}
 
@@ -268,10 +268,10 @@ void picmacro(unsigned int macro)
 									bus_pirate_configuration.quiet=0;				// turn echoing on
 									//bpWstring("DevID = ");
 									BPMSG1080;
-									bpWinthex(temp>>5);
+									bp_write_hex_word(temp>>5);
 									//bpWstring(" Rev = ");
 									BPMSG1081;
-									bpWhex(temp&0x1f);
+									bp_write_hex_byte(temp&0x1f);
 									bpBR;
 									break;
 					case PICMODE4:	

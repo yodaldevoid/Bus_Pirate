@@ -80,17 +80,17 @@ unsigned int UARTwrite(unsigned int c)
 void UARTsettings(void)
 {	//bpWstring("UART (spd dbp sb rxp hiz)=( ");
 	BPMSG1202;
-	bpWdec(mode_configuration.speed); bpSP;
+	bp_write_dec_byte(mode_configuration.speed); bpSP;
 	if(mode_configuration.speed==9)
-	{	bpWintdec(U2BRG); bpSP;
+	{	bp_write_dec_word(U2BRG); bpSP;
 	}
 	else
-	{	bpWintdec(UART2speed[mode_configuration.speed]); bpSP;
+	{	bp_write_dec_word(UART2speed[mode_configuration.speed]); bpSP;
 	}
-	bpWdec(uartSettings.dbp); bpSP;
-	bpWdec(uartSettings.sb); bpSP;
-	bpWdec(uartSettings.rxp); bpSP;
-	bpWdec(mode_configuration.high_impedance); bpSP;
+	bp_write_dec_byte(uartSettings.dbp); bpSP;
+	bp_write_dec_byte(uartSettings.sb); bpSP;
+	bp_write_dec_byte(uartSettings.rxp); bpSP;
+	bp_write_dec_byte(mode_configuration.high_impedance); bpSP;
 	//bpWline(")\r\n");
 	BPMSG1162;
 }	
@@ -623,11 +623,11 @@ unsigned long UARTgetbaud(int DataOnly)
 
 		} else {
 			BPMSG1283; //bpWstring("\n\rActual Calculated Baud Rate: \t");
-			bpWlongdec(CalculatedBaud);
+			bp_write_dec_dword(CalculatedBaud);
 			BPMSG1285; //bpWstring(" bps (Estimated)");
 			
 			BPMSG1284; //bpWstring("\n\rNearest Common Baud Rate: \t");
-			bpWlongdec(UARTgetbaud_EstimatedBaud(CalculatedBaud));
+			bp_write_dec_dword(UARTgetbaud_EstimatedBaud(CalculatedBaud));
 			BPMSG1285; //bpWstring(" bps");
 		}
 	

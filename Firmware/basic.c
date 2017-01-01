@@ -810,7 +810,7 @@ void interpreter(void) {
                     (basic_program_area[basic_program_counter] < TOK_LEN))) {
           temp = assign();
           bus_pirate_configuration.quiet = 0;
-          bpWintdec(temp);
+          bp_write_dec_word(temp);
           bus_pirate_configuration.quiet = 1;
         } else if (basic_program_area[basic_program_counter] == ';') // spacer
         {
@@ -1137,13 +1137,13 @@ void interpreter(void) {
   if (stop != NOERROR) {
     // bpWstring("Error(");
     BPMSG1047;
-    bpWintdec(stop);
+    bp_write_dec_word(stop);
     // bpWstring(") @line:");
     BPMSG1048;
-    bpWintdec(lineno);
+    bp_write_dec_word(lineno);
     // bpWstring(" @pgmspace:");
     BPMSG1049;
-    bpWintdec(basic_program_counter);
+    bp_write_dec_word(basic_program_counter);
     bpBR;
   }
 }
@@ -1164,7 +1164,7 @@ void list(void) {
       lineno = (basic_program_area[basic_program_counter + 1] << 8) +
                basic_program_area[basic_program_counter + 2];
       basic_program_counter += 2;
-      bpWintdec(lineno);
+      bp_write_dec_word(lineno);
       bpSP;
     } else {
       bpSP;
@@ -1174,7 +1174,7 @@ void list(void) {
     basic_program_counter++;
   }
   bpBR;
-  bpWintdec(basic_program_counter - 1);
+  bp_write_dec_word(basic_program_counter - 1);
   // bpWline(" bytes.");
   BPMSG1050;
 }
@@ -1350,7 +1350,7 @@ void bp_basic_enter_interactive_interpreter(void) {
     else if (compare("DEBUG")) {
       for (i = 0; i < BP_BASIC_PROGRAM_SPACE; i += 16) {
         for (j = 0; j < 16; j++) {
-          bpWhex(basic_program_area[i + j]);
+          bp_write_hex_byte(basic_program_area[i + j]);
           bpSP;
         }
       }
@@ -1552,7 +1552,7 @@ void save(void) {
 
   // bpWstring("Saving to slot ");
   BPMSG1056;
-  bpWdec(slot);
+  bp_write_dec_byte(slot);
   bpBR;
 
   if (slot > (EEPROMSIZE / PGMSIZE)) { // bpWline("Invalid slot");
@@ -1605,7 +1605,7 @@ void load(void) {
 
   // bpWstring("Loading from slot ");
   BPMSG1058;
-  bpWdec(slot);
+  bp_write_dec_byte(slot);
   bpBR;
 
   if (slot > (EEPROMSIZE / PGMSIZE)) { // bpWline("Invalid slot");

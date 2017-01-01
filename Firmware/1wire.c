@@ -375,7 +375,7 @@ void print_device_information(size_t roster_id, uint8_t *rom_address) {
 
   /* Print roster entry counter. */
   bpSP;
-  bpWdec(roster_id);
+  bp_write_dec_byte(roster_id);
   bp_write_string(".");
 
   /* Print ROM address. */
@@ -414,7 +414,7 @@ void onewire_run_macro(uint16_t macro) {
      */
 
     BPMSG1005;
-    bpWdec(macro + 1);
+    bp_write_dec_byte(macro + 1);
     bp_write_string(": ");
     for (rom_index = 0; rom_index < ROM_BYTES_SIZE; rom_index++) {
       bp_write_formatted_integer(

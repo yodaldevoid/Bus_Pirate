@@ -105,8 +105,8 @@ void R2Wdath(void)
 void R2Wsettings(void) {
     //bpWstring("R2W (spd hiz)=( ");
 	BPMSG1143;
-	bpWdec(mode_configuration.speed); bpSP;
-	bpWdec(mode_configuration.high_impedance); bpSP;
+	bp_write_dec_byte(mode_configuration.speed); bpSP;
+	bp_write_dec_byte(mode_configuration.high_impedance); bpSP;
 	//bpWline(")\r\n");
 	BPMSG1162;
 }
@@ -229,7 +229,7 @@ void r2wMacro_78163Read(void){
 		if (mode_configuration.lsbEN) {
 			m[i] = reverse_byte(m[i]);
 		}
-		bpWhex(m[i]);
+		bp_write_hex_byte(m[i]);
 		bpSP;
 	}
 	bpBR;
@@ -290,7 +290,7 @@ void r2wMacro_78163Read(void){
 	}else{
 		i=64;//no 0...
 		for(m[0]=0;m[0]<c;m[0]++)i*=2;//multiply by two each time
-		bpWintdec(i);
+		bp_write_dec_word(i);
 	}
 	bpBR;
 	
@@ -300,7 +300,7 @@ void r2wMacro_78163Read(void){
 	c=(m[1]&(~0b11111000));
 	i=1;
 	for(m[0]=0;m[0]<c;m[0]++)i*=2;//multiply by two each time
-	bpWdec(i);
+	bp_write_dec_byte(i);
 	bpBR;
 }
 

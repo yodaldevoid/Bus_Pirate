@@ -118,9 +118,9 @@ void R3Wdatl(void)
 void R3Wsettings(void) {
     //bpWstring("R3W (spd hiz)=( ");
 	BPMSG1161;
-	bpWdec(mode_configuration.speed); bpSP;
-	bpWdec(r3wSettings.csl); bpSP;
-	bpWdec(mode_configuration.high_impedance); bpSP;
+	bp_write_dec_byte(mode_configuration.speed); bpSP;
+	bp_write_dec_byte(r3wSettings.csl); bpSP;
+	bp_write_dec_byte(mode_configuration.high_impedance); bpSP;
 	bp_write_line(")");
 }
 

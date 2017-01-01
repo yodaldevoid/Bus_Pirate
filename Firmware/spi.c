@@ -132,17 +132,17 @@ unsigned int SPIwrite(unsigned int c) {
 void SPIsettings(void) {
     //bpWstring("SPI (spd ckp ske smp hiz)=( ");
     BPMSG1191;
-    bpWdec((mode_configuration.speed + 1));
+    bp_write_dec_byte((mode_configuration.speed + 1));
     bpSP;
-    bpWdec(spiSettings.ckp);
+    bp_write_dec_byte(spiSettings.ckp);
     bpSP;
-    bpWdec(spiSettings.cke);
+    bp_write_dec_byte(spiSettings.cke);
     bpSP;
-    bpWdec(spiSettings.smp);
+    bp_write_dec_byte(spiSettings.smp);
     bpSP;
-    bpWdec(spiSettings.csl);
+    bp_write_dec_byte(spiSettings.csl);
     bpSP;
-    bpWdec(mode_configuration.high_impedance);
+    bp_write_dec_byte(mode_configuration.high_impedance);
     bpSP;
     //bpWline(")\r\n");
     BPMSG1162;
@@ -433,7 +433,7 @@ spiSnifferStart:
             }
 
             if (termMode) { //show hex output in terminal mode
-                bpWhexBuf(c);
+                bp_write_hex_byte_to_ringbuffer(c);
             } else { //escaped byte value in binary mode
                 UARTbuf('\\');
                 UARTbuf(c);
@@ -443,7 +443,7 @@ spiSnifferStart:
 
             if (termMode) { //show hex output in terminal mode
                 UARTbuf('('); //only show the () in terminal mode
-                bpWhexBuf(c);
+                bp_write_hex_byte_to_ringbuffer(c);
                 UARTbuf(')');
             } else { //binary mode
                 UARTbuf(c);

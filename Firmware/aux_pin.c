@@ -263,7 +263,7 @@ void bpFreq(void) {
   // period measurement
   if (f >
       3999) { // when < 4 KHz  counting edges is inferior to measuring period(s)
-    bpWlongdecf(f); // this function uses comma's to seperate thousands.
+    bp_write_dec_dword_friendly(f); // this function uses comma's to seperate thousands.
     MSG_PWM_HZ_MARKER;
   } else if (f > 0) {
     BPMSG1245;
@@ -275,7 +275,7 @@ void bpFreq(void) {
       // 12.61911 < f <= 40 Hz
       // output resolution of 1e-5
       f = 16e11 / p;
-      bpWlongdecf(f / 100000);
+      bp_write_dec_dword_friendly(f / 100000);
       UART1TX('.');
       f = f % 100000;
       if (f < 10000)
@@ -286,14 +286,14 @@ void bpFreq(void) {
         UART1TX('0');
       if (f < 10)
         UART1TX('0');
-      bpWlongdec(f);
+      bp_write_dec_dword(f);
       // at p=126,491.1 frequency resolution is .001
     } else if (p > 126491) { // f <= 126.4911
       // 126,491 < p <= 4e5  (625us tics)
       // 40 < f <= 126.4911 Hz
       // output resolution of .0001
       f = 16e10 / p;
-      bpWlongdecf(f / 10000);
+      bp_write_dec_dword_friendly(f / 10000);
       UART1TX('.');
       f = f % 10000;
       if (f < 1000)
@@ -302,42 +302,42 @@ void bpFreq(void) {
         UART1TX('0');
       if (f < 10)
         UART1TX('0');
-      bpWintdec(f);
+      bp_write_dec_word(f);
       // at p=40,000 frequency resolution is .01
     } else if (p > 40000) { // f <= 400 Hz
       // 4e4 < p <= 126,491 (625us tics)
       // 126.4911 < f <= 400 Hz
       // output resolution of .001
       f = 16e9 / p;
-      bpWlongdecf(f / 1000);
+      bp_write_dec_dword_friendly(f / 1000);
       UART1TX('.');
       f = f % 1000; // frequency resolution < 1e-2
       if (f < 100)
         UART1TX('0');
       if (f < 10)
         UART1TX('0');
-      bpWintdec(f);
+      bp_write_dec_word(f);
       // at p=12,649.11 frequency resolution is .1
     } else if (p > 12649) { // f <= 1264.911
       // 12,649 < p <= 4e4  (625us tics)
       // 400 < f < 1,264.911 Hz
       // output resolution of .01
       f = 16e8 / p;
-      bpWlongdecf(f / 100);
+      bp_write_dec_dword_friendly(f / 100);
       UART1TX('.');
       f = f % 100; // frequency resolution < 1e-1
       if (f < 10)
         UART1TX('0');
-      bpWdec(f);
+      bp_write_dec_byte(f);
       // at p=4,000 frequency resolution is 1
     } else { // 4,000 < p <= 12,649 (625us tics)
       // 1,264.911 < f < 4,000 Hz
       // output resolution of .1
       f = 16e7 / p;
-      bpWlongdecf(f / 10);
+      bp_write_dec_dword_friendly(f / 10);
       UART1TX('.');
       f = f % 10; // frequency resolution < 1
-      bpWdec(f);
+      bp_write_dec_byte(f);
     }
     MSG_PWM_HZ_MARKER;
     // END of IF(f>0)

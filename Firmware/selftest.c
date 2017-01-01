@@ -328,7 +328,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
   bp_reset_board_state();
 
   BPMSG1179;
-  bpWdec(errors);
+  bp_write_dec_byte(errors);
   BPMSG1180;
   bus_pirate_configuration.quiet = false;
 
@@ -342,7 +342,7 @@ void perform_adc_test(unsigned int channel, unsigned int minimum_threshold,
 
   UART1TX('(');
   measurement = bp_read_adc(channel);
-  bpWvolts(measurement);
+  bp_write_voltage(measurement);
   UART1TX(')');
   check_result(
       ((measurement > minimum_threshold) && (measurement < maximum_threshold)),

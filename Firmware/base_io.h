@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -20,31 +21,25 @@
 #include <stddef.h>
 #include <stdint.h>
 
-//manage user terminal input
-unsigned int bpUserNumberPrompt(unsigned int maxBytes, unsigned int maxValue, unsigned int defValue);
+// manage user terminal input
+unsigned int bpUserNumberPrompt(unsigned int maxBytes, unsigned int maxValue,
+                                unsigned int defValue);
 
-//manage user terminal input
-unsigned int bpGetUserInput(unsigned int *currentByte, unsigned int maxBytes, unsigned char *terminalInput );
+// manage user terminal input
+unsigned int bpGetUserInput(unsigned int *currentByte, unsigned int maxBytes,
+                            unsigned char *terminalInput);
 
-//reads forward to grab ASCII number string, returns byte value
-unsigned int bpGetASCIInumber(unsigned int totalBytes, unsigned int *currentByte, unsigned char *commandArr);
+// reads forward to grab ASCII number string, returns byte value
+unsigned int bpGetASCIInumber(unsigned int totalBytes,
+                              unsigned int *currentByte,
+                              unsigned char *commandArr);
 
-//convert ASCII number string (HEX, BIN, DEC) to INT value
+// convert ASCII number string (HEX, BIN, DEC) to INT value
 unsigned int ASCII2INT(unsigned char totalDigits, unsigned char *numberArr);
-
-//echo ASCII 0 or 1, given unsigned char c
-//#define bpEchoState(c) UART1TX(c+0x30) 
-void bpEchoState(unsigned int c);
-
-//
-//
-//functions for terminal output of various types and lengths
-//
-//
 
 /**
  * Writes the given buffer to the serial port.
- * 
+ *
  * @param[in] buffer the data to write.
  * @param[in] length how many bytes to write.
  */
@@ -63,35 +58,36 @@ void bp_write_string(const char *string);
  *
  * @param[in] string the string to write.
  */
-void bp_write_line(const char *string); 
+void bp_write_line(const char *string);
 
-//output an 8bit/byte hex value to the user terminal
-void bpWhex(unsigned int c);
+// output an 8bit/byte hex value to the user terminal
+void bp_write_hex_byte(uint8_t value);
 
-//output an 16bit/2byte hex value to the user terminal
-void bpWinthex(unsigned int c); 
+// output an 16bit/2byte hex value to the user terminal
+void bp_write_hex_word(uint16_t value);
 
-//output an 8bit/byte binary value to the user terminal
-void bpWbin(unsigned char c);
+// output an 8bit/byte binary value to the user terminal
+void bp_write_bin_byte(unsigned char c);
 
-//output an 8bit/byte decimal value to the user terminal
-void bpWdec(unsigned char c);
+// output an 8bit/byte decimal value to the user terminal
+void bp_write_dec_byte(unsigned char c);
 
-//output an 16bit/integer decimal value to the user terminal
-void bpWintdec(unsigned int i);
+// output an 16bit/integer decimal value to the user terminal
+void bp_write_dec_word(unsigned int i);
 
-//output an 32bit/long decimal value to the user terminal
-void bpWlongdec(unsigned long l);
-//friendly version
-void bpWlongdecf(unsigned long l);
+// output an 32bit/long decimal value to the user terminal
+void bp_write_dec_dword(unsigned long l);
 
-//print an ADC measurement in decimal form
-void bpWvolts(unsigned int adc);
+// friendly version
+void bp_write_dec_dword_friendly(unsigned long l);
 
-//pseudofuncion break sequences
+// print an ADC measurement in decimal form
+void bp_write_voltage(unsigned int adc);
+
+// pseudofuncion break sequences
 #define bpBR bp_write_line("")
 
-#define bpSP UART1TX(' ') //macro for space
+#define bpSP UART1TX(' ') // macro for space
 
 //
 //
@@ -99,7 +95,7 @@ void bpWvolts(unsigned int adc);
 //
 //
 #define UART_NORMAL_SPEED 34
-#define UART_FAST_SPEED    3
+#define UART_FAST_SPEED 3
 
 /* interrupt transfer related stuff */
 extern uint8_t *UART1RXBuf;
@@ -112,22 +108,23 @@ extern unsigned int UART1TXAvailable;
 // starts interrupt TX
 void UART1TXInt(void);
 
-//is byte available in RX buffer?
-unsigned char UART1RXRdy(void); 
+// is byte available in RX buffer?
+unsigned char UART1RXRdy(void);
 unsigned char UART1TXEmpty(void);
-//get a byte from UART
+// get a byte from UART
 unsigned char UART1RX(void);
 void WAITTXEmpty(void);
 
-//add byte to buffer, pause if full
-//uses PIC 4 byte UART FIFO buffer
-void UART1TX(char c); 
+// add byte to buffer, pause if full
+// uses PIC 4 byte UART FIFO buffer
+void UART1TX(char c);
 
 void ClearCommsError(void);
 unsigned char CheckCommsError(void);
 // sets the uart baudrate generator
 void UART1Speed(unsigned char brg);
-//Initialize the terminal UART for the speed currently set in bpConfig.termSpeed
+// Initialize the terminal UART for the speed currently set in
+// bpConfig.termSpeed
 void InitializeUART1(void);
 //
 //
@@ -138,11 +135,11 @@ void UARTbufService(void);
 void UARTbufFlush(void);
 void UARTbufSetup(void);
 void UARTbuf(char c);
-void bpWhexBuf(unsigned int c); //write a hex value to ring buffer
 
+void bp_write_hex_byte_to_ringbuffer(uint8_t value);
 
 unsigned char USBUSARTIsTxTrfReady(void);
-//void putUSBUSART(char *data, unsigned char length);
+// void putUSBUSART(char *data, unsigned char length);
 
 //
 // Hardware functions and definitions
@@ -151,4 +148,3 @@ unsigned char USBUSARTIsTxTrfReady(void);
 unsigned int bpReadFlash(unsigned int page, unsigned int addr);
 
 #endif /* !BP_BASE_IO_H */
-

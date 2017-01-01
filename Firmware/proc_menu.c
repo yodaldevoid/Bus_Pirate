@@ -42,6 +42,13 @@ static void set_baud_rate(void); //configure user terminal side UART baud rate
 static void statusInfo(void); //display properties of the current bus mode (pullups, vreg, lsb, output type, etc)
 
 /**
+ * Outputs '0' to the serial port if the given value is zero, '1' otherwise.
+ * 
+ * @param[in] value the value to test the state for.
+ */
+static void echo_state(const uint16_t value);
+
+/**
  * Outputs both direction and state to the serial port for all available pins.
  */
 static void print_pins_information(void);
@@ -203,7 +210,7 @@ void serviceuser(void) {
                             }
                             cmdend = (cmdend - 1) & CMDLENMSK; // end pointer moves left one
                             bp_write_string("\x1B["); // move left
-                            bpWdec(repeat); // to original
+                            bp_write_dec_byte(repeat); // to original
                             bp_write_string("D"); // cursor position
                         }
                     } else {
@@ -225,7 +232,7 @@ void serviceuser(void) {
                         }
                         cmdend = (cmdend - 1) & CMDLENMSK; // end pointer moves left one
                         bp_write_string("\x1B["); // move left
-                        bpWdec(repeat); // to original
+                        bp_write_dec_byte(repeat); // to original
                         bp_write_string("D"); // cursor position
                     } else {
                         UART1TX(BELL); // beep, at end
@@ -401,7 +408,7 @@ home:
                     if (tmpcmdend != cmdstart) {
                         repeat = (tmpcmdend - cmdstart) & CMDLENMSK;
                         bp_write_string("\x1B["); // move left
-                        bpWdec(repeat); // to start
+                        bp_write_dec_byte(repeat); // to start
                         bp_write_string("D"); // of command line
                         tmpcmdend = cmdstart;
                     } else {
@@ -413,7 +420,7 @@ end:
                     if (tmpcmdend != cmdend) {
                         repeat = (cmdend - tmpcmdend) & CMDLENMSK;
                         bp_write_string("\x1B["); // move right
-                        bpWdec(repeat); // to end
+                        bp_write_dec_byte(repeat); // to end
                         bp_write_string("C"); // of command line
                         tmpcmdend = cmdend;
                     } else {
@@ -453,7 +460,7 @@ end:
                         {
                             repeat = (cmdend - tmpcmdend) & CMDLENMSK;
                             bp_write_string("\x1B["); // move right
-                            bpWdec(repeat); // to end
+                            bp_write_dec_byte(repeat); // to end
                             bp_write_string("C"); // of line
                             temp = cmdend;
                             while (temp != ((tmpcmdend - 1) & CMDLENMSK)) {
@@ -612,11 +619,11 @@ end:
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
                     temp = getint();
-                    bpWhex(temp);
+                    bp_write_hex_byte(temp);
                     MSG_BASE_CONVERTER_EQUAL_SIGN;
-                    bpWdec(temp);
+                    bp_write_dec_byte(temp);
                     MSG_BASE_CONVERTER_EQUAL_SIGN;
-                    bpWbin(temp);
+                    bp_write_bin_byte(temp);
                     bpBR;
                     break;
                 case '|':
@@ -624,11 +631,11 @@ end:
                     consumewhitechars();
                     temp = getint();
                     temp = bp_reverse_integer((unsigned char) temp);
-                    bpWhex(temp);
+                    bp_write_hex_byte(temp);
                     MSG_BASE_CONVERTER_EQUAL_SIGN;
-                    bpWdec(temp);
+                    bp_write_dec_byte(temp);
                     MSG_BASE_CONVERTER_EQUAL_SIGN;
-                    bpWbin(temp);
+                    bp_write_bin_byte(temp);
                     bpBR;
                     break;
                 case '~':
@@ -676,7 +683,7 @@ bpv4reset:
                     repeat = getrepeat() + 1;
                     while (--repeat) { //bpWstring(OUMSG_AUX_INPUT_READ);
                         BPMSG1095;
-                        bpEchoState(bp_aux_pin_read());
+                        echo_state(bp_aux_pin_read());
                         bpBR;
                     }
                     break;
@@ -738,14 +745,14 @@ bpv4reset:
                     repeat = getrepeat();
                     //bpWstring(OUMSG_PS_DELAY);
                     BPMSG1099;
-                    bpWintdec(repeat);
+                    bp_write_dec_word(repeat);
                     //bpWline(OUMSG_PS_DELAY_US);
                     BPMSG1100;
                     bp_delay_us(repeat);
                     break;
                 case '%': repeat = getrepeat();
                     BPMSG1099;
-                    bpWintdec(repeat);
+                    bp_write_dec_word(repeat);
                     BPMSG1212;
                     bp_delay_ms(repeat);
                     break;
@@ -792,7 +799,7 @@ bpv4reset:
                         } else {
                             if (temp == 0) {
                                 for (repeat = 0; repeat < BP_USER_MACROS_COUNT; repeat++) {
-                                    bpWdec(repeat + 1);
+                                    bp_write_dec_byte(repeat + 1);
                                     bp_write_string(". <");
                                     bp_write_string(user_macros[repeat]);
                                     bp_write_line(">");
@@ -887,7 +894,7 @@ bpv4reset:
                         bp_write_formatted_integer(sendw);
                         if (((mode_configuration.int16 == 0) && (mode_configuration.numbits != 8)) || ((mode_configuration.int16 == 1) && (mode_configuration.numbits != 16))) {
                             UART1TX(';');
-                            bpWdec(mode_configuration.numbits);
+                            bp_write_dec_byte(mode_configuration.numbits);
                         }
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             sendw = bp_reverse_integer(sendw);
@@ -930,7 +937,7 @@ bpv4reset:
                         bp_write_formatted_integer(received);
                         if (((mode_configuration.int16 == 0) && (mode_configuration.numbits != 8)) || ((mode_configuration.int16 == 1) && (mode_configuration.numbits != 16))) {
                             UART1TX(';');
-                            bpWdec(mode_configuration.numbits);
+                            bp_write_dec_byte(mode_configuration.numbits);
                         }
                         bpSP;
                     }
@@ -976,12 +983,7 @@ bpv4reset:
                 case '.': //bpWline("-DAT state read");
                     //repeat=getrepeat()+1;
                     BPMSG1098;
-                    //while(--repeat)
-                {
-                    bpEchoState(enabled_protocols[bus_pirate_configuration.bus_mode].data_state());
-                    //bpWmessage(MSG_BIT_NOWINPUT);
-                    //BPMSG1107;
-                }
+                    echo_state(enabled_protocols[bus_pirate_configuration.bus_mode].data_state());
                     break;
                 case '^': //bpWline("-CLK pulse");
                     repeat = getrepeat();
@@ -996,8 +998,8 @@ bpv4reset:
                 case '!': //bpWline("-bit read");
                     repeat = getrepeat() + 1;
                     BPMSG1109;
-                    while (--repeat) { //bpWmessage(MSG_BIT_READ);
-                        bpEchoState(enabled_protocols[bus_pirate_configuration.bus_mode].read_bit());
+                    while (--repeat) {
+                        echo_state(enabled_protocols[bus_pirate_configuration.bus_mode].read_bit());
                         bpSP;
                     }
                     //bpWmessage(MSG_BIT_NOWINPUT);
@@ -1017,9 +1019,9 @@ bpv4reset:
                 BPMSG1110;
                 if (cmdstart > oldstart) // find error position :S
                 {
-                    bpWdec(cmdstart - oldstart);
+                    bp_write_dec_byte(cmdstart - oldstart);
                 } else {
-                    bpWdec((BP_COMMAND_BUFFER_SIZE + cmdstart) - oldstart);
+                    bp_write_dec_byte((BP_COMMAND_BUFFER_SIZE + cmdstart) - oldstart);
                 }
                 command_error = false;
                 stop = 1;
@@ -1166,7 +1168,7 @@ void changemode(void) {
     if (!busmode) // no argument entered
     {
         for (i = 0; i < ENABLED_PROTOCOLS_COUNT; i++) {
-            bpWdec(i + 1);
+            bp_write_dec_byte(i + 1);
             bp_write_string(". ");
             bp_write_line(enabled_protocols[i].name);
         }
@@ -1222,7 +1224,7 @@ int cmdhistory(void) {
     {
         if ((cmdbuf[j] == 0x00) && (cmdbuf[(j + 1) & CMDLENMSK] != 0x00)) // did we find an end? is it not empty?
         {
-            bpWdec(i);
+            bp_write_dec_byte(i);
             bp_write_string(". ");
             k = 1;
             while (cmdbuf[((j + k) & CMDLENMSK)]) {
@@ -1286,7 +1288,7 @@ again: // need to do it proper with whiles and ifs..
     if (def < 0) {
         bp_write_string("x");
     } else {
-        bpWdec(def);
+        bp_write_dec_byte(def);
     }
     bp_write_string(")>");
 
@@ -1388,7 +1390,7 @@ again: // need to do it proper with whiles and ifs..
     if (def < 0) {
         bp_write_string("x");
     } else {
-        bpWlongdec(def);
+        bp_write_dec_dword(def);
     }
     bp_write_string(")>");
 
@@ -1498,19 +1500,19 @@ void print_version_info(void) {
     //bpWstring(" Bootloader v");
     BPMSG1126;
     i = bpReadFlash(0x0000, BL_ADDR_VER);
-    bpWdec(i >> 8);
+    bp_write_dec_byte(i >> 8);
     UART1TX('.');
-    bpWdec(i);
+    bp_write_dec_byte(i);
 #endif /* !BUSPIRATEV4 */
     bpBR;
 
     //bpWstring("DEVID:");
     BPMSG1117;
-    bpWinthex(bus_pirate_configuration.device_type);
+    bp_write_hex_word(bus_pirate_configuration.device_type);
 
     //bpWstring(" REVID:");
     BPMSG1210;
-    bpWinthex(bus_pirate_configuration.device_revision);
+    bp_write_hex_word(bus_pirate_configuration.device_revision);
 #ifdef BUSPIRATEV4
     MSG_CHIP_REVISION_ID_BEGIN;
     switch (bus_pirate_configuration.device_revision) {
@@ -1563,14 +1565,14 @@ void print_version_info(void) {
 void statusInfo(void) {
 #ifdef BUSPIRATEV4
     MSG_CFG0_FIELD;
-    bpWinthex(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_0));
+    bp_write_hex_word(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_0));
     bpSP;
 #endif /* BUSPIRATEV4 */
 
     BPMSG1136;
-    bpWinthex(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_1));
+    bp_write_hex_word(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_1));
     BPMSG1137;
-    bpWinthex(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_2));
+    bp_write_hex_word(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_2));
     bpBR;
 
     BPMSG1119;
@@ -1612,7 +1614,7 @@ void statusInfo(void) {
     // show partial writes
     //bpWline("Number of bits read/write: ");
     BPMSG1252;
-    bpWdec(mode_configuration.numbits);
+    bp_write_dec_byte(mode_configuration.numbits);
     bpBR;
 
     //AUX pin setting
@@ -1673,33 +1675,33 @@ void print_pins_information(void) {
     ADCON();
 
 #ifdef BUSPIRATEV4
-    bpWvolts(bp_read_adc(BP_ADC_5V0));
+    bp_write_voltage(bp_read_adc(BP_ADC_5V0));
 #else
-    bpWvolts(bp_read_adc(BP_ADC_3V3));
+    bp_write_voltage(bp_read_adc(BP_ADC_3V3));
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
 
 #ifdef BUSPIRATEV4
-    bpWvolts(bp_read_adc(BP_ADC_3V3));
+    bp_write_voltage(bp_read_adc(BP_ADC_3V3));
 #else
-    bpWvolts(bp_read_adc(BP_ADC_5V0));
+    bp_write_voltage(bp_read_adc(BP_ADC_5V0));
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
 
 #ifdef BUSPIRATEV4
-    bpWvolts(bp_read_adc(BP_ADC_VPU));
+    bp_write_voltage(bp_read_adc(BP_ADC_VPU));
 #else
-    bpWvolts(bp_read_adc(BP_ADC_PROBE));
+    bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
 
 #ifdef BUSPIRATEV4
-    bpWvolts(bp_read_adc(BP_ADC_PROBE));
+    bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
 #else
-    bpWvolts(bp_read_adc(BP_ADC_VPU));
+    bp_write_voltage(bp_read_adc(BP_ADC_VPU));
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
@@ -1803,6 +1805,10 @@ void set_baud_rate(void) {
             break;
         }
     }
+}
+
+void echo_state(const uint16_t value) {
+    UART1TX(value ? '1' : '0');
 }
 
 #ifdef BUSPIRATEV4

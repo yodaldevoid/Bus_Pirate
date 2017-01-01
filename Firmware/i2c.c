@@ -261,12 +261,12 @@ void I2Cstop(void) {
 void i2c_print_settings(void) {
   BPMSG1068;
 #ifdef BP_I2C_USE_HW_BUS
-  bpWdec(i2c_state.mode);
+  bp_write_dec_byte(i2c_state.mode);
 #else
-  bpWdec(0);
+  bp_write_dec_byte(0);
 #endif /* BP_I2C_USE_HW_BUS */
   bpSP;
-  bpWdec(mode_configuration.speed);
+  bp_write_dec_byte(mode_configuration.speed);
   bp_write_line(" )");
 }
 
@@ -953,7 +953,7 @@ void I2C_Sniffer(unsigned char termMode) {
       } else {
         // put the data byte in the terminal or binary output
         if (termMode) { // output for the terminal
-          bpWhexBuf(dat);
+          bp_write_hex_byte_to_ringbuffer(dat);
         } else {                // output for binary mode
           UARTbuf(ESCAPE_CHAR); // escape character
           UARTbuf(dat);         // write byte value

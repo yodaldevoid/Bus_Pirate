@@ -122,7 +122,7 @@ void bp_adc_probe(void) {
     AD1CON1bits.ADON = ON;
     
     /* Perform the measurement. */
-    bpWvolts(bp_read_adc(BP_ADC_PROBE));
+    bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
     
     /* Turn the ADC off. */
     AD1CON1bits.ADON = OFF;
@@ -137,7 +137,7 @@ void bp_adc_continuous_probe(void) {
     BPMSG1250;
     //bpWstring(OUMSG_PS_ADC_VOLT_PROBE);
     BPMSG1044;
-    bpWvolts(0);
+    bp_write_voltage(0);
     //bpWstring(OUMSG_PS_ADC_VOLTS);
     BPMSG1045;
     
@@ -156,7 +156,7 @@ void bp_adc_continuous_probe(void) {
         bp_write_string("\x08\x08\x08\x08\x08");
         
         /* Print new measurement. */
-        bpWvolts(measurement);
+        bp_write_voltage(measurement);
         
         //bpWstring(OUMSG_PS_ADC_VOLTS);
         BPMSG1045;
@@ -176,26 +176,26 @@ void bp_write_formatted_integer(unsigned int value) {
     switch (bus_pirate_configuration.display_mode) {
         case HEX:
             if (mode_configuration.int16) {
-                bpWinthex(value);
+                bp_write_hex_word(value);
             } else {
-                bpWhex(value);
+                bp_write_hex_byte(value);
             }
             break;
             
         case DEC:
             if (mode_configuration.int16) {
-                bpWintdec(value);
+                bp_write_dec_word(value);
             } else {
-                bpWdec(value);
+                bp_write_dec_byte(value);
             }
             break;
             
         case BIN:
             if (mode_configuration.int16) {
-                bpWbin(value);
+                bp_write_bin_byte(value);
                 bpSP;
             }
-            bpWbin(value);
+            bp_write_bin_byte(value);
             break;
             
         case RAW:
