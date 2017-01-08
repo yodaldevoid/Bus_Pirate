@@ -25,9 +25,14 @@
 #include <stdint.h>
 
 /**
- * Start I2C operations.
+ * Starts I2C operations.
  */
 void i2c_start(void);
+
+/**
+ * Stops I2C operations.
+ */
+void i2c_stop(void);
 
 /**
  * Cleans up after I2C operations.
@@ -39,18 +44,18 @@ void i2c_cleanup(void);
  */
 void i2c_print_settings(void);
 
+/**
+ * Prints the I2C pins state to the serial port.
+ */
+void i2c_pins_state(void);
+
 uint16_t i2c_read(void);
+uint16_t i2c_write(const uint16_t value);
+void i2c_setup(void);
+void i2c_setup_exc(void);
+void i2c_macro(const uint16_t macro);
 
-void i2cProcess(void);
-void binI2C(void);
-
-unsigned int I2Cwrite(unsigned int c);
-
-void I2Cstop(void);
-void I2Csetup(void);
-void I2Csetup_exc(void);
-void I2Cmacro(unsigned int c);
-void I2Cpins(void);
+void binary_io_enter_i2c_mode(void);
 
 #endif /* BP_ENABLE_I2C_SUPPORT */
 

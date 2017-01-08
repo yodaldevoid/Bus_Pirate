@@ -141,7 +141,7 @@ void binBB(void) {
       } else if (inByte == 2) { // goto I2C mode
         binReset();
 #ifdef BP_ENABLE_I2C_SUPPORT
-        binI2C();
+        binary_io_enter_i2c_mode();
 #endif /* BP_ENABLE_I2C_SUPPORT */
         binReset();
         send_binary_io_mode_identifier();

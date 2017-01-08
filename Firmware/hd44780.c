@@ -284,11 +284,7 @@ void LCDmacro(unsigned int c)
 }
 
 void LCDpins(void) {
-        #if defined(BUSPIRATEV4)
-        BPMSG1261; //bpWline("-\t-\tSCL\tSDA");
-        #else
-       	BPMSG1231; //bpWline("SCL\tSDA\t-\t-");
-        #endif
+    MSG_I2C_PINS_STATE;
 }
 
 

@@ -180,13 +180,7 @@ void R2Wmacro(unsigned int macro) {
 }
 
 void R2Wpins(void) {
-#ifdef BUSPIRATEV4
-    //bpWline("-\t-\tSCL\tSDA");
-    BPMSG1261;
-#else
-    //bpWline("SCL\tSDA\t-\t-");
-    BPMSG1231;
-#endif /* BUSPIRATEV4 */
+    MSG_I2C_PINS_STATE;
 }
 
 //

@@ -518,9 +518,6 @@ _bp_messages:
 	; BPMSG1204
 	.pascii "UART bridge"
 
-	; BPMSG1205
-	.pascii "Reset to exit"
-
 	; BPMSG1206
 	.pascii "Raw UART input"
 
@@ -580,12 +577,6 @@ _bp_messages:
 
 	; BPMSG1229
 	.pascii "-\tOWD\t-\t-"
-
-	; BPMSG1230
-	.pascii "-\tTxD\t-\tRxD"
-
-	; BPMSG1231
-	.pascii "SCL\tSDA\t-\t-"
 
 	; BPMSG1232
 	.pascii "PGC\tPGD\t-\t-"
@@ -791,11 +782,20 @@ _bp_messages:
 	; MSG_I2C_MODE_IDENTIFIER
 	.pascii "I2C1"
 
+	; MSG_I2C_PINS_STATE
+	.pascii "SCL\tSDA\t-\t-"
+
+	; MSG_I2C_READ_ADDRESS_END
+	.pascii " R) "
+
 	; MSG_I2C_START_BIT
 	.pascii "I2C START BIT"
 
 	; MSG_I2C_STOP_BIT
 	.pascii "I2C STOP BIT"
+
+	; MSG_I2C_WRITE_ADDRESS_END
+	.pascii " W) "
 
 	; MSG_NACK
 	.pascii "NACK"
