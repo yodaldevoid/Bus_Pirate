@@ -525,6 +525,7 @@ uint32_t uart_get_baud_rate(const bool quiet) {
 
   BP_MISO = LOW;
   BP_MISO_DIR = INPUT;
+  bit_sample = 0;
 
   if (!quiet) {
     BPMSG1280;
