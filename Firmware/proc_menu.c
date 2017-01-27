@@ -37,6 +37,10 @@ extern bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT];
 extern volatile BYTE cdc_Out_len;
 #endif /* BUSPIRATEV4 */
 
+static const uint8_t READ_DISPLAY_BASE[] = { 'x', 'd', 'b', 'w' };
+
+static uint8_t change_read_display(void);
+
 static void setDisplayMode(void); //user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
 static void set_baud_rate(void); //configure user terminal side UART baud rate
 static void statusInfo(void); //display properties of the current bus mode (pullups, vreg, lsb, output type, etc)
@@ -916,7 +920,7 @@ bpv4reset:
                     //bpWmessage(MSG_READ);
                     BPMSG1102;
 				    //newDmode = 0;
-				    newDmode = changeReadDisplay();
+				    newDmode = change_read_display();
                     repeat = getrepeat() + 1;
                     numbits = getnumbits();
                     if (numbits) {
@@ -1126,29 +1130,16 @@ int getnumbits(void) {
     return 0; // no numbits=0;
 } //
 
-unsigned char changeReadDisplay(void)
-{
-	if(cmdbuf[(cmdstart + 1) & CMDLENMSK] == 'x')
-	{
-		cmdstart = (cmdstart + 1) & CMDLENMSK;
-		return 1;
-	}
-	if(cmdbuf[(cmdstart + 1) & CMDLENMSK] == 'd')
-	{
-		cmdstart = (cmdstart + 1) & CMDLENMSK;
-		return 2;
-	}
-	if(cmdbuf[(cmdstart + 1) & CMDLENMSK] == 'b')
-	{
-		cmdstart = (cmdstart + 1) & CMDLENMSK;
-		return 3;
-	}
-	if(cmdbuf[(cmdstart + 1) & CMDLENMSK] == 'w')
-	{
-		cmdstart = (cmdstart + 1) & CMDLENMSK;
-		return 4;
-	}
-return 0;
+uint8_t change_read_display(void) {
+    size_t index;
+
+    for (index = 0; index < sizeof(READ_DISPLAY_BASE); index++) {
+        if (cmdbuf[(cmdstart + 1) & CMDLENMSK] == READ_DISPLAY_BASE[index]) {
+            return index + 1;
+        }
+    }
+
+    return 0;
 }
 
 void consumewhitechars(void) {

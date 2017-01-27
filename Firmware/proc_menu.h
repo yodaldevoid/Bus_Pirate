@@ -26,7 +26,6 @@ extern unsigned int cmdend;
 extern unsigned int cmdstart;
 extern bool command_error;
 
-//prints version, used internally and in main.c
 void print_version_info(void); 
 
 void serviceuser(void);
@@ -34,7 +33,7 @@ void serviceuser(void);
 int getint(void);
 int getrepeat(void);
 int getnumbits(void);
-unsigned char changeReadDisplay(void);
+
 void consumewhitechars(void);
 void changemode(void);
 #ifdef BP_ENABLE_COMMAND_HISTORY
