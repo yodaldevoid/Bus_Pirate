@@ -657,7 +657,7 @@ bpv4reset:
                     print_version_info();
 #else
                     BPMSG1093;
-                    while (0 == UART1TXEmpty()); //wait untill TX finishes
+                    WAITTXEmpty(); //wait until TX finishes
                     asm("RESET");
 #endif /* BUSPIRATEV4 */
                     break;
@@ -667,7 +667,7 @@ bpv4reset:
                         BPMSG1094;
                         bp_delay_ms(100);
                         bp_reset_board_state(); // turn off nasty things, cleanup first needed?
-                        while (0 == UART1TXEmpty()); //wait untill TX finishes
+                        WAITTXEmpty(); //wait until TX finishes
                         asm volatile ("mov #BLJUMPADDRESS, w1 \n" //bootloader location
                                     "goto w1 \n");
                     }
@@ -1783,7 +1783,7 @@ void set_baud_rate(void) {
     //bpWmessage(MSG_OPT_TERMBAUD_ADJUST); //show 'adjust and press space dialog'
     BPMSG1134;
     BPMSG1251;
-    while (0 == UART1TXEmpty()); //wait for TX to finish or reinit flushes part of prompt string from buffer
+    WAITTXEmpty(); //wait for TX to finish or reinit flushes part of prompt string from buffer
 
     if (bus_pirate_configuration.terminal_speed == 9) {
         UART1Speed(brg);
