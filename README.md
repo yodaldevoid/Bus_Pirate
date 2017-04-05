@@ -37,7 +37,6 @@ As of this writing (Dec, 2016), it is our opinion that this repository contains 
   * Can emulate the AVR STK500 v2 with alternate ST500 Clone firmware 
   * Programs FPGAs and CPLDs with alternate XSVF firmware
 * Scriptable from Perl, Python, etc.
-* Translations (currently Spanish and Italian)
 * Public domain (Creative Commons Zero) source. Prototype with the Bus Pirate, then use the code in your project however you want. 
 
 ## Application Support
