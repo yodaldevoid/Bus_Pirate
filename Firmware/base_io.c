@@ -174,7 +174,7 @@ void bp_write_dec_byte(unsigned char c) {
 void bp_write_hex_byte(uint8_t value) {
   MSG_HEXADECIMAL_NUMBER_PREFIX;
   UART1TX(HEXASCII[(value >> 4) & 0x0F]);
-  UART1TX(HEXASCII[(value >> 4) & 0x0F]);
+  UART1TX(HEXASCII[value & 0x0F]);
 }
 
 void bp_write_hex_byte_to_ringbuffer(uint8_t value) {
