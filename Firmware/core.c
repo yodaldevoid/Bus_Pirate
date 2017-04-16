@@ -497,11 +497,7 @@ void silent_null_operation_callback(void) { command_error = false; }
 #endif /* BP_ENABLE_DIO_SUPPORT */
 
 void hiz_print_pins_state(void) {
-#ifdef BUSPIRATEV4
-  BPMSG1258;
-#else
-  BPMSG1225;
-#endif /* BUSPIRATEV4 */
+  MSG_SPI_PINS_STATE;
 }
 
 void reset_mode_to_8_bits(void) {

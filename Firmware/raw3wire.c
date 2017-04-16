@@ -193,11 +193,7 @@ void R3Wsetup_exc(void)
 }    
 
 void R3Wpins(void) {
-	#if defined(BUSPIRATEV4)
-        BPMSG1258; //bpWline("CS\tMISO\tCLK\tMOSI");
-        #else
-       	BPMSG1225; //bpWline("CLK\tMOSI\tCS\tMISO");
-        #endif
+    MSG_SPI_PINS_STATE;
 }
 
 #endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */

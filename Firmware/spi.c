@@ -313,11 +313,7 @@ SPImacro_settings_cleanup:
 }
 
 void SPIpins(void) {
-	#if defined(BUSPIRATEV4)
-        BPMSG1258; //bpWline("CS\tMISO\tCLK\tMOSI");
-        #else
-       	BPMSG1225; //bpWline("CLK\tMOSI\tCS\tMISO");
-        #endif
+    MSG_SPI_PINS_STATE;
 }
 
 void spi_setup(uint8_t spi_speed) {

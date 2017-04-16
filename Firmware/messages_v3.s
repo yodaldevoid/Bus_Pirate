@@ -563,9 +563,6 @@ _bp_messages:
 	; BPMSG1223
 	.pascii "CURSOR SET"
 
-	; BPMSG1225
-	.pascii "CLK\tMOSI\tCS\tMISO"
-
 	; BPMSG1226
 	.pascii "Pinstates:"
 
@@ -829,6 +826,9 @@ _bp_messages:
 
 	; MSG_SPI_MODE_IDENTIFIER
 	.pascii "SPI1"
+
+	; MSG_SPI_PINS_STATE
+	.pascii "CLK\tMOSI\tCS\tMISO"
 
 	; MSG_UART_MODE_IDENTIFIER
 	.pascii "ART1"

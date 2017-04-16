@@ -638,9 +638,6 @@ _bp_messages:
 	; BPMSG1257
 	.pascii "GND\t5.0V\t3.3V\tVPU\tADC\tAUX2\tAUX1\tAUX\t"
 
-	; BPMSG1258
-	.pascii "CS\tMISO\tCLK\tMOSI"
-
 	; BPMSG1259
 	.pascii "-\t-\t-\tOWD"
 
@@ -871,6 +868,9 @@ _bp_messages:
 
 	; MSG_SPI_MODE_IDENTIFIER
 	.pascii "SPI1"
+
+	; MSG_SPI_PINS_STATE
+	.pascii "CS\tMISO\tCLK\tMOSI"
 
 	; MSG_UART_MODE_IDENTIFIER
 	.pascii "ART1"
