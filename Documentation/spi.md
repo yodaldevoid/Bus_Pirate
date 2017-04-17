@@ -5,7 +5,7 @@ SPI Mode
   - **Connections:** four pins (MOSI/MISO/CLOCK/CS) and ground
   - **Output types:** 
     - 3.3volt normal output (high=3.3volts, low=ground)
-    - [open collector](http://en.wikipedia.org/wiki/High_impedence) (high=Hi-Z, low=ground), [pull-up resistors](http://dangerousprototypes.com/docs/Practical_guide_to_Bus_Pirate_pull-up_resistors) required. Use open drain/open collector output types with pull-up resistors for multi-voltage interfacing.
+    - [open collector](http://en.wikipedia.org/wiki/High_impedance) (high=Hi-Z, low=ground), [pull-up resistors](http://dangerousprototypes.com/docs/Practical_guide_to_Bus_Pirate_pull-up_resistors) required. Use open drain/open collector output types with pull-up resistors for multi-voltage interfacing.
   - **Pull-up resistors:** required for open collector output mode (2K – 10K)
   - **Maximum voltage:** 5.5volts (5volt safe)
   - **Speed:** 30, 50, 125, 250 kHz; 1, 1.3, 2, 2.6, 3.2, 4, 5.3, 8 MHz
