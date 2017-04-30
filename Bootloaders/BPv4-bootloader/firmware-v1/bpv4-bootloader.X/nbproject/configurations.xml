@@ -7,9 +7,7 @@
       <itemPath>../boot_config.h</itemPath>
       <itemPath>../bootloader.h</itemPath>
       <itemPath>../cdc.h</itemPath>
-      <itemPath>../Compiler.h</itemPath>
       <itemPath>../descriptors.h</itemPath>
-      <itemPath>../GenericTypeDefs.h</itemPath>
       <itemPath>../globals.h</itemPath>
       <itemPath>../picusb.h</itemPath>
       <itemPath>../usb_lang.h</itemPath>
