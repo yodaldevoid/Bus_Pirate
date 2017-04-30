@@ -14,10 +14,33 @@
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#pragma config WPFP = WPFP511
+#pragma config WPDIS = WPDIS
+#pragma config WPCFG = WPCFGDIS
+#pragma config WPEND = WPENDMEM
+#pragma config POSCMOD = HS
+#pragma config DISUVREG = OFF
+#pragma config IOL1WAY = ON
+#pragma config OSCIOFNC = ON
+#pragma config FCKSM = CSDCMD
+#pragma config FNOSC = PRIPLL
+#pragma config PLL_96MHZ = ON
+#pragma config PLLDIV = DIV3
+#pragma config IESO = OFF
+#pragma config WDTPS = PS32768
+#pragma config FWPSA = PR128
+#pragma config WINDIS = OFF
+#pragma config FWDTEN = OFF
+#pragma config ICS = PGx2
+#pragma config GWRP = OFF
+#pragma config GCP = OFF
+#pragma config JTAGEN = OFF
+
+#include <xc.h>
+
 //BOOTLOADER PROJECT MAIN FILE
 
 #include "globals.h"
-#include "configwords.h"	// JTR only included in main.c
 #include "descriptors.h"	// JTR Only included in main.c
 #include "bootloader.h"
 

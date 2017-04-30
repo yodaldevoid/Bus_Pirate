@@ -8,7 +8,6 @@
       <itemPath>../bootloader.h</itemPath>
       <itemPath>../cdc.h</itemPath>
       <itemPath>../Compiler.h</itemPath>
-      <itemPath>../configwords.h</itemPath>
       <itemPath>../descriptors.h</itemPath>
       <itemPath>../GenericTypeDefs.h</itemPath>
       <itemPath>../globals.h</itemPath>
@@ -51,7 +50,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>1.26</languageToolchainVersion>
+        <languageToolchainVersion>1.31</languageToolchainVersion>
         <platform>4</platform>
       </toolsSet>
       <compileType>
@@ -66,6 +65,8 @@
           <parseOnProdLoad>false</parseOnProdLoad>
           <alternateLoadableFile></alternateLoadableFile>
         </loading>
+        <subordinates>
+        </subordinates>
       </compileType>
       <makeCustomizationType>
         <makeCustomizationPreStepEnabled>false</makeCustomizationPreStepEnabled>
