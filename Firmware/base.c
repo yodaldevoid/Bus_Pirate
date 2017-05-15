@@ -281,6 +281,6 @@ uint16_t bp_reverse_integer(const uint16_t value, const uint8_t bits) {
     bitmask <<= 1;
   }
 
-  return reversed >> ((sizeof(uint16_t) * 8) - mode_configuration.numbits);
+  return reversed >> ((sizeof(uint16_t) * 8) - bits);
 #endif /* BUSPIRATEV4 */
 }

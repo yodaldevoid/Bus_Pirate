@@ -147,7 +147,7 @@ uint16_t bp_reverse_integer(const uint16_t value, const uint8_t bits);
 /**
  * Reverses the bits in the given byte and returns it.
  *
- * @param value the byte whose bits should be reversed.
+ * @param[in] value the byte whose bits should be reversed.
  *
  * @return the value with reversed bits.
  */
@@ -156,7 +156,7 @@ inline uint8_t bp_reverse_byte(const uint8_t value);
 /**
  * Reverses the bits in the given word and returns it.
  *
- * @param value the word whose bits should be reversed.
+ * @param[in] value the word whose bits should be reversed.
  *
  * @return the value with reversed bits.
  */
