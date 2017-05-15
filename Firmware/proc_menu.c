@@ -634,7 +634,7 @@ end:
                     cmdstart = (cmdstart + 1) & CMDLENMSK;
                     consumewhitechars();
                     temp = getint();
-                    temp = bp_reverse_integer((unsigned char) temp);
+                    temp = bp_reverse_integer((uint8_t) temp, mode_configuration.numbits);
                     bp_write_hex_byte(temp);
                     MSG_BASE_CONVERTER_EQUAL_SIGN;
                     bp_write_dec_byte(temp);
@@ -851,7 +851,7 @@ bpv4reset:
                             sendw = cmdbuf[cmdstart];
                             if (mode_configuration.lsbEN == 1) //adjust bitorder
                             {
-                                sendw = bp_reverse_integer(sendw);
+                                sendw = bp_reverse_integer(sendw, mode_configuration.numbits);
                             }
                             enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
                         }
@@ -901,14 +901,14 @@ bpv4reset:
                             bp_write_dec_byte(mode_configuration.numbits);
                         }
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
-                            sendw = bp_reverse_integer(sendw);
+                            sendw = bp_reverse_integer(sendw, mode_configuration.numbits);
                         }
                         received = enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
                         bpSP;
                         if (mode_configuration.write_with_read) { //bpWmessage(MSG_READ);
                             BPMSG1102;
                             if (mode_configuration.lsbEN == 1) {//adjust bitorder
-                                received = bp_reverse_integer(received);
+                                received = bp_reverse_integer(received, mode_configuration.numbits);
                             }
                             bp_write_formatted_integer(received);
                             bpSP;
@@ -936,7 +936,7 @@ bpv4reset:
                     while (--repeat) {
                         received = enabled_protocols[bus_pirate_configuration.bus_mode].read();
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
-                            received = bp_reverse_integer(received);
+                            received = bp_reverse_integer(received, mode_configuration.numbits);
                         }
                         bp_write_formatted_integer(received);
                         if (((mode_configuration.int16 == 0) && (mode_configuration.numbits != 8)) || ((mode_configuration.int16 == 1) && (mode_configuration.numbits != 16))) {

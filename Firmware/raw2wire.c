@@ -38,14 +38,6 @@ extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bool command_error;
 
-/**
- * Reverses the bits in the given byte.
- * 
- * @param value the value whose bits need to be reversed.
- * @return the input byte with its bits reversed.
- */
-static uint8_t reverse_byte(uint8_t value);
-
 void r2wMacro_78163Read(void);
 void r2wMacro_78163Write(void);
 
@@ -221,7 +213,7 @@ void r2wMacro_78163Read(void){
 	for(i=0; i<4; i++){
         m[i] = bitbang_read_value();
 		if (mode_configuration.lsbEN) {
-			m[i] = reverse_byte(m[i]);
+			m[i] = bp_reverse_byte(m[i]);
 		}
 		bp_write_hex_byte(m[i]);
 		bpSP;
@@ -296,20 +288,6 @@ void r2wMacro_78163Read(void){
 	for(m[0]=0;m[0]<c;m[0]++)i*=2;//multiply by two each time
 	bp_write_dec_byte(i);
 	bpBR;
-}
-
-uint8_t reverse_byte(uint8_t value) {
-	uint8_t reversed = 0;
-	uint8_t bitmask;
-
-	for (bitmask = 0b00000001; bitmask != 0; bitmask = bitmask << 1) {
-		reversed = reversed << 1;    
-		if (value & bitmask) {
-			reversed |= 0b00000001;
-		}
-	}
-
-	return reversed;
 }
 
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */

@@ -138,10 +138,29 @@ typedef struct {
  * Reverses the bits in the given value and returns it.
  *
  * @param[in] value the value whose bits should be reversed.
+ * @param[in] bits width of the value to reverse, in bits.
  *
  * @return the value with reversed bits.
  */
-unsigned int bp_reverse_integer(unsigned int value);
+uint16_t bp_reverse_integer(const uint16_t value, const uint8_t bits);
+
+/**
+ * Reverses the bits in the given byte and returns it.
+ *
+ * @param value the byte whose bits should be reversed.
+ *
+ * @return the value with reversed bits.
+ */
+inline uint8_t bp_reverse_byte(const uint8_t value);
+
+/**
+ * Reverses the bits in the given word and returns it.
+ *
+ * @param value the word whose bits should be reversed.
+ *
+ * @return the value with reversed bits.
+ */
+inline uint16_t bp_reverse_word(const uint16_t value);
 
 /**
  * Bring the board to a clean slate shortly before switching to a new
@@ -184,13 +203,13 @@ void bp_write_formatted_integer(unsigned int value);
  *
  * @param[in] milliseconds the amount of milliseconds to wait.
  */
-#define bp_delay_ms(milliseconds) __delay_ms(milliseconds) 
+#define bp_delay_ms(milliseconds) __delay_ms(milliseconds)
 
 /**
  * Pauses execution for the given amount of microseconds.
  *
  * @param[in] microseconds the amount of microseconds to wait.
  */
-#define bp_delay_us(microseconds) __delay_us(microseconds) 
+#define bp_delay_us(microseconds) __delay_us(microseconds)
 
 #endif /* !BP_BASE_H */

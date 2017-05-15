@@ -644,7 +644,7 @@ void binwire(void) {
                             i = bitbang_read_with_write(0xff);
                         }
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
-                            i = bp_reverse_integer(i);
+                            i = bp_reverse_integer(i, mode_configuration.numbits);
                         }
                         UART1TX(i);
                         break;
@@ -688,7 +688,7 @@ void binwire(void) {
                 for (i = 0; i < inByte; i++) {
                     c = UART1RX(); // /* JTR usb port; */;
                     if (mode_configuration.lsbEN == 1) {//adjust bitorder
-                        c = bp_reverse_integer(c);
+                        c = bp_reverse_integer(c, mode_configuration.numbits);
                     }
                     if (wires == 2) {//2 wire, send 1
                         bitbang_write_value(c); //send byte
@@ -696,7 +696,7 @@ void binwire(void) {
                     } else { //3 wire, return read byte
                         c = bitbang_read_with_write(c); //send byte
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
-                            c = bp_reverse_integer(c);
+                            c = bp_reverse_integer(c, mode_configuration.numbits);
                         }
                         UART1TX(c);
                     }
@@ -1090,9 +1090,9 @@ void PIC424Write_internal(unsigned long cmd, unsigned char pn) {
     bitbang_write_bit(0); //send bit
 
     //send data payload 0xBA0B96 0xBADBB6 0xBA0BB6
-    bitbang_write_value(bp_reverse_integer(cmd)); //send byte
-    bitbang_write_value(bp_reverse_integer(cmd >> 8)); //send byte
-    bitbang_write_value(bp_reverse_integer(cmd >> 16)); //send byte
+    bitbang_write_value(bp_reverse_byte(cmd & 0xFF));
+    bitbang_write_value(bp_reverse_byte((cmd >> 8) & 0xFF));
+    bitbang_write_value(bp_reverse_byte((cmd >> 16) & 0xFF));
 
     //do any post instruction NOPs
     pn &= 0x0F;
