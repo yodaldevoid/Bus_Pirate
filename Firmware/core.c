@@ -64,6 +64,10 @@
 #include "dio.h"
 #endif /* BP_ENABLE_DIO_SUPPORT */
 
+#if defined(BP_ENABLE_RAW_2WIRE_SUPPORT) || defined(BP_ENABLE_RAW_3WIRE_SUPPORT)
+#include "raw_common.h"
+#endif /* BP_ENABLE_RAW_2WIRE_SUPPORT || BP_ENABLE_RAW_3WIRE_SUPPORT */
+
 /**
  * Predefined "print settings" callback for protocols that do not have any
  * settings to begin with.
@@ -266,11 +270,11 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
     {/* start */
      i2c_start,
      /* start */
-     i2c_start, i2c_stop, i2c_stop, i2c_write, i2c_read, null_operation_callback,
+     i2c_start, i2c_stop, i2c_stop, i2c_write, i2c_read,
      null_operation_callback, null_operation_callback, null_operation_callback,
-     null_data_read_callback, null_operation_callback, null_bit_read_callback,
-     null_bit_read_callback, i2c_macro, i2c_setup, i2c_setup_exc, i2c_cleanup,
-     i2c_pins_state, i2c_print_settings, "I2C"}
+     null_operation_callback, null_data_read_callback, null_operation_callback,
+     null_bit_read_callback, null_bit_read_callback, i2c_macro, i2c_setup,
+     i2c_setup_exc, i2c_cleanup, i2c_pins_state, i2c_print_settings, "I2C"}
 #endif /* BP_ENABLE_I2C_SUPPORT */
 
 #ifdef BP_ENABLE_SPI_SUPPORT
@@ -300,16 +304,26 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
 
 #ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
     ,
-    {R2Wstart,     R2Wstart,
-     R2Wstop,      R2Wstop,
-     R2Wwrite,     R2Wread,
-     R2Wclkh,      R2Wclkl,
-     R2Wdath,      R2Wdatl,
-     R2Wbitp,      R2Wclk,
-     R2Wbitr,      null_bit_read_callback,
-     R2Wmacro,     R2Wsetup,
-     R2Wsetup_exc, reset_mode_to_8_bits,
-     R2Wpins,      R2Wsettings,
+    {R2Wstart,
+     R2Wstart,
+     R2Wstop,
+     R2Wstop,
+     R2Wwrite,
+     R2Wread,
+     raw_set_clock_high,
+     raw_set_clock_low,
+     raw_set_data_high,
+     raw_set_data_low,
+     raw_read_pin,
+     raw_advance_clock,
+     raw_read_bit,
+     null_bit_read_callback,
+     R2Wmacro,
+     R2Wsetup,
+     R2Wsetup_exc,
+     reset_mode_to_8_bits,
+     R2Wpins,
+     R2Wsettings,
      "2WIRE"}
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
 
@@ -321,13 +335,13 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
      R3Wstop,
      R3Wwrite,
      R3Wread,
-     R3Wclkh,
-     R3Wclkl,
-     R3Wdath,
-     R3Wdatl,
-     R3Wbitp,
-     R3Wclk,
-     R3Wbitr,
+     raw_set_clock_high,
+     raw_set_clock_low,
+     raw_set_data_high,
+     raw_set_data_low,
+     raw_read_pin,
+     raw_advance_clock,
+     raw_read_bit,
      null_bit_read_callback,
      null_macro_callback,
      R3Wsetup,
@@ -496,9 +510,7 @@ void silent_null_operation_callback(void) { command_error = false; }
 
 #endif /* BP_ENABLE_DIO_SUPPORT */
 
-void hiz_print_pins_state(void) {
-  MSG_SPI_PINS_STATE;
-}
+void hiz_print_pins_state(void) { MSG_SPI_PINS_STATE; }
 
 void reset_mode_to_8_bits(void) {
   /* Sets the mode configuration to 8 bits. */

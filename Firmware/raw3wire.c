@@ -93,27 +93,6 @@ void R3Wstop(void)
 	if(r3wSettings.csl) UART1TX('/');
 	BPMSG1160;
 }
-bool R3Wbitr(void)
-{	return (bitbang_read_bit());
-}
-unsigned int R3Wbitp(void)
-{	return (bitbang_read_miso());
-}
-void R3Wclk(void)
-{	bitbang_advance_clock_ticks(1);
-}
-void R3Wclkh(void)
-{	bitbang_set_clk(1);				// same as r2wire?
-}
-void R3Wclkl(void)
-{	bitbang_set_clk(0);				// same as r2wire?
-}
-void R3Wdath(void)
-{	bitbang_set_mosi(1);				// same as r2wire?
-}
-void R3Wdatl(void)
-{	bitbang_set_mosi(0);				// same as r2wire?
-}
 
 void R3Wsettings(void) {
     //bpWstring("R3W (spd hiz)=( ");

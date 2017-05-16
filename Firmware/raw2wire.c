@@ -64,36 +64,6 @@ void R2Wstop(void)
 	MSG_I2C_STOP_BIT;
 }
 
-bool R2Wbitr(void)
-{	return (bitbang_read_bit());
-	//bpWmessage(MSG_BIT_NOWINPUT);
-}
-
-unsigned int R2Wbitp(void)
-{	return (bitbang_read_miso());
-	//bpWmessage(MSG_BIT_NOWINPUT);
-}
-		
-void R2Wclkl(void)
-{	bitbang_set_clk(0);
-}
-
-void R2Wclkh(void)
-{	bitbang_set_clk(1);
-}
-
-void R2Wclk(void)
-{	bitbang_advance_clock_ticks(1);
-}
-
-void R2Wdatl(void)
-{	bitbang_set_mosi(0);
-}
-
-void R2Wdath(void)
-{	bitbang_set_mosi(1);
-}
-
 void R2Wsettings(void) {
     //bpWstring("R2W (spd hiz)=( ");
 	BPMSG1143;
@@ -102,7 +72,6 @@ void R2Wsettings(void) {
 	//bpWline(")\r\n");
 	BPMSG1162;
 }
-
 
 void R2Wsetup(void)
 {	int speed, output;
