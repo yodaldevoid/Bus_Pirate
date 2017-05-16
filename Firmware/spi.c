@@ -48,12 +48,17 @@ extern command_t last_command;
 extern bus_pirate_configuration_t bus_pirate_configuration; //we use the big buffer
 extern bool command_error;
 
-//void spiSetup(unsigned char spiSpeed);
-//void spiDisable(void);
-//unsigned char spiWriteByte(unsigned char c);
-void spiSlaveDisable(void);
-void spiSlaveSetup(void);
-void spiSniffer(unsigned char csState, unsigned char termMode);
+static void spiSlaveDisable(void);
+static void spiSlaveSetup(void);
+static void spiSniffer(unsigned char csState, unsigned char termMode);
+
+/**
+ * Engages the CS line.
+ * 
+ * @param[in] write_with_read flag indicating if data writes will have a
+ *                            subsequent read operation or not.
+ */
+static void engage_spi_cs(bool write_with_read);
 
 struct _SPI {
     unsigned char ckp : 1;
@@ -78,44 +83,33 @@ static const uint8_t spi_bus_speed[] = {
     0b00011011  /*   8 MHz - Primary prescaler  1:1 / Secondary prescaler 2:1 */
 };
 
-void SPIstartr(void) {
-    mode_configuration.write_with_read = 1;
+void engage_spi_cs(bool write_with_read) {
+    mode_configuration.write_with_read = write_with_read;
+    SPICS = !spiSettings.csl;
     if (spiSettings.csl) {
-        SPICS = 0;
-    } else {
-        SPICS = 1;
+        UART1TX('/');
     }
-    ///bpWmessage(MSG_CS_ENABLED);
-    if (spiSettings.csl) UART1TX('/');
     BPMSG1159;
 }
 
-void SPIstart(void) {
-    mode_configuration.write_with_read = 0;
-    if (spiSettings.csl) {
-        SPICS = 0;
-    } else {
-        SPICS = 1;
-    }
-    //bpWmessage(MSG_CS_ENABLED);
-    if (spiSettings.csl) UART1TX('/');
-    BPMSG1159;
+inline void SPIstartr(void) {
+    engage_spi_cs(ON);
+}
+
+inline void SPIstart(void) {
+    engage_spi_cs(OFF);
 }
 
 void SPIstop(void) {
+    SPICS = spiSettings.csl;
     if (spiSettings.csl) {
-        SPICS = 1;
-    } else {
-        SPICS = 0;
+        UART1TX('\\');
     }
-
-    //bpWmessage(MSG_CS_DISABLED);
-    if (spiSettings.csl) UART1TX('\\');
     BPMSG1160;
 }
 
-unsigned int SPIread(void) {
-    return (spiWriteByte(0xff));
+inline unsigned int SPIread(void) {
+    return spiWriteByte(0xFF);
 }
 
 unsigned int SPIwrite(unsigned int c) {
@@ -260,7 +254,7 @@ void SPIsetup_exc(void)
     SPICS = spiSettings.csl; 
 } 
 
-void SPIcleanup(void) {
+inline void SPIcleanup(void) {
     spiDisable();
 }
 
