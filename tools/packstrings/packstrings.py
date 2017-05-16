@@ -2,6 +2,10 @@
 
 import argparse
 import csv
+import sys
+
+if sys.hexversion < 0x03000000:
+    raise Exception('Cannot run on anything earlier than Python 3.0')
 
 
 def get_messages(handle):
