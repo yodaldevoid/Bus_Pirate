@@ -5,10 +5,17 @@
 /Firmware/busPirate.X/nbproject/Makefile-default.mk
 /Firmware/busPirate.X/nbproject/Makefile-impl.mk
 /Firmware/busPirate.X/nbproject/Makefile-local-default.mk
+/Firmware/busPirate.X/nbproject/Makefile-local-BusPirate_v3.mk
+/Firmware/busPirate.X/nbproject/Makefile-local-BusPirate_v4.mk
 /Firmware/busPirate.X/nbproject/Makefile-variables.mk
 /Firmware/busPirate.X/nbproject/Makefile-genesis.properties
+/Firmware/busPirate.X/nbproject/Makefile-BusPirate_V3.mk
+/Firmware/busPirate.X/nbproject/Makefile-BusPirate_V4.mk
 /Firmware/busPirate.X/nbproject/Package-default.bash
+/Firmware/busPirate.X/nbproject/Package-BusPirate_v3.bash
+/Firmware/busPirate.X/nbproject/Package-BusPirate_v4.bash
 /Firmware/busPirate.X/*.[is]
+/Firmware/busPirate.X/*.map
 /Bootloaders/BPv4-bootloader/firmware-v1/bpv4-bootloader.X/nbproject/private/
 /Bootloaders/BPv4-bootloader/firmware-v1/bpv4-bootloader.X/dist/default/
 /Bootloaders/BPv4-bootloader/firmware-v1/bpv4-bootloader.X/build/default/
