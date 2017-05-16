@@ -110,7 +110,7 @@ void SPIstop(void) {
     }
 
     //bpWmessage(MSG_CS_DISABLED);
-    if (spiSettings.csl) UART1TX('/');
+    if (spiSettings.csl) UART1TX('\\');
     BPMSG1160;
 }
 
