@@ -23,13 +23,6 @@
 
 #include <stdbool.h>
 
-void r2wProcess(void);
-
-//these need to be visible to the MACROs, add as needed.
-unsigned char r2wReadByte(void);
-void r2wClockTicks(unsigned char c);
-
-
 void R2Wstart(void);
 void R2Wstop(void);
 unsigned int R2Wwrite(unsigned int c);

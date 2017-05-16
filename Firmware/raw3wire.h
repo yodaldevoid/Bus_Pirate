@@ -23,8 +23,6 @@
 
 #include <stdbool.h>
 
-void r3wProcess(void);
-
 unsigned int R3Wread(void);
 unsigned int R3Wwrite(unsigned int c);
 void R3Wstartr(void);
