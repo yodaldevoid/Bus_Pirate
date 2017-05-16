@@ -90,7 +90,7 @@ static const uint8_t REVERSED_BITS_TABLE[] = {
 #endif /* BUSPIRATEV4 */
 
 /**
- * Clear mode configuration on mode change.
+ * Clear configuration on mode change.
  */
 static void clear_mode_configuration(void);
 
@@ -148,8 +148,8 @@ unsigned int bp_read_adc(unsigned int channel) {
   AD1CON1bits.DONE = OFF;
 
   /* Wait for conversion to finish. */
-  while (AD1CON1bits.DONE == OFF)
-    ;
+  while (AD1CON1bits.DONE == OFF) {
+  }
 
   /* Return value. */
   return ADC1BUF0;
@@ -196,7 +196,6 @@ void bp_adc_continuous_probe(void) {
     /* Print new measurement. */
     bp_write_voltage(measurement);
 
-    // bpWstring(OUMSG_PS_ADC_VOLTS);
     BPMSG1045;
   }
 
@@ -258,7 +257,7 @@ inline uint16_t bp_reverse_word(const uint16_t value) {
   return (REVERSED_BITS_TABLE[value & 0xFF] << 8) |
          REVERSED_BITS_TABLE[value >> 8];
 #else
-  return bp_reverse_integer(value, 8);
+  return bp_reverse_integer(value, 16);
 #endif /* BUSPIRATEV4 */
 }
 
