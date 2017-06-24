@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -38,118 +39,124 @@
 
 #include <xc.h>
 
-//BOOTLOADER PROJECT MAIN FILE
+#include <stdbool.h>
+#include <stdint.h>
 
-#include "globals.h"
-#include "descriptors.h"	// JTR Only included in main.c
+#define FIRMWARE_SIGNATURE 0x31415926
+
+bool __attribute__((address(0x47FA), persistent)) skip_pgc_pgd_check;
+uint32_t __attribute__((address(0x47FC), persistent)) firmware_signature;
+
+// BOOTLOADER PROJECT MAIN FILE
+
 #include "bootloader.h"
+#include "descriptors.h" // JTR Only included in main.c
+#include "globals.h"
 
 void usb_start(void);
 void initCDC(void);
-void usb_init(ROMPTR const unsigned char*, ROMPTR const unsigned char*, ROMPTR const unsigned char*, int);
+void usb_init(ROMPTR const unsigned char *, ROMPTR const unsigned char *,
+              ROMPTR const unsigned char *, int);
 void Initialize(void);
 void bootloader(void);
-void userjumpin(void);
 extern volatile unsigned char usb_device_state;
 void startpoint(void);
 
 #pragma code
 
+#define PGC_OUT LATBbits.LATB6
+#define PGC_TRIS TRISBbits.TRISB6
+#define PGC_PU CNPU2bits.CN24PUE
+#define PGC_IN PORTBbits.RB6
+
+#define PGD_IN PORTBbits.RB7
+#define PGD_TRIS TRISBbits.TRISB7
+#define PGD_PU CNPU2bits.CN25PUE
+
 int main(void) {
-	volatile int i;
-    //asm("DISI #16"); //Disable interrupts
+  AD1PCFGL = 0xFFFF; // all digital
 
-	//configure PGC PGD for jumper test
-	//PGC is output
-	#define PGC_OUT LATBbits.LATB6
-	#define PGC_TRIS TRISBbits.TRISB6
-	#define PGC_PU CNPU2bits.CN24PUE
-	#define PGC_IN PORTBbits.RB6
+  // PGD is input with pullup
+  // TRISB|=0b10000000; //
+  PGD_TRIS = 1; // input
+  // CNPU2|=0b1000000000; //
+  PGD_PU = 1; // pullup on
 
-	#define PGD_IN PORTBbits.RB7
-	#define PGD_TRIS TRISBbits.TRISB7
-	#define PGD_PU CNPU2bits.CN25PUE
-	
-	AD1PCFGL=0xFFFF;//all digital
+  PGC_OUT = 0;
+  PGC_TRIS = 0;
 
-	//PGD is input with pullup
-	//TRISB|=0b10000000; //
-	PGD_TRIS=1; //input
-	//CNPU2|=0b1000000000; //
-	PGD_PU=1;	//pullup on
+  if ((firmware_signature != FIRMWARE_SIGNATURE) || !skip_pgc_pgd_check) {
+    volatile int i;
 
-	PGC_OUT=0;
-	PGC_TRIS=0;
+    skip_pgc_pgd_check = false;
 
-	i=5000;
-	while(i--);
+    i = 5000;
+    while (i--)
+      ;
 
-	for(i=0; i<20; i++){
-//(PORTCbits.RC14==1)||
-		//if((PORTBbits.RB7==1)){ //go to user space on first mis-match
-		if((PGD_IN==1)){ //go to user space on first mis-match
-			//continue to bootloader, or exit
-			asm (".equ BLJUMPADDRESS, 0x2000");
-			asm volatile ("mov #BLJUMPADDRESS, w1 \n" //bootloader location
-						  "goto w1 \n");
-	
-		}
-	}
+    for (i = 0; i < 20; i++) {
+      if ((PGD_IN == 1)) { // go to user space on first mis-match
+        // continue to bootloader, or exit
+        asm(".equ BLJUMPADDRESS, 0x2000");
+        asm volatile("mov #BLJUMPADDRESS, w1 \n" // bootloader location
+                     "goto w1 \n");
+      }
+    }
+  }
 
-	PGD_PU=0;	//pullup off
-	PGC_TRIS=1;//input
-	startpoint();
-    return 0;
+  skip_pgc_pgd_check = false;
+
+  PGD_PU = 0;   // pullup off
+  PGC_TRIS = 1; // input
+  startpoint();
+  return 0;
 }
 
+void startpoint() {
+  Initialize(); // setup bus pirate
+  LedSetup();
+  uLedOff();
+  mLedOff();
+  vLedOn();
 
-//fixed location to jump from user space
-//really bad! Can't figure out how to put a goto to a label from C, was easy in ASM...
-void __attribute__((space(prog),address(BLENDADDR-7))) userjumpin(){
-	startpoint();
-}
+  usb_init(cdc_device_descriptor, cdc_config_descriptor, cdc_str_descs,
+           USB_NUM_STRINGS); // TODO: Remove magic with macro
+  usb_start();
+  initCDC(); // Setup CDC defaults.
+  vLedOff();
+  // wait for the USB connection to enumerate
+  do {
+    // if (!TestUsbInterruptEnabled()) //JTR3 added
 
-void startpoint(){
-    Initialize(); //setup bus pirate
-	LedSetup();
-    uLedOff();
-    mLedOff();
-    vLedOn();
-
-    usb_init(cdc_device_descriptor, cdc_config_descriptor, cdc_str_descs, USB_NUM_STRINGS); // TODO: Remove magic with macro
-    usb_start();
-    initCDC(); // Setup CDC defaults.
-    vLedOff();
-    //wait for the USB connection to enumerate
-    do {
-        //if (!TestUsbInterruptEnabled()) //JTR3 added
-
-        usb_handler(); ////service USB tasks Guaranteed one pass in polling mode even when usb_device_state == CONFIGURED_STATE
-        //if ((usb_device_state < DEFAULT_STATE)) { // JTR2 no suspendControl available yet || (USBSuspendControl==1) ){
-       // } else if (usb_device_state < CONFIGURED_STATE) {
-       // }
-    } while (usb_device_state < CONFIGURED_STATE); // JTR addition. Do not proceed until device is configured.
-    vLedOn();
-    bootloader();
+    usb_handler(); ////service USB tasks Guaranteed one pass in polling mode
+                   ///even when usb_device_state == CONFIGURED_STATE
+                   // if ((usb_device_state < DEFAULT_STATE)) { // JTR2 no suspendControl
+    // available yet || (USBSuspendControl==1) ){
+    // } else if (usb_device_state < CONFIGURED_STATE) {
+    // }
+  } while (usb_device_state < CONFIGURED_STATE); // JTR addition. Do not proceed
+                                                 // until device is configured.
+  vLedOn();
+  bootloader();
 }
 
 void Initialize(void) {
-    CORCONbits.PSV = 1;
-    PSVPAG = 0; //
-    CLKDIV = 0x0000; // Set PLL prescaler (1:1)
-    TBLPAG = 0;
+  CORCONbits.PSV = 1;
+  PSVPAG = 0;      //
+  CLKDIV = 0x0000; // Set PLL prescaler (1:1)
+  TBLPAG = 0;
 
-	//all high-z to protect everything
-	AD1PCFGL=0xFFFF;//all digital
-    AD1PCFGH = 0x2;
-	//TRISA=0xFFFF;
-	TRISB=0xFFFF;
-	TRISC=0xFFFF;
-	TRISD=0xFFFF;
-	TRISE=0xFFFF;
-	TRISF=0xFFFF;
-	TRISG=0xFFFF;
-    OSCCONbits.SOSCEN = 0;
+  // all high-z to protect everything
+  AD1PCFGL = 0xFFFF; // all digital
+  AD1PCFGH = 0x2;
+  // TRISA=0xFFFF;
+  TRISB = 0xFFFF;
+  TRISC = 0xFFFF;
+  TRISD = 0xFFFF;
+  TRISE = 0xFFFF;
+  TRISF = 0xFFFF;
+  TRISG = 0xFFFF;
+  OSCCONbits.SOSCEN = 0;
 }
 
 #ifdef USB_INTERRUPT
@@ -157,18 +164,13 @@ void Initialize(void) {
 
 void __attribute__((interrupt, no_auto_psv)) _USB1Interrupt() {
 
-    //USB interrupt
-    //IRQ enable IEC5bits.USB1IE
-    //IRQ flag	IFS5bits.USB1IF
-    //IRQ priority IPC21<10:8>
-    //{
-    usb_handler();
-    IFS5bits.USB1IF = 0; //	PIR2bits.USBIF = 0;
-    //}
+  // USB interrupt
+  // IRQ enable IEC5bits.USB1IE
+  // IRQ flag	IFS5bits.USB1IF
+  // IRQ priority IPC21<10:8>
+  //{
+  usb_handler();
+  IFS5bits.USB1IF = 0; //	PIR2bits.USBIF = 0;
+                       //}
 }
 #endif
-
-
-
-
-

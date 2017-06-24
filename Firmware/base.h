@@ -94,12 +94,6 @@
 
 #include "base_io.h"
 
-/*
- * Sets the address in the bootloader to jump to on the bootloader command,
- * must be defined via an inline assembly block.
- */
-asm(".equ BLJUMPADDRESS, 0xABF8");
-
 /**
  * Current mode configuration settings structure.
  *

@@ -34,6 +34,12 @@ extern command_t last_command;
 extern bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT];
 
 #ifdef BUSPIRATEV4
+static bool __attribute__((address(0x47FA),persistent)) skip_pgc_pgd_check;
+#else
+static bool __attribute__((address(0x27FA),persistent)) skip_pgc_pgd_check;
+#endif /* BUSPIRATEV4 */
+
+#ifdef BUSPIRATEV4
 extern volatile BYTE cdc_Out_len;
 #endif /* BUSPIRATEV4 */
 
@@ -658,18 +664,18 @@ bpv4reset:
 #else
                     BPMSG1093;
                     WAITTXEmpty(); //wait until TX finishes
-                    asm("RESET");
+                    asm volatile ("RESET");
 #endif /* BUSPIRATEV4 */
                     break;
                 case '$': 
                     //bpWline("-bootloader jump");
                     if (agree()) { //bpWline("BOOTLOADER");
+                        skip_pgc_pgd_check = true;
                         BPMSG1094;
                         bp_delay_ms(100);
                         bp_reset_board_state(); // turn off nasty things, cleanup first needed?
                         WAITTXEmpty(); //wait until TX finishes
-                        asm volatile ("mov #BLJUMPADDRESS, w1 \n" //bootloader location
-                                    "goto w1 \n");
+                        asm volatile ("RESET");
                     }
                     break;
                 case 'a':

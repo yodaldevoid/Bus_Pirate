@@ -60,9 +60,19 @@ mode_configuration_t mode_configuration;
  */
 command_t last_command;
 
+#define FIRMWARE_SIGNATURE 0x31415926
+
+#ifdef BUSPIRATEV4
+static uint32_t __attribute__((address(0x47FC), persistent)) firmware_signature;
+#else
+static uint32_t __attribute__((address(0x27FC), persistent)) firmware_signature;
+#endif /* BUSPIRATEV4 */
+
 #pragma code
 
 int main(void) {
+  firmware_signature = FIRMWARE_SIGNATURE;
+
   initialize_board();
 
 #if defined(BUSPIRATEV4)
@@ -172,7 +182,7 @@ void initialize_board(void) {
 #endif /* BUSPIRATEV3 */
 
 #if defined(BUSPIRATEV4)
-  
+
   /* Initialize the USB-based serial port. */
 
   initCDC();

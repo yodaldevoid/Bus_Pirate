@@ -180,6 +180,15 @@
 		.bss
 buffer:	.space ( ROWSIZE * 3 + 1/*checksum*/ ) 
 
+		.equ FIRMWARE_SIGNATURE_LOW, 0x3141
+		.equ FIRMWARE_SIGNATURE_HIGH, 0x5926
+	
+		.global skip_pgc_pgd_check
+		.global firmware_signature
+		
+		.section *, bss, address(0x27FA)
+skip_pgc_pgd_check: .space 2
+firmware_signature: .space 4
 
 ;------------------------------------------------------------------------------
 ; Send macro
@@ -221,8 +230,34 @@ waitPLL:btss OSCCON, #LOCK
 		bra waitPLL ;wait for the PLL to lock
 
 		mov #0xFFFF, W0 ;all pins to digital
-		mov W0, AD1PCFG	
-
+		mov W0, AD1PCFG
+		
+		; Make sure the firmware has been started at least once.
+		;
+		; If the firmware signature is found in memory then it is
+		; extremely plausible that skip_pgc_pgd_check has been
+		; initialised to the correct value.
+		
+		mov #firmware_signature, W0
+		mov [W0++], W1
+		mov #FIRMWARE_SIGNATURE_HIGH, W2
+		cp W1, W2
+		bra nz, jumper_test
+		mov [W0], W1
+		mov #FIRMWARE_SIGNATURE_LOW, W2
+		cp W1, W2
+		bra nz, jumper_test
+		
+		mov #skip_pgc_pgd_check, W0
+		cp0.b [W0]
+		clr.b [W0]       ; should not change flags
+		bra nz, usrapp
+		
+jumper_test:
+    
+		mov #skip_pgc_pgd_check, W0
+		clr.b [W0]
+    
 ;jumper check test
 		;setup the jumper check
 		;enable input on PGx
