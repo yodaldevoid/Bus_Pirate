@@ -251,7 +251,7 @@ waitPLL:btss OSCCON, #LOCK
 		mov #skip_pgc_pgd_check, W0
 		cp0.b [W0]
 		clr.b [W0]       ; should not change flags
-		bra nz, usrapp
+		bra nz, setup
 		
 jumper_test:
     
