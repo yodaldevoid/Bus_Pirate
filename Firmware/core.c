@@ -151,326 +151,276 @@ extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
 bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
-    {/* start */
-     null_operation_callback,
-     /* start_with_read */
-     null_operation_callback,
-     /* stop */
-     null_operation_callback,
-     /* stop_from_read */
-     null_operation_callback,
-     /* send */
-     null_send_callback,
-     /* read */
-     null_data_read_callback,
-     /* clock_high */
-     null_operation_callback,
-     /* clock_low */
-     null_operation_callback,
-     /* data_high */
-     null_operation_callback,
-     /* data_low */
-     null_operation_callback,
-     /* data_state */
-     null_data_read_callback,
-     /* clock_pulse */
-     null_operation_callback,
-     /* read_bit */
-     null_bit_read_callback,
-     /* periodic_update */
-     null_bit_read_callback,
-     /* run_macro */
-     null_macro_callback,
-     /* setup */
-     reset_mode_to_8_bits,
-     /* get_ready */
-     reset_mode_to_8_bits,
-     /* cleanup */
-     reset_mode_to_8_bits,
-     /* print_pins_state */
-     hiz_print_pins_state,
-     /* print_settings */
-     empty_print_settings_implementation,
-     /* name */
-     "HiZ"}
+    {.start = null_operation_callback,
+     .start_with_read = null_operation_callback,
+     .stop = null_operation_callback,
+     .stop_from_read = null_operation_callback,
+     .send = null_send_callback,
+     .read = null_data_read_callback,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = null_macro_callback,
+     .setup = reset_mode_to_8_bits,
+     .get_ready = reset_mode_to_8_bits,
+     .cleanup = reset_mode_to_8_bits,
+     .print_pins_state = hiz_print_pins_state,
+     .print_settings = empty_print_settings_implementation,
+     .name = "HiZ"}
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
     ,
-    {/* start */
-     onewire_reset,
-     /* start_with_read */
-     onewire_reset,
-     /* stop */
-     null_operation_callback,
-     /* stop_from_read */
-     null_operation_callback,
-     /* send */
-     onewire_write,
-     /* read */
-     onewire_read,
-     /* clock_high */
-     null_operation_callback,
-     /* clock_low */
-     null_operation_callback,
-     /* data_high */
-     onewire_data_high,
-     /* data_low */
-     onewire_data_low,
-     /* data_state */
-     onewire_data_state,
-     /* clock_pulse */
-     onewire_clock_pulse,
-     /* read_bit */
-     onewire_read_bit,
-     /* periodic_update */
-     null_bit_read_callback,
-     /* run_macro */
-     onewire_run_macro,
-     /* setup */
-     onewire_setup,
-     /* get_ready */
-     onewire_setup_exc,
-     /* cleanup */
-     reset_mode_to_8_bits,
-     /* print_pins_state */
-     onewire_pins_state,
-     /* print_settings */
-     empty_print_settings_implementation,
-     /* name */
-     "1-WIRE"}
+    {.start = onewire_reset,
+     .start_with_read = onewire_reset,
+     .stop = null_operation_callback,
+     .stop_from_read = null_operation_callback,
+     .send = onewire_write,
+     .read = onewire_read,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = onewire_data_high,
+     .data_low = onewire_data_low,
+     .data_state = onewire_data_state,
+     .clock_pulse = onewire_clock_pulse,
+     .read_bit = onewire_read_bit,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = onewire_run_macro,
+     .setup = onewire_setup,
+     .get_ready = onewire_setup_exc,
+     .cleanup = reset_mode_to_8_bits,
+     .print_pins_state = onewire_pins_state,
+     .print_settings = empty_print_settings_implementation,
+     .name = "1-WIRE"}
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
 
 #ifdef BP_ENABLE_UART_SUPPORT
     ,
-    {uart_start,
-     uart_start,
-     uart_stop,
-     uart_stop,
-     uart_write,
-     uart_read,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_data_read_callback,
-     null_operation_callback,
-     null_bit_read_callback,
-     uart_periodic_callback,
-     uart_run_macro,
-     uart_setup,
-     UARTsetup_exc,
-     uart_cleanup,
-     uart_pins_state,
-     UARTsettings,
-     "UART"}
+    {.start = uart_start,
+     .start_with_read = uart_start,
+     .stop = uart_stop,
+     .stop_from_read = uart_stop,
+     .send = uart_write,
+     .read = uart_read,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = uart_periodic_callback,
+     .run_macro = uart_run_macro,
+     .setup = uart_setup,
+     .get_ready = UARTsetup_exc,
+     .cleanup = uart_cleanup,
+     .print_pins_state = uart_pins_state,
+     .print_settings = UARTsettings,
+     .name = "UART"}
 #endif /* BP_ENABLE_UART_SUPPORT */
 
 #ifdef BP_ENABLE_I2C_SUPPORT
     ,
-    {/* start */
-     i2c_start,
-     /* start */
-     i2c_start, i2c_stop, i2c_stop, i2c_write, i2c_read,
-     null_operation_callback, null_operation_callback, null_operation_callback,
-     null_operation_callback, null_data_read_callback, null_operation_callback,
-     null_bit_read_callback, null_bit_read_callback, i2c_macro, i2c_setup,
-     i2c_setup_exc, i2c_cleanup, i2c_pins_state, i2c_print_settings, "I2C"}
+    {.start = i2c_start,
+     .start_with_read = i2c_start,
+     .stop = i2c_stop,
+     .stop_from_read = i2c_stop,
+     .send = i2c_write,
+     .read = i2c_read,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = i2c_macro,
+     .setup = i2c_setup,
+     .get_ready = i2c_setup_exc,
+     .cleanup = i2c_cleanup,
+     .print_pins_state = i2c_pins_state,
+     .print_settings = i2c_print_settings,
+     .name = "I2C"}
 #endif /* BP_ENABLE_I2C_SUPPORT */
 
 #ifdef BP_ENABLE_SPI_SUPPORT
     ,
-    {SPIstart,
-     SPIstartr,
-     SPIstop,
-     SPIstop,
-     SPIwrite,
-     SPIread,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_data_read_callback,
-     null_operation_callback,
-     null_bit_read_callback,
-     null_bit_read_callback,
-     SPImacro,
-     SPIsetup,
-     SPIsetup_exc,
-     SPIcleanup,
-     SPIpins,
-     SPIsettings,
-     "SPI"}
+    {.start = SPIstart,
+     .start_with_read = SPIstartr,
+     .stop = SPIstop,
+     .stop_from_read = SPIstop,
+     .send = SPIwrite,
+     .read = SPIread,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = SPImacro,
+     .setup = SPIsetup,
+     .get_ready = SPIsetup_exc,
+     .cleanup = SPIcleanup,
+     .print_pins_state = SPIpins,
+     .print_settings = SPIsettings,
+     .name = "SPI"}
 #endif /* BP_ENABLE_SPI_SUPPORT */
 
 #ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
     ,
-    {R2Wstart,
-     R2Wstart,
-     R2Wstop,
-     R2Wstop,
-     R2Wwrite,
-     R2Wread,
-     raw_set_clock_high,
-     raw_set_clock_low,
-     raw_set_data_high,
-     raw_set_data_low,
-     raw_read_pin,
-     raw_advance_clock,
-     raw_read_bit,
-     null_bit_read_callback,
-     R2Wmacro,
-     R2Wsetup,
-     R2Wsetup_exc,
-     reset_mode_to_8_bits,
-     R2Wpins,
-     R2Wsettings,
-     "2WIRE"}
+    {.start = R2Wstart,
+     .start_with_read = R2Wstart,
+     .stop = R2Wstop,
+     .stop_from_read = R2Wstop,
+     .send = R2Wwrite,
+     .read = R2Wread,
+     .clock_high = raw_set_clock_high,
+     .clock_low = raw_set_clock_low,
+     .data_high = raw_set_data_high,
+     .data_low = raw_set_data_low,
+     .data_state = raw_read_pin,
+     .clock_pulse = raw_advance_clock,
+     .read_bit = raw_read_bit,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = R2Wmacro,
+     .setup = R2Wsetup,
+     .get_ready = R2Wsetup_exc,
+     .cleanup = reset_mode_to_8_bits,
+     .print_pins_state = R2Wpins,
+     .print_settings = R2Wsettings,
+     .name = "2WIRE"}
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
 
 #ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
     ,
-    {R3Wstart,
-     R3Wstartr,
-     R3Wstop,
-     R3Wstop,
-     R3Wwrite,
-     R3Wread,
-     raw_set_clock_high,
-     raw_set_clock_low,
-     raw_set_data_high,
-     raw_set_data_low,
-     raw_read_pin,
-     raw_advance_clock,
-     raw_read_bit,
-     null_bit_read_callback,
-     null_macro_callback,
-     R3Wsetup,
-     R3Wsetup_exc,
-     reset_mode_to_8_bits,
-     R3Wpins,
-     R3Wsettings,
-     "3WIRE"}
+    {.start = R3Wstart,
+     .start_with_read = R3Wstartr,
+     .stop = R3Wstop,
+     .stop_from_read = R3Wstop,
+     .send = R3Wwrite,
+     .read = R3Wread,
+     .clock_high = raw_set_clock_high,
+     .clock_low = raw_set_clock_low,
+     .data_high = raw_set_data_high,
+     .data_low = raw_set_data_low,
+     .data_state = raw_read_pin,
+     .clock_pulse = raw_advance_clock,
+     .read_bit = raw_read_bit,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = null_macro_callback,
+     .setup = R3Wsetup,
+     .get_ready = R3Wsetup_exc,
+     .cleanup = reset_mode_to_8_bits,
+     .print_pins_state = R3Wpins,
+     .print_settings = R3Wsettings,
+     .name = "3WIRE"}
 #endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
 
 #ifdef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
     ,
-    {null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     KEYBwrite,
-     KEYBread,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_data_read_callback,
-     null_operation_callback,
-     null_bit_read_callback,
-     null_bit_read_callback,
-     KEYBmacro,
-     KEYBsetup,
-     KEYBsetup_exc,
-     reset_mode_to_8_bits,
-     hiz_print_pins_state,
-     empty_print_settings_implementation,
-     "KEYB"}
+    {.start = null_operation_callback,
+     .start_with_read = null_operation_callback,
+     .stop = null_operation_callback,
+     .stop_from_read = null_operation_callback,
+     .send = KEYBwrite,
+     .read = KEYBread,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = KEYBmacro,
+     .setup = KEYBsetup,
+     .get_ready = KEYBsetup_exc,
+     .cleanup = reset_mode_to_8_bits,
+     .print_pins_state = hiz_print_pins_state,
+     .print_settings = empty_print_settings_implementation,
+     .name = "KEYB"}
 #endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
 
 #ifdef BP_ENABLE_HD44780_SUPPORT
     ,
-    {LCDstart,
-     LCDstart,
-     LCDstop,
-     LCDstop,
-     LCDwrite,
-     null_data_read_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_data_read_callback,
-     null_operation_callback,
-     null_bit_read_callback,
-     null_bit_read_callback,
-     LCDmacro,
-     LCDsetup,
-     LCDsetup_exc,
-     spiDisable,
-     LCDpins,
-     empty_print_settings_implementation,
-     "LCD"}
+    {.start = LCDstart,
+     .start_with_read = LCDstart,
+     .stop = LCDstop,
+     .stop_from_read = LCDstop,
+     .send = LCDwrite,
+     .read = null_data_read_callback,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = LCDmacro,
+     .setup = LCDsetup,
+     .get_ready = LCDsetup_exc,
+     .cleanup = spiDisable,
+     .print_pins_state = LCDpins,
+     .print_settings = empty_print_settings_implementation,
+     .name = "LCD"}
 #endif /* BP_ENABLE_HD44780_SUPPORT */
 
 #ifdef BP_ENABLE_PIC_SUPPORT
     ,
-    {picstart,
-     picstart,
-     picstop,
-     picstop,
-     picwrite,
-     picread,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_operation_callback,
-     null_data_read_callback,
-     null_operation_callback,
-     null_bit_read_callback,
-     null_bit_read_callback,
-     picmacro,
-     picinit,
-     picinit_exc,
-     piccleanup,
-     picpins,
-     empty_print_settings_implementation,
-     "PIC"}
+    {.start = picstart,
+     .start_with_read = picstart,
+     .stop = picstop,
+     .stop_from_read = picstop,
+     .send = picwrite,
+     .read = picread,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = picmacro,
+     .setup = picinit,
+     .get_ready = picinit_exc,
+     .cleanup = piccleanup,
+     .print_pins_state = picpins,
+     .print_settings = empty_print_settings_implementation,
+     .name = "PIC"}
 #endif /* BP_ENABLE_PIC_SUPPORT */
 
 #ifdef BP_ENABLE_DIO_SUPPORT
     ,
-    {/* start */
-     null_operation_callback,
-     /* start_with_read */
-     null_operation_callback,
-     /* stop */
-     null_operation_callback,
-     /* stop_from_read */
-     null_operation_callback,
-     /* send */
-     dio_write,
-     /* read */
-     dio_read,
-     /* clock_high */
-     null_operation_callback,
-     /* clock_low */
-     null_operation_callback,
-     /* data_high */
-     null_operation_callback,
-     /* data_low */
-     null_operation_callback,
-     /* data_state */
-     null_data_read_callback,
-     /* clock_pulse */
-     null_operation_callback,
-     /* read_bit */
-     null_bit_read_callback,
-     /* periodic_update */
-     null_bit_read_callback,
-     /* run_macro */
-     null_macro_callback,
-     /* setup */
-     silent_null_operation_callback,
-     /* get_ready */
-     silent_null_operation_callback,
-     /* cleanup */
-     reset_mode_to_8_bits,
-     /* print_pins_state */
-     hiz_print_pins_state,
-     /* print_settings */
-     empty_print_settings_implementation,
-     /* name */
-     "DIO"}
+    {.start = null_operation_callback,
+     .start_with_read = null_operation_callback,
+     .stop = null_operation_callback,
+     .stop_from_read = null_operation_callback,
+     .send = dio_write,
+     .read = dio_read,
+     .clock_high = null_operation_callback,
+     .clock_low = null_operation_callback,
+     .data_high = null_operation_callback,
+     .data_low = null_operation_callback,
+     .data_state = null_data_read_callback,
+     .clock_pulse = null_operation_callback,
+     .read_bit = null_bit_read_callback,
+     .periodic_update = null_bit_read_callback,
+     .run_macro = null_macro_callback,
+     .setup = silent_null_operation_callback,
+     .get_ready = silent_null_operation_callback,
+     .cleanup = reset_mode_to_8_bits,
+     .print_pins_state = hiz_print_pins_state,
+     .print_settings = empty_print_settings_implementation,
+     .name = "DIO"}
 #endif /* BP_ENABLE_DIO_SUPPORT */
 };
 
