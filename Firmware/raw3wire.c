@@ -1,11 +1,12 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate. This work is published from
+ * United States.
  *
  * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
  *
@@ -20,159 +21,118 @@
 
 #include "base.h"
 #include "bitbang.h"
-#include "proc_menu.h"		// for the userinteraction subs
+#include "proc_menu.h"
 
-#define R3WMOSI_TRIS 	BP_MOSI_DIR
-#define R3WCLK_TRIS 	BP_CLK_DIR
-#define R3WMISO_TRIS 	BP_MISO_DIR
-#define R3WCS_TRIS 		BP_CS_DIR
+/* Pin aliases. */
 
-
-#define R3WMOSI 		BP_MOSI
-#define R3WCLK 			BP_CLK 
-#define R3WMISO 		BP_MISO 
-#define R3WCS 			BP_CS 
+#define R3WMOSI_TRIS BP_MOSI_DIR
+#define R3WCLK_TRIS BP_CLK_DIR
+#define R3WMISO_TRIS BP_MISO_DIR
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bool command_error;
 
-void R3Wsetup_exc(void);
+/**
+ * Raw 3 Wire mode chip select initial line state.
+ */
+static bool cs_line = LOW;
 
-struct _R3W{
-//	unsigned char wwr:1;
-	unsigned char csl:1;
-} r3wSettings;
+/**
+ * Sets up the board for operating in Raw 3 Mode state.
+ *
+ * @param[in] write_with_read flag indicating whether write operations imply a
+ *                            read operation afterwards.
+ * @param[in] cs_line_state the CS line state.
+ */
+static void setup_raw3wire(const bool write_with_read,
+                           const bool cs_line_state);
 
+uint16_t raw3wire_read(void) { return bitbang_read_with_write(0xFF); }
 
-unsigned int R3Wread(void)
-{	return (bitbang_read_with_write(0xff));
+uint16_t raw3wire_write(const uint16_t value) {
+  uint16_t read;
+
+  read = bitbang_read_with_write(value);
+  return mode_configuration.write_with_read ? read : 0;
 }
 
-unsigned int R3Wwrite(unsigned int c)
-{	c=bitbang_read_with_write(c);
-	if(mode_configuration.write_with_read==1)
-	{	return c;
-	}
-	return 0x00;
+void raw3wire_start_with_read(void) {
+  setup_raw3wire(YES, !cs_line);
+  MSG_SPI_CS_ENABLED;
+}
+void raw3wire_start(void) {
+  setup_raw3wire(NO, !cs_line);
+  MSG_SPI_CS_ENABLED;
 }
 
-void R3Wstartr(void)
-{	mode_configuration.write_with_read=1;
-	if(r3wSettings.csl)
-	{	bitbang_set_cs(0);
-	}
-	else
-	{	bitbang_set_cs(1);
-	}
-	//bpWmessage(MSG_CS_ENABLED);
-	if(r3wSettings.csl) UART1TX('/');
-	BPMSG1159;
-}
-void R3Wstart(void)
-{	mode_configuration.write_with_read=0;
-	if(r3wSettings.csl)
-	{	bitbang_set_cs(0);
-	}
-	else
-	{	bitbang_set_cs(1);
-	}
-	//bpWmessage(MSG_CS_ENABLED);
-	if(r3wSettings.csl) UART1TX('/');
-	BPMSG1159;
-}
-void R3Wstop(void)
-{	mode_configuration.write_with_read=0;
-	if(r3wSettings.csl)
-	{	bitbang_set_cs(1);
-	}
-	else
-	{	bitbang_set_cs(0);
-	}
-	//bpWmessage(MSG_CS_DISABLED);
-	if(r3wSettings.csl) UART1TX('/');
-	BPMSG1160;
+void raw3wire_stop(void) {
+  setup_raw3wire(NO, cs_line);
+  MSG_SPI_CS_DISABLED;
 }
 
-void R3Wsettings(void) {
-    //bpWstring("R3W (spd hiz)=( ");
-	BPMSG1161;
-	bp_write_dec_byte(mode_configuration.speed); bpSP;
-	bp_write_dec_byte(r3wSettings.csl); bpSP;
-	bp_write_dec_byte(mode_configuration.high_impedance); bpSP;
-	bp_write_line(")");
+void raw3wire_print_settings(void) {
+  MSG_RAW3WIRE_MODE_HEADER;
+  bp_write_dec_byte(mode_configuration.speed);
+  bpSP;
+  bp_write_dec_byte(cs_line);
+  bpSP;
+  bp_write_dec_byte(mode_configuration.high_impedance);
+  MSG_MODE_HEADER_END;
 }
 
+void raw3wire_setup(void) {
+  bool user_prompt;
+  int speed;
+  int output;
+  int cs_line_low;
 
-void R3Wsetup(void)
-{	int speed, output, cslow;
+  consumewhitechars();
+  speed = getint();
+  consumewhitechars();
+  cs_line_low = getint();
+  consumewhitechars();
+  output = getint();
 
-	consumewhitechars();
-	speed=getint();
-	consumewhitechars();
-	cslow=getint();
-	consumewhitechars();
-	output=getint();
+  user_prompt = !(((speed > 0) && (speed <= 4)) &&
+                  ((cs_line_low > 0) && (cs_line_low <= 2)) &&
+                  ((output > 0) && (output <= 2)));
 
-	if((speed>0)&&(speed<=4))
-	{	mode_configuration.speed=speed-1;
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-	if((cslow>0)&&(cslow<=2))
-	{	r3wSettings.csl=(cslow-1);
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-	if((output>0)&&(output<=2))
-	{	mode_configuration.high_impedance=(~(output-1));
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
+  if (user_prompt) {
+    MSG_SOFTWARE_MODE_SPEED_PROMPT;
+    mode_configuration.speed = getnumber(1, 1, 4, 0) - 1;
+    MSG_SPI_CS_MODE_PROMPT;
+    cs_line = getnumber(2, 1, 2, 0) - 1;
+    MSG_PIN_OUTPUT_TYPE_PROMPT;
+    mode_configuration.high_impedance = (getnumber(1, 1, 2, 0) - 1) == 0;
+    command_error = false;
+  } else {
+    mode_configuration.speed = speed - 1;
+    cs_line = (cs_line_low - 1) != 0;
+    mode_configuration.high_impedance = (output - 1) == 0;
+    raw3wire_print_settings();
+  }
 
-	if(speed==0)
-	{	//bpWmessage(MSG_OPT_BB_SPEED);
-		BPMSG1065;
-		mode_configuration.speed=(getnumber(1,1,4,0)-1);
-
-		//bpWline("CS:\r\n 1. CS\r\n 2. /CS *default");
-		BPMSG1253;
-		r3wSettings.csl=getnumber(2,1,2,0)-1;
-
-		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
-		BPMSG1142;
-		mode_configuration.high_impedance=(~(getnumber(1,1,2,0)-1));
-		command_error=false;
-	}
-	else
-	{	R3Wsettings();
-	}
-
-	//reset the write with read variable
-	mode_configuration.write_with_read=0;
-	mode_configuration.int16=0; //8 bit
+  mode_configuration.write_with_read = NO;
+  mode_configuration.int16 = NO;
 }
-void R3Wsetup_exc(void)
-{
-    bitbang_setup(3, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
-	//setup pins (pins are input/low when we start)
-	//MOSI output, low
-	//clock output, low
-	//MISO input
-	//CS output, high
-	R3WMOSI_TRIS=0;
-	R3WCLK_TRIS=0;
-	R3WMISO_TRIS=1;
 
-	// set cs the way the user wants
-	bitbang_set_cs(r3wSettings.csl);//takes care of custom HiZ settings too
-}    
+void raw3wire_get_ready(void) {
+  bitbang_setup(3, mode_configuration.speed);
+  R3WMOSI_TRIS = OUTPUT;
+  R3WCLK_TRIS = OUTPUT;
+  R3WMISO_TRIS = INPUT;
+  bitbang_set_cs(cs_line);
+}
 
-void R3Wpins(void) {
-    MSG_SPI_PINS_STATE;
+void raw3wire_print_pins_state(void) { MSG_SPI_PINS_STATE; }
+
+void setup_raw3wire(const bool write_with_read, const bool cs_line_state) {
+  mode_configuration.write_with_read = write_with_read;
+  bitbang_set_cs(!cs_line_state);
+  if (cs_line_state) {
+    UART1TX('/');
+  }
 }
 
 #endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */

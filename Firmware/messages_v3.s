@@ -137,9 +137,6 @@ _bp_messages:
 	; BPMSG1064
 	.pascii "I2C mode:\r\n 1. Software\r\n 2. Hardware"
 
-	; BPMSG1065
-	.pascii "Set speed:\r\n 1. ~5KHz\r\n 2. ~50KHz\r\n 3. ~100KHz\r\n 4. ~400KHz"
-
 	; BPMSG1066
 	.pascii "WARNING: HARDWARE I2C is broken on this PIC! (REV A3)"
 
@@ -335,9 +332,6 @@ _bp_messages:
 	; BPMSG1140
 	.pascii "(\\_/-)"
 
-	; BPMSG1142
-	.pascii "Select output type:\r\n 1. Open drain (H=Hi-Z, L=GND)\r\n 2. Normal (H=3.3V, L=GND)"
-
 	; BPMSG1143
 	.pascii "R2W (spd hiz)=( "
 
@@ -385,18 +379,6 @@ _bp_messages:
 
 	; BPMSG1158
 	.pascii "Data unit length (bits): "
-
-	; BPMSG1159
-	.pascii "CS ENABLED"
-
-	; BPMSG1160
-	.pascii "CS DISABLED"
-
-	; BPMSG1161
-	.pascii "R3W (spd csl hiz)=( "
-
-	; BPMSG1162
-	.pascii ")\r\n"
 
 	; BPMSG1163
 	.pascii "Disconnect any devices\r\nConnect (Vpu to +5V) and (ADC to +3.3V)"
@@ -623,9 +605,6 @@ _bp_messages:
 	; BPMSG1252
 	.pascii "Number of bits read/write: "
 
-	; BPMSG1253
-	.pascii "CS:\r\n 1. CS\r\n 2. /CS *default"
-
 	; BPMSG1254
 	.pascii "Position in degrees"
 
@@ -794,6 +773,9 @@ _bp_messages:
 	; MSG_I2C_WRITE_ADDRESS_END
 	.pascii " W) "
 
+	; MSG_MODE_HEADER_END
+	.pascii " )"
+
 	; MSG_NACK
 	.pascii "NACK"
 
@@ -809,11 +791,17 @@ _bp_messages:
 	; MSG_PIC_UNKNOWN_MODE
 	.pascii "unknown mode"
 
+	; MSG_PIN_OUTPUT_TYPE_PROMPT
+	.pascii "Select output type:\r\n 1. Open drain (H=Hi-Z, L=GND)\r\n 2. Normal (H=3.3V, L=GND)"
+
 	; MSG_PWM_FREQUENCY_TOO_LOW
 	.pascii "Frequencies < 1Hz are not supported."
 
 	; MSG_PWM_HZ_MARKER
 	.pascii " Hz"
+
+	; MSG_RAW3WIRE_MODE_HEADER
+	.pascii "R3W (spd csl hiz)=( "
 
 	; MSG_RAW_BRG_VALUE_INPUT
 	.pascii "Enter raw value for BRG"
@@ -821,8 +809,20 @@ _bp_messages:
 	; MSG_RAW_MODE_IDENTIFIER
 	.pascii "RAW1"
 
+	; MSG_SOFTWARE_MODE_SPEED_PROMPT
+	.pascii "Set speed:\r\n 1. ~5KHz\r\n 2. ~50KHz\r\n 3. ~100KHz\r\n 4. ~400KHz"
+
 	; MSG_SPI_COULD_NOT_KEEP_UP
 	.pascii "Couldn't keep up"
+
+	; MSG_SPI_CS_DISABLED
+	.pascii "CS DISABLED"
+
+	; MSG_SPI_CS_ENABLED
+	.pascii "CS ENABLED"
+
+	; MSG_SPI_CS_MODE_PROMPT
+	.pascii "CS:\r\n 1. CS\r\n 2. /CS *default"
 
 	; MSG_SPI_MODE_IDENTIFIER
 	.pascii "SPI1"

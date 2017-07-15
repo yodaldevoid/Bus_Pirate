@@ -89,7 +89,7 @@ void engage_spi_cs(bool write_with_read) {
     if (spiSettings.csl) {
         UART1TX('/');
     }
-    BPMSG1159;
+    MSG_SPI_CS_ENABLED;
 }
 
 inline void SPIstartr(void) {
@@ -105,7 +105,7 @@ void SPIstop(void) {
     if (spiSettings.csl) {
         UART1TX('\\');
     }
-    BPMSG1160;
+    MSG_SPI_CS_ENABLED;
 }
 
 inline unsigned int SPIread(void) {
@@ -137,9 +137,7 @@ void SPIsettings(void) {
     bp_write_dec_byte(spiSettings.csl);
     bpSP;
     bp_write_dec_byte(mode_configuration.high_impedance);
-    bpSP;
-    //bpWline(")\r\n");
-    BPMSG1162;
+    MSG_MODE_HEADER_END;
 }
 
 void SPIsetup(void) {
@@ -210,34 +208,27 @@ void SPIsetup(void) {
         //bpWstring("Set speed:\x0D\x0A 1. 30KHz\x0D\x0A 2. 125KHz\x0D\x0A 3. 250KHz\x0D\x0A 4. 1MHz\x0D\x0A");
         //bpWline(OUMSG_SPI_SPEED);
         BPMSG1187;
-        //modeConfig.speed=(bpUserNumberPrompt(1, 4, 1)-1);
         mode_configuration.speed = getnumber(1, 1, 12, 0) - 1;
 
         //bpWstring("Clock polarity:\x0D\x0A 1. Idle low *default\x0D\x0A 2. Idle high\x0D\x0A");
         //bpWmessage(MSG_OPT_CKP);
         BPMSG1188;
-        //spiSettings.ckp=(bpUserNumberPrompt(1, 2, 1)-1);
         spiSettings.ckp = getnumber(1, 1, 2, 0) - 1;
 
         //bpWstring("Output clock edge:\x0D\x0A 1. Idle to active\x0D\x0A 2. Active to idle *default\x0D\x0A");
         //bpWmessage(MSG_OPT_CKE);
         BPMSG1189;
-        //spiSettings.cke=(bpUserNumberPrompt(1, 2, 2)-1);
         spiSettings.cke = getnumber(2, 1, 2, 0) - 1;
 
         //bpWstring("Input sample phase:\x0D\x0A 1. Middle *default\x0D\x0A 2. End\x0D\x0A");
         //bpWmessage(MSG_OPT_SMP);
         BPMSG1190;
-        //spiSettings.smp=(bpUserNumberPrompt(1, 2, 1)-1);
         spiSettings.smp = getnumber(1, 1, 2, 0) - 1;
 
-        //bpWline("CS:\r\n 1. CS\r\n 2. /CS *default");
-        BPMSG1253;
+        MSG_SPI_CS_MODE_PROMPT;
         spiSettings.csl = getnumber(2, 1, 2, 0) - 1;
 
-        //bpWmessage(MSG_OPT_OUTPUT_TYPE);
-        BPMSG1142;
-        //modeConfig.HiZ=(~(bpUserNumberPrompt(1, 2, 1)-1));
+        MSG_PIN_OUTPUT_TYPE_PROMPT;
         mode_configuration.high_impedance = (~(getnumber(1, 1, 2, 0) - 1));
     } else {
         SPIsettings();

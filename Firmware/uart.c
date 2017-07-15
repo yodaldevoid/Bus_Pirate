@@ -136,8 +136,7 @@ void UARTsettings(void) {
   bp_write_dec_byte(uart_settings.receive_polarity);
   bpSP;
   bp_write_dec_byte(mode_configuration.high_impedance);
-  bpSP;
-  BPMSG1162;
+  MSG_MODE_HEADER_END;
 }
 
 void uart_setup(void) {
@@ -245,9 +244,8 @@ void uart_setup(void) {
     BPMSG1201;
     uart_settings.receive_polarity = getnumber(1, 1, 2, 0) - 1;
 
-    BPMSG1142;
+    MSG_PIN_OUTPUT_TYPE_PROMPT;
     mode_configuration.high_impedance = ~(getnumber(1, 1, 2, 0) - 1);
-
   } else {
     if (mode_configuration.speed == 9) {
       abd = brg;

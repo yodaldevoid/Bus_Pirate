@@ -331,7 +331,7 @@ void i2c_setup(void) {
 #endif /* BP_I2C_USE_HW_BUS */
 
     if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
-      BPMSG1065;
+      MSG_SOFTWARE_MODE_SPEED_PROMPT;
       mode_configuration.speed = (getnumber(1, 1, 4, 0) - 1);
     } else {
 #if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)

@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -22,16 +23,17 @@
 #ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
 
 #include <stdbool.h>
+#include <stdint.h>
 
-unsigned int R3Wread(void);
-unsigned int R3Wwrite(unsigned int c);
-void R3Wstartr(void);
-void R3Wstart(void);
-void R3Wstop(void);
-void R3Wsetup(void);
-void R3Wsetup_exc(void);
-void R3Wpins(void);
-void R3Wsettings(void);
+uint16_t raw3wire_read(void);
+uint16_t raw3wire_write(const uint16_t value);
+void raw3wire_start_with_read(void);
+void raw3wire_start(void);
+void raw3wire_stop(void);
+void raw3wire_setup(void);
+void raw3wire_get_ready(void);
+void raw3wire_print_pins_state(void);
+void raw3wire_print_settings(void);
 
 #endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
 

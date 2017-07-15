@@ -300,12 +300,12 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
 
 #ifdef BP_ENABLE_RAW_3WIRE_SUPPORT
     ,
-    {.start = R3Wstart,
-     .start_with_read = R3Wstartr,
-     .stop = R3Wstop,
-     .stop_from_read = R3Wstop,
-     .send = R3Wwrite,
-     .read = R3Wread,
+    {.start = raw3wire_start,
+     .start_with_read = raw3wire_start_with_read,
+     .stop = raw3wire_stop,
+     .stop_from_read = raw3wire_stop,
+     .send = raw3wire_write,
+     .read = raw3wire_read,
      .clock_high = raw_set_clock_high,
      .clock_low = raw_set_clock_low,
      .data_high = raw_set_data_high,
@@ -315,11 +315,11 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
      .read_bit = raw_read_bit,
      .periodic_update = null_bit_read_callback,
      .run_macro = null_macro_callback,
-     .setup = R3Wsetup,
-     .get_ready = R3Wsetup_exc,
+     .setup = raw3wire_setup,
+     .get_ready = raw3wire_get_ready,
      .cleanup = reset_mode_to_8_bits,
-     .print_pins_state = R3Wpins,
-     .print_settings = R3Wsettings,
+     .print_pins_state = raw3wire_print_pins_state,
+     .print_settings = raw3wire_print_settings,
      .name = "3WIRE"}
 #endif /* BP_ENABLE_RAW_3WIRE_SUPPORT */
 

@@ -64,6 +64,16 @@
 #define HIGH 1
 
 /**
+ * Value indicating a negative statement.
+ */
+#define NO 0
+
+/**
+ * Value indicating a positive statement.
+ */
+#define YES 1
+
+/**
  * Returns the most significant 16 bits of the given 32-bits integer.
  *
  * @param[in] value a 32-bits integer whose MSW is required.

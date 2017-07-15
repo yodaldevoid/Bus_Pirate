@@ -69,8 +69,7 @@ void R2Wsettings(void) {
 	BPMSG1143;
 	bp_write_dec_byte(mode_configuration.speed); bpSP;
 	bp_write_dec_byte(mode_configuration.high_impedance); bpSP;
-	//bpWline(")\r\n");
-	BPMSG1162;
+	MSG_MODE_HEADER_END;
 }
 
 void R2Wsetup(void)
@@ -97,11 +96,9 @@ void R2Wsetup(void)
 
 	if(speed==0)
 	{	command_error=false;
-		//bpWmessage(MSG_OPT_BB_SPEED);
-		BPMSG1065;
+		MSG_SOFTWARE_MODE_SPEED_PROMPT;
 		mode_configuration.speed=(getnumber(1,1,4,0)-1);
-		//bpWmessage(MSG_OPT_OUTPUT_TYPE);
-		BPMSG1142;
+		MSG_PIN_OUTPUT_TYPE_PROMPT;
 		mode_configuration.high_impedance=(~(getnumber(1,1,2,0)-1));
 	}
 	else
