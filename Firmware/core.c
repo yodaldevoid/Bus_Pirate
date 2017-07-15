@@ -275,12 +275,12 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
 
 #ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
     ,
-    {.start = R2Wstart,
-     .start_with_read = R2Wstart,
-     .stop = R2Wstop,
-     .stop_from_read = R2Wstop,
-     .send = R2Wwrite,
-     .read = R2Wread,
+    {.start = raw2wire_start,
+     .start_with_read = raw2wire_start,
+     .stop = raw2wire_stop,
+     .stop_from_read = raw2wire_stop,
+     .send = raw2wire_write,
+     .read = raw2wire_read,
      .clock_high = raw_set_clock_high,
      .clock_low = raw_set_clock_low,
      .data_high = raw_set_data_high,
@@ -289,12 +289,12 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
      .clock_pulse = raw_advance_clock,
      .read_bit = raw_read_bit,
      .periodic_update = null_bit_read_callback,
-     .run_macro = R2Wmacro,
-     .setup = R2Wsetup,
-     .get_ready = R2Wsetup_exc,
+     .run_macro = raw2wire_run_macro,
+     .setup = raw2wire_setup,
+     .get_ready = raw2wire_get_ready,
      .cleanup = reset_mode_to_8_bits,
-     .print_pins_state = R2Wpins,
-     .print_settings = R2Wsettings,
+     .print_pins_state = raw2wire_print_pins_state,
+     .print_settings = raw2wire_print_settings,
      .name = "2WIRE"}
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */
 

@@ -41,9 +41,6 @@ _bp_messages:
 	; BPMSG1015
 	.pascii "SKIP ROM (0xCC)"
 
-	; BPMSG1016
-	.pascii "Unknown macro, try ? or (0) for help"
-
 	; BPMSG1017
 	.pascii "BUS RESET "
 
@@ -325,60 +322,6 @@ _bp_messages:
 
 	; BPMSG1137
 	.pascii " CFG2:"
-
-	; BPMSG1138
-	.pascii "(\\-/_\\-)"
-
-	; BPMSG1140
-	.pascii "(\\_/-)"
-
-	; BPMSG1143
-	.pascii "R2W (spd hiz)=( "
-
-	; BPMSG1144
-	.pascii " 0.Macro menu\r\n 1.ISO7816-3 ATR\r\n 2.ISO7816-3 parse only"
-
-	; BPMSG1145
-	.pascii "ISO 7816-3 ATR (RESET on CS)\r\nRESET HIGH, CLOCK TICK, RESET LOW"
-
-	; BPMSG1146
-	.pascii "ISO 7816-3 reply (uses current LSB setting): "
-
-	; BPMSG1147
-	.pascii "Protocol: "
-
-	; BPMSG1148
-	.pascii "serial"
-
-	; BPMSG1149
-	.pascii "3 wire"
-
-	; BPMSG1150
-	.pascii "2 wire"
-
-	; BPMSG1151
-	.pascii "RFU"
-
-	; BPMSG1152
-	.pascii "unknown"
-
-	; BPMSG1153
-	.pascii "Read type: "
-
-	; BPMSG1154
-	.pascii "to end"
-
-	; BPMSG1155
-	.pascii "variable length"
-
-	; BPMSG1156
-	.pascii "Data units: "
-
-	; BPMSG1157
-	.pascii "no indication"
-
-	; BPMSG1158
-	.pascii "Data unit length (bits): "
 
 	; BPMSG1163
 	.pascii "Disconnect any devices\r\nConnect (Vpu to +5V) and (ADC to +3.3V)"
@@ -800,6 +743,60 @@ _bp_messages:
 	; MSG_PWM_HZ_MARKER
 	.pascii " Hz"
 
+	; MSG_RAW2WIRE_ATR_DATA_UNITS_HEADER
+	.pascii "Data units: "
+
+	; MSG_RAW2WIRE_ATR_DATA_UNITS_NO_INDICATION
+	.pascii "no indication"
+
+	; MSG_RAW2WIRE_ATR_DATA_UNIT_LENGTH
+	.pascii "Data unit length (bits): "
+
+	; MSG_RAW2WIRE_ATR_PROTOCOL_2WIRE
+	.pascii "2 wire"
+
+	; MSG_RAW2WIRE_ATR_PROTOCOL_3WIRE
+	.pascii "3 wire"
+
+	; MSG_RAW2WIRE_ATR_PROTOCOL_HEADER
+	.pascii "Protocol: "
+
+	; MSG_RAW2WIRE_ATR_PROTOCOL_SERIAL
+	.pascii "serial"
+
+	; MSG_RAW2WIRE_ATR_PROTOCOL_UNKNOWN
+	.pascii "unknown"
+
+	; MSG_RAW2WIRE_ATR_READ_TYPE_HEADER
+	.pascii "Read type: "
+
+	; MSG_RAW2WIRE_ATR_READ_TYPE_TO_END
+	.pascii "to end"
+
+	; MSG_RAW2WIRE_ATR_READ_TYPE_VARIABLE_LENGTH
+	.pascii "variable length"
+
+	; MSG_RAW2WIRE_ATR_REPLY_HEADER
+	.pascii "ISO 7816-3 reply (uses current LSB setting): "
+
+	; MSG_RAW2WIRE_ATR_RFU
+	.pascii "RFU"
+
+	; MSG_RAW2WIRE_ATR_TRIGGER_INFO
+	.pascii "ISO 7816-3 ATR (RESET on CS)\r\nRESET HIGH, CLOCK TICK, RESET LOW"
+
+	; MSG_RAW2WIRE_I2C_START
+	.pascii "(\\-/_\\-)"
+
+	; MSG_RAW2WIRE_I2C_STOP
+	.pascii "(\\_/-)"
+
+	; MSG_RAW2WIRE_MACRO_MENU
+	.pascii " 0.Macro menu\r\n 1.ISO7816-3 ATR\r\n 2.ISO7816-3 parse only"
+
+	; MSG_RAW2WIRE_MODE_HEADER
+	.pascii "R2W (spd hiz)=( "
+
 	; MSG_RAW3WIRE_MODE_HEADER
 	.pascii "R3W (spd csl hiz)=( "
 
@@ -841,6 +838,9 @@ _bp_messages:
 
 	; MSG_UART_RESET_TO_EXIT
 	.pascii "Reset to exit"
+
+	; MSG_UNKNOWN_MACRO_ERROR
+	.pascii "Unknown macro, try ? or (0) for help"
 
 	; MSG_VREG_TOO_LOW
 	.pascii "VREG too low, is there a short?"

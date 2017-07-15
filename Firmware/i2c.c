@@ -573,7 +573,8 @@ void i2c_macro(unsigned int c) {
 #endif /* BUSPIRATEV4 */
 
   default:
-    BPMSG1016;
+    MSG_UNKNOWN_MACRO_ERROR;
+    break;
   }
 }
 

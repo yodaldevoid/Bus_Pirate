@@ -281,8 +281,9 @@ void picmacro(unsigned int macro)
 				//bpWline("Please exit PIC programming mode");
 				BPMSG1083;
 				break;
-		default:	//bpWmessage(MSG_ERROR_MACRO);
-				BPMSG1016;
+		default:
+            MSG_UNKNOWN_MACRO_ERROR;
+            break;
 	}
 }
 

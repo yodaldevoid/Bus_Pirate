@@ -292,8 +292,8 @@ SPImacro_settings_cleanup:
             SPIsettings();
             break;
         default:
-            //bpWmessage(MSG_ERROR_MACRO);
-            BPMSG1016;
+            MSG_UNKNOWN_MACRO_ERROR;
+            break;
     }
 }
 

@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -18,242 +19,206 @@
 
 #ifdef BP_ENABLE_RAW_2WIRE_SUPPORT
 
+#include "aux_pin.h"
 #include "base.h"
 #include "bitbang.h"
-#include "aux_pin.h"
+#include "proc_menu.h"
 
-#include "proc_menu.h"		// for the userinteraction subs
+#define R2WCLK_TRIS BP_CLK_DIR
+#define R2WCLK BP_CLK
 
-#define R2WCLK_TRIS 	BP_CLK_DIR
-#define R2WCLK 			BP_CLK 
+#define R2WDIO_TRIS BP_MOSI_DIR
+#define R2WDIO BP_MOSI
 
-#define R2WDIO_TRIS 	BP_MOSI_DIR
-#define R2WDIO 			BP_MOSI
-
-#define MENU 0
-#define ISO78163ATR 1
-#define ISO78163ATR_PARSE 2
+typedef enum {
+  RAW2WIRE_MACRO_MENU = 0,
+  RAW2WIRE_MACRO_ISO_7816_3_ATR,
+  RAW2WIRE_MACRO_ISO_7816_3_ATR_PARSE
+} raw2wire_macro_identifier_t;
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bool command_error;
 
-void r2wMacro_78163Read(void);
-void r2wMacro_78163Write(void);
+static const uint32_t DATA_UNIT_LENGTH_TABLE[14] = {
+    128,   256,   512,   1024,   2048,   4096,   8192,
+    16384, 32768, 65536, 131072, 262144, 524288, 1048576};
 
-unsigned int R2Wread(void)
-{	return (bitbang_read_value());
+static const uint32_t DATA_UNIT_TABLE[8] = {
+    1, 2, 4, 8, 16, 32, 64, 128,
+};
+
+/**
+ * Parses an ATR reply from an ISO 7816-3 compliant card.
+ */
+static void read_atr_header(void);
+
+/**
+ * Sends an ATR signal (attention to reset) to an ISO 7816-3 compliant card.
+ */
+static void trigger_atr(void);
+
+uint16_t raw2wire_read(void) { return bitbang_read_value(); }
+
+uint16_t raw2wire_write(const uint16_t value) {
+  bitbang_write_value(value);
+  return 0x100;
 }
 
-unsigned int R2Wwrite(unsigned int c)
-{	bitbang_write_value(c);//send byte
-	return 0x100;
+void raw2wire_start(void) {
+  bitbang_i2c_start();
+  MSG_RAW2WIRE_I2C_START;
+  MSG_I2C_START_BIT;
 }
 
-void R2Wstart(void)
-{	bitbang_i2c_start();
-	//bpWstring("(\\-/_\\)");
-	BPMSG1138;
-	MSG_I2C_START_BIT;
+void raw2wire_stop(void) {
+  bitbang_i2c_stop();
+  MSG_RAW2WIRE_I2C_STOP;
+  MSG_I2C_STOP_BIT;
 }
 
-void R2Wstop(void)
-{	bitbang_i2c_stop();
-	//bpWstring("(_/-\\)");
-	BPMSG1140;
-	MSG_I2C_STOP_BIT;
+void raw2wire_print_settings(void) {
+  MSG_RAW2WIRE_MODE_HEADER;
+  bp_write_dec_byte(mode_configuration.speed);
+  bpSP;
+  bp_write_dec_byte(mode_configuration.high_impedance);
+  bpSP;
+  MSG_MODE_HEADER_END;
 }
 
-void R2Wsettings(void) {
-    //bpWstring("R2W (spd hiz)=( ");
-	BPMSG1143;
-	bp_write_dec_byte(mode_configuration.speed); bpSP;
-	bp_write_dec_byte(mode_configuration.high_impedance); bpSP;
-	MSG_MODE_HEADER_END;
+void raw2wire_setup(void) {
+  bool user_prompt;
+  int speed;
+  int output;
+
+  consumewhitechars();
+  speed = getint();
+  consumewhitechars();
+  output = getint();
+
+  user_prompt =
+      !(((speed > 0) && (speed <= 4)) && ((output > 0) && (output <= 2)));
+
+  if (user_prompt) {
+    MSG_SOFTWARE_MODE_SPEED_PROMPT;
+    mode_configuration.speed = getnumber(1, 1, 4, 0) - 1;
+    MSG_PIN_OUTPUT_TYPE_PROMPT;
+    mode_configuration.high_impedance = ~(getnumber(1, 1, 2, 0) - 1);
+    command_error = false;
+  } else {
+    mode_configuration.speed = speed - 1;
+    mode_configuration.high_impedance = (output - 1) == 0;
+    raw2wire_print_settings();
+  }
 }
 
-void R2Wsetup(void)
-{	int speed, output;
-
-	consumewhitechars();
-	speed=getint();
-	consumewhitechars();
-	output=getint();
-
-	// check for userinput (and sanitycheck it!!)
-	if((speed>0)&&(speed<=4))
-	{	mode_configuration.speed=speed-1;
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-	if((output>0)&&(output<=2))
-	{	mode_configuration.high_impedance=(~(output-1));
-	}
-	else	
-	{	speed=0;					// when speed is 0 we ask the user
-	}
-
-	if(speed==0)
-	{	command_error=false;
-		MSG_SOFTWARE_MODE_SPEED_PROMPT;
-		mode_configuration.speed=(getnumber(1,1,4,0)-1);
-		MSG_PIN_OUTPUT_TYPE_PROMPT;
-		mode_configuration.high_impedance=(~(getnumber(1,1,2,0)-1));
-	}
-	else
-	{	R2Wsettings();
-	}
-}
-void R2Wsetup_exc(void)
-{
-    //writes to the PORTs write to the LATCH
-	R2WCLK=0;			//B8 scl 
-	R2WDIO=0;			//B9 sda
-	R2WDIO_TRIS=1;//data input
-	R2WCLK_TRIS=0;//clock output
-	bitbang_setup(2, mode_configuration.speed);    
-}    
-
-void R2Wmacro(unsigned int macro) {
-	switch(macro) {
-		case MENU:
-			//bpWstring(OUMSG_R2W_MACRO_MENU);
-			BPMSG1144;
-			break;
-
-		case ISO78163ATR:
-			r2wMacro_78163Write();
-			/* Intentional pass-through. */
-
-		case ISO78163ATR_PARSE:
-			r2wMacro_78163Read();
-			break;
-
-		default:
-			//bpWmessage(MSG_ERROR_MACRO);
-			BPMSG1016;
-			break;
-	}
+void raw2wire_get_ready(void) {
+  R2WCLK = LOW;
+  R2WDIO = LOW;
+  R2WDIO_TRIS = INPUT;
+  R2WCLK_TRIS = OUTPUT;
+  bitbang_setup(2, mode_configuration.speed);
 }
 
-void R2Wpins(void) {
-    MSG_I2C_PINS_STATE;
+void raw2wire_run_macro(const uint16_t macro_id) {
+  switch ((raw2wire_macro_identifier_t)macro_id) {
+  case RAW2WIRE_MACRO_MENU:
+    MSG_RAW2WIRE_MACRO_MENU;
+    break;
+
+  case RAW2WIRE_MACRO_ISO_7816_3_ATR:
+    trigger_atr();
+  /* Intentional pass-through. */
+
+  case RAW2WIRE_MACRO_ISO_7816_3_ATR_PARSE:
+    read_atr_header();
+    break;
+
+  default:
+    MSG_UNKNOWN_MACRO_ERROR;
+    break;
+  }
 }
 
-//
-// R2W macros
+void raw2wire_print_pins_state(void) { MSG_I2C_PINS_STATE; }
 
-//ISO 7816-3 Answer to reset macro for smartcards
-// syntax: a0%255@^a
-// now uses CS pin instead of AUX pin because 1,2,3 have build in pullups on CS but not AUX
-void r2wMacro_78163Write(void){
+void trigger_atr(void) {
+  MSG_RAW2WIRE_ATR_TRIGGER_INFO;
 
-	//bpWline("ISO 7816-3 ATR (RESET on CS)");
-	//bpWline("RESET HIGH, CLOCK TICK, RESET LOW");
-	BPMSG1145;
-	
-	//Reset needs to start low
-	bitbang_set_cs(0); //bpAuxLow();
-	bp_delay_us(0xff);
-	
-	//RESET HIGH
-	bitbang_set_cs(1);
-
-	//clock tick
-	bitbang_advance_clock_ticks(1);
-
-	//reset low again
-	bitbang_set_cs(0); //bpAuxLow();
+  bitbang_set_cs(LOW);
+  bp_delay_us(0xFF);
+  bitbang_set_cs(HIGH);
+  bitbang_advance_clock_ticks(1);
+  bitbang_set_cs(LOW);
 }
-	
-void r2wMacro_78163Read(void){	
-	unsigned char m[4];//macro buffer...
-	unsigned char c;
-	unsigned int i;
 
-	//bpWstring("ISO 7816-3 reply (uses current LSB setting): ");
-	BPMSG1146;
+void read_atr_header(void) {
+  uint8_t buffer[4];
+  size_t index;
+  uint8_t length;
 
-	//read and display ISO 7816-3 bytes
-	for(i=0; i<4; i++){
-        m[i] = bitbang_read_value();
-		if (mode_configuration.lsbEN) {
-			m[i] = bp_reverse_byte(m[i]);
-		}
-		bp_write_hex_byte(m[i]);
-		bpSP;
-	}
-	bpBR;
-    
-	//parse the first two bytes for 7816-3 atr header info
-	//bits8:5 8=serial, 9=3wire, 10=2wire 0xf=RFU
-	//c=(m[0]>>4);
-	//bpWstring("Protocol: ");
-	BPMSG1147;
-	switch((m[0]>>4)){
-		case 0x08:
-			//bpWline("serial");
-			BPMSG1148;
-			break;
-		case 0x09:
-			//bpWline("3 wire");
-			BPMSG1149;
-			break;
-		case 0x0A:
-			//bpWline("2 wire");
-			BPMSG1150;
-			break;
-		case 0x0F:
-			//bpWline("RFU");
-			BPMSG1151;
-			break;
-		default:
-			//bpWline("unknown");
-			BPMSG1152;
-			break;
-	}
-	bpBR;
-	//bits4 RFU
-	//bits 3:1 structure, x00 reserved, 010 general, 110 proprietary, x01 x11, special
-	
-	//bit 8 Supports random read lengths (0=false)
-	//bpWstring("Read type: ");
-	BPMSG1153;
-	//c=(m[1]>>7);
-	if((m[1]>>7)==0){
-		//bpWline("to end");
-		BPMSG1154;
-	}else{
-		//bpWline("variable length");
-		BPMSG1155;
-	}
-	bpBR;
-	//bit 7:4 data units (0001=128, 0010 = 256, 0011=512, etc, 1111=RFU)
-	//bpWstring("Data units: ");
-	BPMSG1156;
-	c=((m[1]&(~0b10000111))>>3);
-	if(c==0){
-		//bpWstring("no indication");
-		BPMSG1157;
-	}else if(c==0b1111){
-		//bpWstring("RFU");
-		BPMSG1151;
-	}else{
-		i=64;//no 0...
-		for(m[0]=0;m[0]<c;m[0]++)i*=2;//multiply by two each time
-		bp_write_dec_word(i);
-	}
-	bpBR;
-	
-	//bit 3:1 length of data units in bits (2^(3:1))
-	//bpWstring("Data unit length (bits): ");
-	BPMSG1158;
-	c=(m[1]&(~0b11111000));
-	i=1;
-	for(m[0]=0;m[0]<c;m[0]++)i*=2;//multiply by two each time
-	bp_write_dec_byte(i);
-	bpBR;
+  MSG_RAW2WIRE_ATR_REPLY_HEADER;
+  for (index = 0; index < 4; index++) {
+    buffer[index] = bitbang_read_value();
+    if (mode_configuration.lsbEN) {
+      buffer[index] = bp_reverse_byte(buffer[index]);
+    }
+    bp_write_hex_byte(buffer[index]);
+    bpSP;
+  }
+  bpBR;
+
+  MSG_RAW2WIRE_ATR_PROTOCOL_HEADER;
+  switch ((buffer[0] >> 4)) {
+  case 0x08:
+    MSG_RAW2WIRE_ATR_PROTOCOL_SERIAL;
+    break;
+
+  case 0x09:
+    MSG_RAW2WIRE_ATR_PROTOCOL_3WIRE;
+    break;
+
+  case 0x0A:
+    MSG_RAW2WIRE_ATR_PROTOCOL_2WIRE;
+    break;
+
+  case 0x0F:
+    MSG_RAW2WIRE_ATR_RFU;
+    break;
+
+  default:
+    MSG_RAW2WIRE_ATR_PROTOCOL_UNKNOWN;
+    break;
+  }
+  bpBR;
+
+  MSG_RAW2WIRE_ATR_READ_TYPE_HEADER;
+  if ((buffer[1] & 0x80) == 0) {
+    MSG_RAW2WIRE_ATR_READ_TYPE_TO_END;
+  } else {
+    MSG_RAW2WIRE_ATR_READ_TYPE_VARIABLE_LENGTH;
+  }
+  bpBR;
+
+  MSG_RAW2WIRE_ATR_DATA_UNITS_HEADER;
+  length = (buffer[1] >> 3) & 0b00001111;
+  switch (length) {
+  case 0:
+    MSG_RAW2WIRE_ATR_DATA_UNITS_NO_INDICATION;
+    break;
+
+  case 0b1111:
+    MSG_RAW2WIRE_ATR_RFU;
+    break;
+
+  default:
+    bp_write_dec_dword(DATA_UNIT_TABLE[length]);
+    break;
+  }
+
+  MSG_RAW2WIRE_ATR_DATA_UNIT_LENGTH;
+  bp_write_dec_byte(DATA_UNIT_LENGTH_TABLE[buffer[1] & 0b00000111]);
+  bpBR;
 }
 
 #endif /* BP_ENABLE_RAW_2WIRE_SUPPORT */

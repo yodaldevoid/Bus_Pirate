@@ -549,7 +549,8 @@ void onewire_run_macro(uint16_t macro) {
     break;
 
   default:
-    BPMSG1016;
+    MSG_UNKNOWN_MACRO_ERROR;
+    break;
   }
 }
 

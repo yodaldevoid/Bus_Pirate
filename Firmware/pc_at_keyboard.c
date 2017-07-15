@@ -94,7 +94,9 @@ void KEYBmacro(unsigned int c)
 					}						
 				}
 				break;
-		default: BPMSG1016;
+		default:
+            MSG_UNKNOWN_MACRO_ERROR;
+            break;
 	}
 }
 
