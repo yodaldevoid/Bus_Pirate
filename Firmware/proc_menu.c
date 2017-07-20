@@ -1674,7 +1674,11 @@ void print_pins_information(void) {
 #ifdef BUSPIRATEV4
     bp_write_voltage(bp_read_adc(BP_ADC_5V0));
 #else
+#if defined(BP_VERSION2_SUPPORT) && (BP_VERSION2_SUPPORT == 1)
+    bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
+#else
     bp_write_voltage(bp_read_adc(BP_ADC_3V3));
+#endif /* BP_VERSION2_SUPPORT && (BP_VERSION2_SUPPORT == 1) */
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');
@@ -1690,7 +1694,11 @@ void print_pins_information(void) {
 #ifdef BUSPIRATEV4
     bp_write_voltage(bp_read_adc(BP_ADC_VPU));
 #else
+#if defined(BP_VERSION2_SUPPORT) && (BP_VERSION2_SUPPORT == 1)
+    bp_write_voltage(bp_read_adc(BP_ADC_3V3));
+#else
     bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
+#endif /* BP_VERSION2_SUPPORT && (BP_VERSION2_SUPPORT == 1) */
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
     UART1TX('\t');

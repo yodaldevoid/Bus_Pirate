@@ -17,7 +17,13 @@
 #ifndef BP_HARDWAREV3_H
 #define BP_HARDWAREV3_H
 
-#define BP_VERSION_STRING "Bus Pirate v3"// (Seeed Studio)"
+/**
+ * Set this to 1 if you want to build a v3 firmware that is fully backwards
+ * compatible with v2, v2.5, and v2go.
+ */
+#define BP_VERSION2_SUPPORT 0
+
+#define BP_VERSION_STRING "Bus Pirate v3"
 #define BP_VERSION "v3"
 
 #define NUM_OF_SUMP_CHANNELS 5
