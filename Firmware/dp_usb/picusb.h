@@ -521,7 +521,7 @@ typedef unsigned int usb_uep_t; // JTR PIC24 fixup potentially ?? changed from c
 typedef struct BDENTRY {
     unsigned char BDCNT; // JTR PIC24 fixup Note that the endianness is swapped from the PIC18
                          // This is probably what had people hitting their heads!
-    unsigned char BDSTAT;
+    volatile unsigned char BDSTAT;
     unsigned char *BDADDR;
 } BDentry;
 

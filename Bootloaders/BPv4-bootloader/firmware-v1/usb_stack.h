@@ -160,7 +160,8 @@ typedef struct BDENTRY {
 #else
 typedef struct BDENTRY {
         unsigned char BDCNT;    // JTR PIC24 fixup Note that BDCNT & BDSTAT are swapped from the PIC18!!
-        unsigned char BDSTAT;   // Smacks head. Go on, yo know you want to. 
+                                // Smacks head. Go on, yo know you want to.
+        volatile unsigned char BDSTAT;
         unsigned char *BDADDR;
 } BDentry;
 #endif

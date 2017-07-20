@@ -231,54 +231,12 @@ void cdc_set_control_line_state_status(void) {
     usb_unset_in_handler(0);
 }
 
-void __attribute__((noinline)) WaitOutReady() {
-#if __XC16_VERSION__ >= 1026
-    
-    /* 
-     * XC16 1.26 generates invalid code for this function when applying
-     * optimisations.
-     * 
-     * See also https://github.com/BusPirate/Bus_Pirate/issues/11
-     */
-    
-    /* BDSTAT is at offset 1 */
-    asm volatile (
-        ".loopOut:               \n"
-        "\tmov.w _CDC_Outbdp, w0 \n"
-        "\tcp0.b [++w0]          \n"
-        "\tbra N, .loopOut       \n"
-    );
-    
-#else
-    
+void WaitOutReady(void) {
     while (CDC_Outbdp->BDSTAT & UOWN) {};
-    
-#endif /* __XC16_VERSION__ >= 1026 */
 }
 
-void __attribute__((noinline)) WaitInReady() {
-#if __XC16_VERSION__ >= 1026
-    
-    /* 
-     * XC16 1.26 generates invalid code for this function when applying
-     * optimisations.
-     * 
-     * See also https://github.com/BusPirate/Bus_Pirate/issues/11
-     */
-    
-    /* BDSTAT is at offset 1 */
-    asm volatile (
-        ".loopIn:               \n"
-        "\tmov.w _CDC_Inbdp, w0 \n"
-        "\tcp0.b [++w0]         \n"
-        "\tbra N, .loopIn       \n"
-    );
-    
-#else
-    
+void WaitInReady(void) {
     while (CDC_Inbdp->BDSTAT & UOWN) {};
-    
-#endif /* __XC16_VERSION__ >= 1026 */
 }
 
 /******************************************************************************/
