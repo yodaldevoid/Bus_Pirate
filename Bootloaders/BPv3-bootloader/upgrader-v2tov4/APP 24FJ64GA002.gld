@@ -4,6 +4,18 @@
 */
 
 OUTPUT_ARCH("24FJ64GA002")
+
+#if __XC16_VERSION__ > 1027
+/*
+ * Define how to startup, by default we initialize
+ * everything as normal; change to crt_start_mode to
+ * preserve preserved data on a restart
+ *
+ * Or define your own __crt_start_mode fucntion
+ */
+CRT_STARTMODE(crt_start_mode_normal)
+#endif
+
 EXTERN(__resetPRI)
 EXTERN(__resetALT)
 

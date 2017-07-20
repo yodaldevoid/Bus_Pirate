@@ -232,7 +232,7 @@ void cdc_set_control_line_state_status(void) {
 }
 
 void __attribute__((noinline)) WaitOutReady() {
-#if __XC16_VERSION__ == 1026
+#if __XC16_VERSION__ >= 1026
     
     /* 
      * XC16 1.26 generates invalid code for this function when applying
@@ -253,11 +253,11 @@ void __attribute__((noinline)) WaitOutReady() {
     
     while (CDC_Outbdp->BDSTAT & UOWN) {};
     
-#endif /* __XC16_VERSION__ == 1026 */
+#endif /* __XC16_VERSION__ >= 1026 */
 }
 
 void __attribute__((noinline)) WaitInReady() {
-#if __XC16_VERSION__ == 1026
+#if __XC16_VERSION__ >= 1026
     
     /* 
      * XC16 1.26 generates invalid code for this function when applying
@@ -278,7 +278,7 @@ void __attribute__((noinline)) WaitInReady() {
     
     while (CDC_Inbdp->BDSTAT & UOWN) {};
     
-#endif /* __XC16_VERSION__ == 1026 */
+#endif /* __XC16_VERSION__ >= 1026 */
 }
 
 /******************************************************************************/
