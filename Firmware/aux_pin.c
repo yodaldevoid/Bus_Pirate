@@ -19,6 +19,7 @@
 
 #include "base.h"
 #include "proc_menu.h"
+#include "aux_pin.h"
 
 // TRISDbits.TRISD5
 #define AUXPIN_DIR BP_AUX0_DIR
@@ -41,17 +42,18 @@ static enum _auxmode {
 unsigned long bpFreq_count(void);
 unsigned long bpPeriod_count(unsigned int n);
 
-int PWMfreq;
-int PWMduty;
+static uint16_t pwm_frequency;
+static uint16_t pwm_duty_cycle;
 
 /**
  * Sets up timer #1's input clock prescaler for the given frequency and returns
  * an appropriate divisor for it.
  *
  * @param[in] frequency the given frequency to set things up for.
+ * 
  * @return the appropriate PWM frequency divisor.
  */
-static uint16_t setup_prescaler_divisor(uint16_t frequency);
+static uint16_t setup_prescaler_divisor(const uint16_t frequency);
 
 /**
  * PWM frequency divisor for 1:256 prescaler.
@@ -73,7 +75,7 @@ static uint16_t setup_prescaler_divisor(uint16_t frequency);
  */
 #define PWM_DIVISOR_PRESCALER_1_1 16000
 
-uint16_t setup_prescaler_divisor(uint16_t frequency) {
+uint16_t setup_prescaler_divisor(const uint16_t frequency) {
 
   /* Use 1:256 prescaler. */
 
@@ -110,37 +112,45 @@ uint16_t setup_prescaler_divisor(uint16_t frequency) {
   return PWM_DIVISOR_PRESCALER_1_1;
 }
 
-// setup PWM frequency using user values in global variables
-void updatePWM(void) {
-  unsigned int PWM_period, PWM_dutycycle, PWM_div;
+inline void bp_update_duty_cycle(const uint16_t duty_cycle) {
+    bp_update_pwm(pwm_frequency, duty_cycle);
+}
 
-  // cleanup timers
-  T2CON = 0; // clear settings
-  T4CON = 0;
-  OC5CON = 0; //#BPV4 - should be OC5CON1/2
+void bp_update_pwm(const uint16_t frequency, const uint16_t duty_cycle) {
+    uint16_t period;
+    uint16_t cycle;
+    uint16_t divisor;
 
-  if (PWMfreq == 0) {
-    AUXPIN_RPOUT = 0; // remove output from AUX pin
-    AUXmode = AUX_IO;
-    return;
-  }
-
-  PWM_div = setup_prescaler_divisor(PWMfreq);
-  PWM_period = (PWM_div / PWMfreq) - 1;
-  PR2 = PWM_period;
-
-  PWM_dutycycle = (PWM_period * PWMduty) / 100;
-
-  // assign pin with PPS
-  AUXPIN_RPOUT = OC5_IO;
-  // Should be fine on bpv4
-
-  OC5R = PWM_dutycycle;
-  OC5RS = PWM_dutycycle;
-  OC5CON = 0x6;
-  T2CONbits.TON = 1;
-
-  AUXmode = AUX_PWM;
+    pwm_frequency = frequency;
+    pwm_duty_cycle = duty_cycle;
+        
+    /* Shut timers down. */
+    T2CON = 0;
+    T4CON = 0;
+    OC5CON = 0;
+    
+    /* Detach the AUX pin from the PWM generator if no PWM signal is needed. */
+    if (frequency == 0) {
+        AUXPIN_RPOUT = 0;
+        AUXmode = AUX_IO;
+        return;
+    }
+    
+    divisor = setup_prescaler_divisor(frequency);
+    period = (divisor / frequency) - 1;
+    PR2 = period;
+    cycle = (period * duty_cycle) / 100;
+    
+    /* Attach the AUX pin to the PWM generator. */
+    AUXPIN_RPOUT = OC5_IO;
+    
+    /* Setup the PWM generator. */
+    OC5R = cycle;
+    OC5RS = cycle;
+    OC5CON = 0x06;
+    T2CONbits.TON = ON;
+    
+    AUXmode = AUX_PWM;
 }
 
 // setup the PWM/frequency generator

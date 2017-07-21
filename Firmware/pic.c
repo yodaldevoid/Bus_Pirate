@@ -368,13 +368,12 @@ void binpic(void)
 										}
 										else
 										{	if(cmd&0x04)	// pwm?
-											{	PWMfreq=100;
-												PWMduty=50;
-												updatePWM();
+											{
+                                            bp_update_pwm(100, 50);
 											}
 											else
-											{	PWMfreq=0;
-												updatePWM();
+											{
+                                            bp_update_pwm(PWM_OFF, PWM_OFF);
 											}
 											if(cmd&0x02)	// vreg on
 											{	BP_VREG_ON();

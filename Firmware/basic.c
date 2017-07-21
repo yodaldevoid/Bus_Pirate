@@ -1024,41 +1024,54 @@ void interpreter(void) {
       handle_else_statement();
       break;
 
-    case TOK_FREQ:
+    case TOK_FREQ: {
+      int16_t frequency;
+      int16_t duty_cycle;
+        
       pcupdated = 1;
       basic_program_counter += 4;
 
-      PWMfreq = assign();
-      if (PWMfreq < 0)
-        PWMfreq = 0;
-      if (PWMfreq > 4000)
-        PWMfreq = 4000;
-      if (PWMduty < 2)
-        PWMduty = 2;
-      if (PWMduty > 99)
-        PWMduty = 99;
+      frequency = assign();
+      if (frequency < PWM_MINIMUM_FREQUENCY) {
+          frequency = PWM_MINIMUM_FREQUENCY;
+      }
+      if (frequency > PWM_MAXIMUM_FREQUENCY) {
+          frequency = PWM_MAXIMUM_FREQUENCY;
+      }
+      
+      duty_cycle = assign();
+      if (duty_cycle < PWM_MINIMUM_DUTY_CYCLE) {
+          duty_cycle = PWM_MINIMUM_DUTY_CYCLE;
+      }
+      if (duty_cycle > PWM_MAXIMUM_DUTY_CYCLE) {
+          duty_cycle = PWM_MAXIMUM_DUTY_CYCLE;
+      }
+      
+      bp_update_pwm(frequency, duty_cycle);
 
-      updatePWM();
       handle_else_statement();
       break;
+    }
 
-    case TOK_DUTY:
+    case TOK_DUTY: {
+      int16_t duty_cycle;
+
       pcupdated = 1;
       basic_program_counter += 4;
 
-      PWMduty = assign();
-      if (PWMfreq < 0)
-        PWMfreq = 0;
-      if (PWMfreq > 4000)
-        PWMfreq = 4000;
-      if (PWMduty < 2)
-        PWMduty = 2;
-      if (PWMduty > 99)
-        PWMduty = 99;
+      duty_cycle = assign();
+      if (duty_cycle < PWM_MINIMUM_DUTY_CYCLE) {
+          duty_cycle = PWM_MINIMUM_DUTY_CYCLE;
+      }
+      if (duty_cycle > PWM_MAXIMUM_DUTY_CYCLE) {
+          duty_cycle = PWM_MAXIMUM_DUTY_CYCLE;
+      }
 
-      updatePWM();
+      bp_update_duty_cycle(duty_cycle);
+      
       handle_else_statement();
       break;
+    }
 
     case TOK_DAT:
       pcupdated = 1;
