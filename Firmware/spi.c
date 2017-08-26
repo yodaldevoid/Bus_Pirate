@@ -60,6 +60,38 @@ static void spiSniffer(unsigned char csState, unsigned char termMode);
  */
 static void engage_spi_cs(bool write_with_read);
 
+#ifdef BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
+
+/**
+ * Extended AVR Binary I/O command for no operations.
+ */
+#define BINARY_IO_SPI_AVR_COMMAND_NOOP 0
+
+/**
+ * Extended AVR Binary I/O command for obtaining the protocol version.
+ */
+#define BINARY_IO_SPI_AVR_COMMAND_VERSION 1
+
+/**
+ * Extended AVR Binary I/O command for performing a bulk read.
+ */
+#define BINARY_IO_SPI_AVR_COMMAND_BULK_READ 2
+
+/**
+ * Extended AVR Binary I/O protocol version.
+ */
+#define BINARY_IO_SPI_AVR_SUPPORT_VERSION 0x0001
+
+#define AVR_FETCH_LOW_BYTE_COMMAND 0x20
+#define AVR_FETCH_HIGH_BYTE_COMMAND 0x28
+
+/**
+ * Handle an incoming extended binary I/O AVR SPI command.
+ */
+static void handle_extended_avr_command(void);
+
+#endif /* BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS */
+
 struct _SPI {
     unsigned char ckp : 1;
     unsigned char cke : 1;
@@ -559,9 +591,6 @@ rawSPI mode:
 void binSPI(void) {
     static unsigned char inByte, rawCommand, i;
     unsigned int j, fw, fr;
-#ifdef AVR_EXTENDED_COMMANDS
-	unsigned long saddr, length;
-#endif
 
     //useful default values
     /* CKE=1, CKP=0, SMP=0 */
@@ -654,77 +683,13 @@ void binSPI(void) {
                         }
 
                         break;
-#ifdef AVR_EXTENDED_COMMANDS
-                    case 6: // AVR Extended Commands
-                        UART1TX(1); // send 1/OK (ie, AVR Extended Commands accepted)
-
-                        inByte = UART1RX(); //grab it
-
-                        switch (inByte) 
-                        {
-                            case 0x00: // null operation, return OK
-                                UART1TX(1); // send 1/OK
-                                break;
-                            case 0x01: // version check
-                                UART1TX(1); // send 1/OK
-                                UART1TX(0x00);
-                                UART1TX(0x01); // version 1
-                                break;
-                            case 0x02: // bulk memory read from flash
-                                // read in the start address (4 bytes, MSB first)
-                                saddr = 0;
-                                for (j = 0; j < 4; j++) 
-                                {
-
-                                    inByte = UART1RX(); //grab it
-                                    saddr = (saddr << 8) | inByte;
-                                }
-
-                                // read in the bytes to read (4 bytes, MSB first) [inclusive]
-                                length = 0;
-                                for (j = 0; j < 4; j++) 
-                                {
-
-                                    inByte = UART1RX(); //grab it
-                                    length = (length << 8) | inByte;
-                                }
-
-                                // FIXME - Can't handle pages past the first 64kb
-                                if (saddr > 0xFFFF || length > 0xFFFF || (saddr + length) > 0xFFFF) 
-                                {
-                                    UART1TX(0);
-                                } 
-                                else 
-                                {
-                                    // just assume it'll work...
-                                    UART1TX(0x01); // send 1/OK
-
-                                    for (j = saddr; length > 0; j++) 
-                                    {
-                                        // fetch low byte from this memory word
-                                        spiWriteByte(0x20);
-                                        spiWriteByte(j >> 8);
-                                        spiWriteByte(j & 0xFF);
-                                        UART1TX(spiWriteByte(0x00)); // fetch byte that was read
-                                        length--;
-
-                                        if (length == 0) break;
-
-                                        // fetch high byte from this memory word
-                                        spiWriteByte(0x28);
-                                        spiWriteByte(j >> 8);
-                                        spiWriteByte(j & 0xFF);
-                                        UART1TX(spiWriteByte(0x00)); // fetch byte that was read
-                                        length--;
-                                    }
-                                }
-                                break;
-                            default:
-                                UART1TX(0);
-                                break;
-                        }
-#endif
+                        
+#ifdef BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
+                    case 6:
+                        handle_extended_avr_command();
 						break;
+#endif /* BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS */
+                        
                     default:
                         UART1TX(0);
                         break;
@@ -749,7 +714,8 @@ void binSPI(void) {
 				case 0b0101:
 					UART1TX(bp_binary_io_pullup_control(inByte));
 					break;
-#endif
+#endif /* BUSPIRATEV4 */
+                    
             case 0b0110://set speed
                 inByte &= (~0b11110000); //clear command portion
                 if (inByte > sizeof(spi_bus_speed)) {
@@ -780,4 +746,78 @@ void binSPI(void) {
     }//while loop
 }//function
 
+#ifdef BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
+
+void handle_extended_avr_command(void) {
+    uint8_t command;
+    
+    /* Acknowledge extended command. */
+    REPORT_IO_SUCCESS();
+    
+    command = UART1RX();
+    switch (command) {
+        case BINARY_IO_SPI_AVR_COMMAND_NOOP:
+            REPORT_IO_SUCCESS();
+            break;
+            
+        case BINARY_IO_SPI_AVR_COMMAND_VERSION:
+            REPORT_IO_SUCCESS();
+            UART1TX(HI8(BINARY_IO_SPI_AVR_SUPPORT_VERSION));
+            UART1TX(LO8(BINARY_IO_SPI_AVR_SUPPORT_VERSION));
+            break;
+            
+        case BINARY_IO_SPI_AVR_COMMAND_BULK_READ: {
+            uint32_t address;
+            uint32_t length;
+            
+            address = (uint32_t)((((uint32_t) UART1RX()) << 24) |
+                    (((uint32_t) UART1RX()) << 16) |
+                    (((uint32_t) UART1RX()) << 8) |
+                    UART1RX());
+            length = (uint32_t)((((uint32_t) UART1RX()) << 24) |
+                    (((uint32_t) UART1RX()) << 16) |
+                    (((uint32_t) UART1RX()) << 8) |
+                    UART1RX());
+            
+            /* @todo: avoid (address + length) integer overflow. */
+            
+            if ((address > 0xFFFF) || (length > 0xFFFF) ||
+                    ((address + length) > 0xFFFF)) {
+                REPORT_IO_FAILURE();
+                return;
+            }
+            
+            REPORT_IO_SUCCESS();
+            while (length > 0) {
+                /* Fetch low byte from word. */
+                spiWriteByte(AVR_FETCH_LOW_BYTE_COMMAND);
+                spiWriteByte((address >> 8) & 0xFF);
+                spiWriteByte(address & 0xFF);
+                UART1TX(spiWriteByte(0x00));
+                length--;
+                
+                if (length > 0) {
+                    /* Fetch high byte from word. */
+                    spiWriteByte(AVR_FETCH_HIGH_BYTE_COMMAND);
+                    spiWriteByte((address >> 8) & 0xFF);
+                    spiWriteByte(address & 0xFF);
+                    UART1TX(spiWriteByte(0x00));
+                    length--;
+                }
+                
+                address++;
+            }
+            
+            break;
+        }
+        
+        default:
+            REPORT_IO_FAILURE();
+            break;
+    }
+}
+
+#endif /* BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS */
+
 #endif /* BP_ENABLE_SPI_SUPPORT */
+

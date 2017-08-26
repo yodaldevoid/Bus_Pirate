@@ -85,7 +85,21 @@
  *
  * @param[in] value a 32-bits integer whose LSW is required.
  */
-#define LO16(value) ((uint32_t)(value)&0xFFFF)
+#define LO16(value) ((uint32_t)(value) & 0xFFFF)
+
+/**
+ * Returns the most significant 8 bits of the given 16-bits integer.
+ *
+ * @param[in] value a 16-bits integer whose MSB is required.
+ */
+#define HI8(value) (((uint16_t)(value) >> 8) & 0xFF)
+
+/**
+ * Returns the least significant 8 bits of the given 16-bits integer.
+ *
+ * @param[in] value a 16-bits integer whose LSB is required.
+ */
+#define LO8(value) ((uint16_t)(value) & 0xFF)
 
 /**
  * Firmware version string, used at startup and for the 'i' command.

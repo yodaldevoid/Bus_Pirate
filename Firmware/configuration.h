@@ -442,7 +442,7 @@
  * Enable special AVR-specific commands for bulk flash reading and other
  * purposes.
  */
-#define AVR_EXTENDED_COMMANDS
+#define BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
 
 #endif /* BP_ENABLE_SPI_SUPPORT */
 
