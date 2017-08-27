@@ -1,9 +1,3 @@
-	; BPMSG1001
-	.section .text.BPMSG1001, code
-	.global _BPMSG1001_str
-_BPMSG1001_str:
-	.pascii " *next clock (^) will use this value"
-
 	; BPMSG1004
 	.section .text.BPMSG1004, code
 	.global _BPMSG1004_str
@@ -1233,6 +1227,12 @@ _HLP1022_str:
 	.global _MSG_1WIRE_MODE_IDENTIFIER_str
 _MSG_1WIRE_MODE_IDENTIFIER_str:
 	.pascii "1W01"
+
+	; MSG_1WIRE_NEXT_CLOCK_ALERT
+	.section .text.MSG_1WIRE_NEXT_CLOCK_ALERT, code
+	.global _MSG_1WIRE_NEXT_CLOCK_ALERT_str
+_MSG_1WIRE_NEXT_CLOCK_ALERT_str:
+	.pascii " *next clock (^) will use this value"
 
 	; MSG_1WIRE_SPEED_PROMPT
 	.section .text.MSG_1WIRE_SPEED_PROMPT, code

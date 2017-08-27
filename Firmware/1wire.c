@@ -8,15 +8,15 @@
  * We claim no copyright on our code, but there may be different licenses for
  * some of the code in this file.
  *
- * To the extent possible under law, the Bus Pirate project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the Bus Pirate project has waived all
+ * copyright and related or neighboring rights to Bus Pirate. This work is
+ * published from United States.
  *
  * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
  */
 
 /*
@@ -31,7 +31,15 @@
 
 #ifdef BP_ENABLE_1WIRE_SUPPORT
 
+#include <stdbool.h>
 #include <stdint.h>
+
+#include "base.h"
+#include "binary_io.h"
+#include "proc_menu.h"
+
+extern mode_configuration_t mode_configuration;
+extern command_t last_command;
 
 /**
  * The maximum size of the saved devices roster, in entries.
@@ -43,10 +51,6 @@
 #if BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS > MAXIMUM_DEVICES_ROSTER_SIZE
 #error "BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS too big"
 #endif /* BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS > MAXIMUM_DEVICES_ROSTER_SIZE */
-
-#include "base.h"
-#include "binary_io.h"
-#include "proc_menu.h"
 
 /**
  * Size of a 1-Wire ROM number identifier, in bytes.
@@ -156,9 +160,6 @@ static uint8_t onewire_internal_byte_io(uint8_t byte_value);
  * @return the bit read from the bus.
  */
 #define ONEWIRE_READ_BIT() onewire_internal_bit_io(ON)
-
-extern mode_configuration_t mode_configuration;
-extern command_t last_command;
 
 /**
  * Possible results from 1-Wire bus reset.
@@ -281,13 +282,13 @@ static const uint8_t CRC_TABLE[] = {
  * @param[in] value the new byte to update the internal CRC8 variable with.
  * @return the updated internal CRC8 variable value.
  */
-static uint8_t update_crc8(uint8_t value);
+static uint8_t update_crc8(const uint8_t value);
 
 /**
  * Looks up the given model identifier and checks it against a list of known
  * devices, then prints the model information if a match is found.
  */
-void lookup_device_model(uint8_t model);
+static void lookup_device_model(const uint8_t model);
 
 /**
  * Attempts to find the first device on the 1-Wire bus.
@@ -330,13 +331,21 @@ static bool perform_device_search(void);
  * @param[in] roster_id the index of the entry in the roster list.
  * @param[in] rom_address the ROM address bytes.
  */
-static void print_device_information(size_t roster_id, uint8_t *rom_address);
+static void print_device_information(const size_t roster_id,
+                                     const uint8_t *rom_address);
 
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
 
+/**
+ * Sets the data line to the given state.
+ * 
+ * @param[in] state the state to set the data line to.
+ */
+static inline void onewire_internal_set_data_state(const bool state);
+
 uint16_t onewire_read(void) { return ONEWIRE_READ_BYTE(); }
 
-uint16_t onewire_write(uint16_t value) {
+uint16_t onewire_write(const uint16_t value) {
   ONEWIRE_WRITE_BYTE(value & 0xFF);
 
   return 0x100;
@@ -348,17 +357,11 @@ void onewire_clock_pulse(void) { ONEWIRE_WRITE_BIT(onewire_state.data_state); }
 
 uint16_t onewire_data_state(void) { return onewire_state.data_state; }
 
-void onewire_data_low(void) {
-  onewire_state.data_state = LOW;
-  BPMSG1001;
-}
+inline void onewire_data_low(void) { onewire_internal_set_data_state(LOW); }
 
-void onewire_data_high(void) {
-  onewire_state.data_state = HIGH;
-  BPMSG1001;
-}
+inline void onewire_data_high(void) { onewire_internal_set_data_state(HIGH); }
 
-void onewire_setup(void) {
+void onewire_setup_prepare(void) {
   int speed;
 
   /* Always start in high-impedance mode. */
@@ -367,32 +370,26 @@ void onewire_setup(void) {
   /* Assume standard speed. */
   consumewhitechars();
   speed = getint();
-  if ((speed >  0) && (speed <= 2)) {
+  if ((speed > 0) && (speed <= 2)) {
     mode_configuration.speed = speed - 1;
   } else {
-    speed = 0;
-  }
-
-  if (speed == 0) {
     command_error = false;
-  }
-
-  if (speed == 0) {
     MSG_1WIRE_SPEED_PROMPT;
-    mode_configuration.speed = (getnumber(1, 1, 2, 0) - 1);
+    mode_configuration.speed = getnumber(1, 1, 2, 0) - 1;
   }
 
   /* Clear the saved device roster entries. */
   onewire_state.used_roster_entries = 0;
 }
 
-void onewire_setup_exc(void) {
+void onewire_setup_execute(void) {
   /* Set up pins. */
   ONEWIRE_DATA_DIRECTION = INPUT;
   ONEWIRE_DATA_LINE = LOW;
 }
 
-void print_device_information(size_t roster_id, uint8_t *rom_address) {
+void print_device_information(const size_t roster_id,
+                              const uint8_t *rom_address) {
   size_t index;
 
   /* Print roster entry counter. */
@@ -413,18 +410,21 @@ void print_device_information(size_t roster_id, uint8_t *rom_address) {
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
 }
 
-void onewire_run_macro(uint16_t macro) {
+void onewire_run_macro(const uint16_t macro) {
+  uint16_t macro_id;
+
+  macro_id = macro;
 
   /*
    * Check if the macro identifier is indeed a valid device roster index
    * rather than a predefined protocol macro.
    */
-  if ((macro > 0) && (macro < MAXIMUM_DEVICES_ROSTER_SIZE)) {
+  if ((macro_id > 0) && (macro_id < MAXIMUM_DEVICES_ROSTER_SIZE)) {
     size_t rom_index;
 
-    macro--;
+    macro_id--;
 
-    if (macro >= onewire_state.used_roster_entries) {
+    if (macro_id >= onewire_state.used_roster_entries) {
       /* Alert the user if the device is not in the roster. */
       BPMSG1004;
       return;
@@ -440,9 +440,9 @@ void onewire_run_macro(uint16_t macro) {
     bp_write_string(": ");
     for (rom_index = 0; rom_index < ROM_BYTES_SIZE; rom_index++) {
       bp_write_formatted_integer(
-          onewire_state.roster_entries[macro][rom_index]);
+          onewire_state.roster_entries[macro_id][rom_index]);
       bpSP;
-      ONEWIRE_WRITE_BYTE(onewire_state.roster_entries[macro][rom_index]);
+      ONEWIRE_WRITE_BYTE(onewire_state.roster_entries[macro_id][rom_index]);
     }
     bpBR;
     return;
@@ -450,7 +450,7 @@ void onewire_run_macro(uint16_t macro) {
 
   /* Run the requested macro. */
 
-  switch (macro) {
+  switch (macro_id) {
 
   case MACRO_ID_DUMP_ROSTER: {
     size_t index;
@@ -481,8 +481,8 @@ void onewire_run_macro(uint16_t macro) {
     bool device_found;
     size_t index;
 
-    onewire_state.command_byte = macro;
-    if (macro == MACRO_ID_ALARM_SEARCH) {
+    onewire_state.command_byte = macro_id;
+    if (macro_id == MACRO_ID_ALARM_SEARCH) {
       BPMSG1010;
     } else {
       BPMSG1011;
@@ -642,7 +642,7 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
 
 #ifdef BP_1WIRE_LOOKUP_FAMILY_ID
 
-/* 
+/*
  * TODO: Expand this table from the data at
  * http://owfs.org/index.php?page=family-code-list
  */
@@ -653,7 +653,7 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
 #define DS18B20 0x28
 #define DS2431 0x2D
 
-void lookup_device_model(uint8_t model) {
+void lookup_device_model(const uint8_t model) {
   switch (model) {
   case DS18S20:
     BPMSG1022;
@@ -841,7 +841,7 @@ bool perform_device_search(void) {
   return search_result;
 }
 
-uint8_t update_crc8(uint8_t value) {
+uint8_t update_crc8(const uint8_t value) {
   onewire_state.crc8 = CRC_TABLE[onewire_state.crc8 ^ value];
   return onewire_state.crc8;
 }
@@ -1305,6 +1305,11 @@ uint8_t onewire_internal_byte_io(uint8_t byte_value) {
   }
 
   return byte_value;
+}
+
+void onewire_internal_set_data_state(const bool state) {
+  onewire_state.data_state = state;
+  MSG_1WIRE_NEXT_CLOCK_ALERT;
 }
 
 #endif /* BP_ENABLE_1WIRE_SUPPORT */

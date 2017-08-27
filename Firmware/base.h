@@ -129,20 +129,20 @@ typedef struct {
   unsigned char speed;
   unsigned char numbits;
   unsigned char buf[16];
-  unsigned char alternate_aux : 2; // there are 4 AUX on BUSPIRATEV4
-  unsigned char periodicService : 1;
-  unsigned char lsbEN : 1;
-  unsigned char high_impedance : 1;
+  uint8_t alternate_aux : 2;
+  uint8_t periodicService : 1;
+  uint8_t lsbEN : 1;
+  uint8_t high_impedance : 1;
 
   /**
    * Values are 16-bits wide.
    */
-  unsigned char int16 : 1;
+  uint8_t int16 : 1;
 
   /**
    * Each I/O write from the protocol must be followed by a read operation.
    */
-  unsigned char write_with_read : 1;
+  uint8_t write_with_read : 1;
 
 } mode_configuration_t;
 

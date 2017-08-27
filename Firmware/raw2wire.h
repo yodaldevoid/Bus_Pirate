@@ -30,8 +30,8 @@ void raw2wire_stop(void);
 uint16_t raw2wire_write(const uint16_t value);
 uint16_t raw2wire_read(void);
 void raw2wire_run_macro(const uint16_t macro_id);
-void raw2wire_setup(void);
-void raw2wire_get_ready(void);
+void raw2wire_setup_execute(void);
+void raw2wire_setup_prepare(void);
 void raw2wire_print_pins_state(void);
 void raw2wire_print_settings(void);
 

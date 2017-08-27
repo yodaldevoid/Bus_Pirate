@@ -141,16 +141,16 @@ typedef struct {
   void (*run_macro)(uint16_t macro);
 
   /**
-   * Perform the setup steps for the protocol to be able to interact with the
-   * outside world.
-   */
-  void (*setup)(void);
-
-  /**
    * Perform the final steps of the setup stage, shortly before giving power
    * to the pull-ups and start doing I/O.
    */
-  void (*get_ready)(void);
+  void (*setup_prepare)(void);
+
+  /**
+   * Perform the setup steps for the protocol to be able to interact with the
+   * outside world.
+   */
+  void (*setup_execute)(void);
 
   /**
    * Perform the cleanup steps for the protocol before shutting down.

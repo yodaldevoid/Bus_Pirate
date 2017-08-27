@@ -51,8 +51,8 @@ void i2c_pins_state(void);
 
 uint16_t i2c_read(void);
 uint16_t i2c_write(const uint16_t value);
-void i2c_setup(void);
-void i2c_setup_exc(void);
+void i2c_setup_prepare(void);
+void i2c_setup_execute(void);
 void i2c_macro(const uint16_t macro);
 
 void binary_io_enter_i2c_mode(void);

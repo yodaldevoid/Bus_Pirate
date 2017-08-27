@@ -1,8 +1,6 @@
 #ifndef BP_MESSAGES_V3_H
 #define BP_MESSAGES_V3_H
 
-void BPMSG1001_str(void);
-#define BPMSG1001 bp_message_write_line(BPMSG1001_str, 36)
 void BPMSG1004_str(void);
 #define BPMSG1004 bp_message_write_line(BPMSG1004_str, 41)
 void BPMSG1005_str(void);
@@ -413,6 +411,8 @@ void HLP1022_str(void);
 #define HLP1022 bp_message_write_line(HLP1022_str, 62)
 void MSG_1WIRE_MODE_IDENTIFIER_str(void);
 #define MSG_1WIRE_MODE_IDENTIFIER bp_message_write_buffer(MSG_1WIRE_MODE_IDENTIFIER_str, 4)
+void MSG_1WIRE_NEXT_CLOCK_ALERT_str(void);
+#define MSG_1WIRE_NEXT_CLOCK_ALERT bp_message_write_line(MSG_1WIRE_NEXT_CLOCK_ALERT_str, 36)
 void MSG_1WIRE_SPEED_PROMPT_str(void);
 #define MSG_1WIRE_SPEED_PROMPT bp_message_write_line(MSG_1WIRE_SPEED_PROMPT_str, 62)
 void MSG_ACK_str(void);

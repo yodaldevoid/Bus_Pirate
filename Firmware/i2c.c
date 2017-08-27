@@ -292,7 +292,7 @@ void i2c_print_settings(void) {
   bp_write_line(" )");
 }
 
-void i2c_setup(void) {
+void i2c_setup_prepare(void) {
   int HW;
   int speed;
 
@@ -358,7 +358,7 @@ void i2c_setup(void) {
   mode_configuration.high_impedance = ON;
 }
 
-void i2c_setup_exc(void) {
+void i2c_setup_execute(void) {
   if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
     SDA_TRIS = INPUT;
     SCL_TRIS = INPUT;

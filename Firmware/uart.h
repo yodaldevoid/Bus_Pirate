@@ -75,8 +75,8 @@ inline void uart_pins_state(void);
  */
 void uart_run_macro(const uint16_t macro);
 
-void uart_setup(void);
-void UARTsetup_exc(void);
+void uart_setup_prepare(void);
+void uart_setup_execute(void);
 
 bool uart_periodic_callback(void);
 void UARTsettings(void);

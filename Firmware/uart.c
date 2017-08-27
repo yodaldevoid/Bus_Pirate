@@ -139,7 +139,7 @@ void UARTsettings(void) {
   MSG_MODE_HEADER_END;
 }
 
-void uart_setup(void) {
+void uart_setup_prepare(void) {
   int speed, dbp, sb, rxp, output, brg = 0;
   // autobaud detection; multi uses
   unsigned long abd = 0;
@@ -260,7 +260,7 @@ void uart_setup(void) {
   }
 }
 
-void UARTsetup_exc(void) {
+void uart_setup_execute(void) {
   uart2_setup(mode_configuration.speed == 9
                   ? U2BRG
                   : UART_BRG_SPEED[mode_configuration.speed],

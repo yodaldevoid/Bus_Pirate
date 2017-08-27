@@ -14,7 +14,6 @@
 
 // Strings for the various subsystems follow.
 
-BPMSG1001	1	" *next clock (^) will use this value" 
 BPMSG1004	1	"No device, try (ALARM) SEARCH macro first"
 BPMSG1005	0	"ADDRESS MACRO "
 BPMSG1006	1	" 0.Macro menu"
@@ -187,6 +186,7 @@ BPMSG1285	1	" bps"
 // Post-6.2 strings.
 
 MSG_1WIRE_MODE_IDENTIFIER	0	"1W01"
+MSG_1WIRE_NEXT_CLOCK_ALERT	1	" *next clock (^) will use this value" 
 MSG_1WIRE_SPEED_PROMPT	1	"Set speed:\r\n 1. Standard (~16.3kbps) \r\n 2. Overdrive (~160kps)"
 MSG_ACK	0	"ACK"
 MSG_ANY_KEY_TO_EXIT_PROMPT	1	"Any key to exit"

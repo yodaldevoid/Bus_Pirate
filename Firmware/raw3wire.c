@@ -81,7 +81,7 @@ void raw3wire_print_settings(void) {
   MSG_MODE_HEADER_END;
 }
 
-void raw3wire_setup(void) {
+void raw3wire_setup_execute(void) {
   bool user_prompt;
   int speed;
   int output;
@@ -117,7 +117,7 @@ void raw3wire_setup(void) {
   mode_configuration.int16 = NO;
 }
 
-void raw3wire_get_ready(void) {
+void raw3wire_setup_prepare(void) {
   bitbang_setup(3, mode_configuration.speed);
   R3WMOSI_TRIS = OUTPUT;
   R3WCLK_TRIS = OUTPUT;

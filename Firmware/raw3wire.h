@@ -30,8 +30,8 @@ uint16_t raw3wire_write(const uint16_t value);
 void raw3wire_start_with_read(void);
 void raw3wire_start(void);
 void raw3wire_stop(void);
-void raw3wire_setup(void);
-void raw3wire_get_ready(void);
+void raw3wire_setup_execute(void);
+void raw3wire_setup_prepare(void);
 void raw3wire_print_pins_state(void);
 void raw3wire_print_settings(void);
 
