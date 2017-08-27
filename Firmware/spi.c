@@ -22,21 +22,18 @@
 #include "core.h"
 #include "binary_io.h"
 
-#include "proc_menu.h"		// for the userinteraction subs
+#include "proc_menu.h"
 
-//direction registers
 #define SPIMOSI_TRIS 	BP_MOSI_DIR	
 #define SPICLK_TRIS 	BP_CLK_DIR	
 #define SPIMISO_TRIS 	BP_MISO_DIR	
 #define SPICS_TRIS 		BP_CS_DIR	
 
-//pin control registers
 #define SPIMOSI 		BP_MOSI
 #define SPICLK 			BP_CLK	
 #define SPIMISO 		BP_MISO	
 #define SPICS 			BP_CS	
 
-//open drain control registers for OUTPUT pins
 #define SPIMOSI_ODC 		BP_MOSI_ODC	
 #define SPICLK_ODC 			BP_CLK_ODC	
 #define SPICS_ODC 			BP_CS_ODC	
@@ -45,7 +42,7 @@
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
-extern bus_pirate_configuration_t bus_pirate_configuration; //we use the big buffer
+extern bus_pirate_configuration_t bus_pirate_configuration;
 extern bool command_error;
 
 /**
@@ -130,15 +127,33 @@ static void handle_extended_avr_command(void);
  */
 #define SPI_TRANSITION_FROM_ACTIVE_TO_IDLE 1
 
+/**
+ * SPI protocol state structure.
+ */
 typedef struct {
     
-    /** Clock polarity. */
+    /**
+     * Clock polarity.
+     * 
+     * @see SPI_CLOCK_IDLE_LOW
+     * @see SPI_CLOCK_IDLE_HIGH
+     */
     uint8_t clock_polarity : 1;
     
-    /** Clock edge. */
+    /**
+     * Clock edge.
+     * 
+     * @see SPI_TRANSITION_FROM_IDLE_TO_ACTIVE
+     * @see SPI_TRANSITION_FROM_ACTIVE_TO_IDLE
+     */
     uint8_t clock_edge : 1;
     
-    /** Data sample timing. */
+    /**
+     * Data sample timing.
+     * 
+     * @see SPI_SAMPLING_ON_DATA_OUTPUT_MIDDLE
+     * @see SPI_SAMPLING_ON_DATA_OUTPUT_END
+     */
     uint8_t data_sample_timing : 1;
     
     /** CS line state. */
@@ -151,6 +166,9 @@ typedef struct {
  */
 static spi_state_t spi_state = { 0 };
 
+/**
+ * Available SPI bus speeds.
+ */
 static const uint8_t spi_bus_speed[] = {
     0b00000000, /*  31 kHz - Primary prescaler 64:1 / Secondary prescaler 8:1 */
     0b00011000, /* 125 kHz - Primary prescaler 64:1 / Secondary prescaler 2:1 */
@@ -365,11 +383,10 @@ void SPIpins(void) {
 }
 
 void spi_setup(uint8_t spi_speed) {
-    SPI1STATbits.SPIEN = 0; //disable, just in case...
+    /* Disable interface. */
+    SPI1STATbits.SPIEN = OFF;
 
-    //use open drain control register to
-    //enable Hi-Z mode on hardware module outputs
-    //inputs are already HiZ
+    /* Set SPI to open drain if high impedance is on. */
     if (mode_configuration.high_impedance == ON) {
         SPIMOSI_ODC = ON;
         SPICLK_ODC = ON;
@@ -379,32 +396,61 @@ void spi_setup(uint8_t spi_speed) {
         SPICLK_ODC = OFF;
         SPICS_ODC = OFF;
     }
+    
+    /* Assign pins routing. */
 
-	//PPS Setup
-	// Inputs
-	RPINR20bits.SDI1R = BP_MISO_RPIN; //B7 MISO
-	// Outputs
-	BP_MOSI_RPOUT = SDO1_IO; //B9 MOSI
-	BP_CLK_RPOUT = SCK1OUT_IO; //B8 CLK
-	
-    SPICS = 1; //B6 cs high
-    SPICS_TRIS = 0; //B6 cs output
+    RPINR20bits.SDI1R = BP_MISO_RPIN;
+    BP_MOSI_RPOUT = SDO1_IO;
+    BP_CLK_RPOUT = SCK1OUT_IO;
+    SPICS = HIGH;
+    SPICS_TRIS = OUTPUT;
+    SPICLK_TRIS = OUTPUT;
+    SPIMISO_TRIS = INPUT;
+    SPIMOSI_TRIS = OUTPUT;
+    
+    /*
+     * MSB
+     * ---000xx0x1xxxxx
+     *    |||||||||||||
+     *    |||||||||||++---> PPRE:   Primary prescale bits.
+     *    ||||||||+++-----> SPRE:   Secondary prescale bits.
+     *    |||||||+--------> MSTEN:  Master mode.
+     *    ||||||+---------> CKP:    Clock idle LOW.
+     *    |||||+----------> SSEN:   Pin controlled by port function.
+     *    ||||+-----------> CKE:    Transition happens from idle to active.
+     *    |||+------------> SMP:    Flag indicating when the data is sampled.
+     *    ||+-------------> MODE16: Communication is byte-wide.
+     *    |+--------------> DISSDO: SDO1 pin is controlled by the module.
+     *    +---------------> DISSCK: Internal SPI clock is enabled.
+     */
+    SPI1CON1 = (spi_speed & 0b11111) | (ON << _SPI1CON1_MSTEN_POSITION) |
+            ((spi_state.clock_polarity & 0b1) << _SPI1CON1_CKP_POSITION) |
+            ((spi_state.clock_edge & 0b1) << _SPI1CON1_CKE_POSITION) |
+            ((spi_state.data_sample_timing & 0b1) << _SPI1CON1_SMP_POSITION);
 
-    //pps configures pins and this doesn't really matter....
-    SPICLK_TRIS = 0; //B8 sck output
-    SPIMISO_TRIS = 1; //B7 SDI input
-    SPIMOSI_TRIS = 0; //B9 SDO output
-
-    /* CKE=1, CKP=0, SMP=0 */
-    //(SPIspeed[modeConfig.speed]);
-    SPI1CON1 = spi_speed;  
-    SPI1CON1bits.MSTEN = ON;
-    SPI1CON1bits.CKP = spi_state.clock_polarity;
-    SPI1CON1bits.CKE = spi_state.clock_edge;
-    SPI1CON1bits.SMP = spi_state.data_sample_timing;
-    SPI1CON2 = 0;
-    SPI1STAT = 0; // clear SPI
-    SPI1STATbits.SPIEN = 1;
+    /*
+     * MSB
+     * 000-----------0-
+     * |||           |
+     * |||           +---> FRMDLY: Frame sync pulse precedes first bit clock.
+     * ||+---------------> FRMPOL: Frame sync pulse is active low.
+     * |+----------------> SPIFSD: Frame sync pulse output.
+     * +-----------------> FRMEN:  Framed SPI1 support disabled.
+     */
+    SPI1CON2 = 0x0000;
+    
+    /*
+     * MSB
+     * 0-0------0----??
+     * | |      |
+     * | |      +--------> SPIROV:  Overflow flag cleared.
+     * | +---------------> SPISIDL: Continue module operation in idle mode.
+     * +-----------------> SPIEN:   Module disabled.
+     */    
+    SPI1STAT = 0x0000;
+    
+    /* Enable the interface. */
+    SPI1STATbits.SPIEN = ON;
 }
 
 void spiDisable(void) {
@@ -550,7 +596,7 @@ void spi_slave_enable(void) {
     
     /*
      * MSB
-     * ---00000000xxxxx
+     * ---0000x0x0xxxxx
      *    |||||||||||||
      *    |||||||||||++---> PPRE:   Primary prescale bits.
      *    ||||||||+++-----> SPRE:   Secondary prescale bits.
@@ -691,8 +737,6 @@ void spi_enter_binary_io(void) {
     static unsigned char inByte, rawCommand, i;
     unsigned int j, fw, fr;
 
-    //useful default values
-    /* CKE=1, CKP=0, SMP=0 */
     mode_configuration.speed = 1;
     spi_state.clock_polarity = SPI_CLOCK_IDLE_LOW;
     spi_state.clock_edge = SPI_TRANSITION_FROM_ACTIVE_TO_IDLE;
@@ -702,8 +746,7 @@ void spi_enter_binary_io(void) {
     MSG_SPI_MODE_IDENTIFIER;
     
     for (;;) {
-
-        inByte = UART1RX(); /* JTR usb port; */ //grab it
+        inByte = UART1RX();
         rawCommand = (inByte >> 4); //get command bits in seperate variable
 
         switch (rawCommand) {
