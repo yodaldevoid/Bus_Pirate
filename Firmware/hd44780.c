@@ -132,7 +132,7 @@ unsigned char spi_write_byte(unsigned char c){
         return c;
 }
 
-void spiDisable(void){
+void spi_disable_interface(void){
         SPI1STATbits.SPIEN = 0;
         RPINR20bits.SDI1R=0b11111;  //B7 MISO
 

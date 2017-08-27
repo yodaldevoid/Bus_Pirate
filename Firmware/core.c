@@ -250,12 +250,12 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
 
 #ifdef BP_ENABLE_SPI_SUPPORT
     ,
-    {.start = SPIstart,
-     .start_with_read = SPIstartr,
-     .stop = SPIstop,
-     .stop_from_read = SPIstop,
-     .send = SPIwrite,
-     .read = SPIread,
+    {.start = spi_start,
+     .start_with_read = spi_start_with_read,
+     .stop = spi_stop,
+     .stop_from_read = spi_stop,
+     .send = spi_write,
+     .read = spi_read,
      .clock_high = null_operation_callback,
      .clock_low = null_operation_callback,
      .data_high = null_operation_callback,
@@ -264,12 +264,12 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
      .clock_pulse = null_operation_callback,
      .read_bit = null_bit_read_callback,
      .periodic_update = null_bit_read_callback,
-     .run_macro = SPImacro,
-     .setup = SPIsetup,
-     .get_ready = SPIsetup_exc,
-     .cleanup = SPIcleanup,
-     .print_pins_state = SPIpins,
-     .print_settings = SPIsettings,
+     .run_macro = spi_run_macro,
+     .setup = spi_setup_prepare,
+     .get_ready = spi_setup_execute,
+     .cleanup = spi_cleanup,
+     .print_pins_state = spi_print_pins_state,
+     .print_settings = spi_print_settings,
      .name = "SPI"}
 #endif /* BP_ENABLE_SPI_SUPPORT */
 
@@ -367,7 +367,7 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
      .run_macro = LCDmacro,
      .setup = LCDsetup,
      .get_ready = LCDsetup_exc,
-     .cleanup = spiDisable,
+     .cleanup = spi_disable_interface,
      .print_pins_state = LCDpins,
      .print_settings = empty_print_settings_implementation,
      .name = "LCD"}

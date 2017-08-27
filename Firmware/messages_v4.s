@@ -802,12 +802,6 @@ _BPMSG1185_str:
 _BPMSG1186_str:
 	.pascii " FAIL"
 
-	; BPMSG1192
-	.section .text.BPMSG1192, code
-	.global _BPMSG1192_str
-_BPMSG1192_str:
-	.pascii " 0.Macro menu\r\n 1.Sniff CS low\r\n 2.Sniff all traffic"
-
 	; BPMSG1194
 	.section .text.BPMSG1194, code
 	.global _BPMSG1194_str
@@ -1695,6 +1689,12 @@ _MSG_SPI_CS_MODE_PROMPT_str:
 	.global _MSG_SPI_EDGE_PROMPT_str
 _MSG_SPI_EDGE_PROMPT_str:
 	.pascii "Output clock edge:\r\n 1. Idle to active\r\n 2. Active to idle *default"
+
+	; MSG_SPI_MACRO_MENU
+	.section .text.MSG_SPI_MACRO_MENU, code
+	.global _MSG_SPI_MACRO_MENU_str
+_MSG_SPI_MACRO_MENU_str:
+	.pascii " 0.Macro menu\r\n 1.Sniff CS low\r\n 2.Sniff all traffic\r\n10.Set clock idle low\r\n11.Set clock idle high\r\n12.Set edge idle to active\r\n13.Set edge active to idle\r\n14.Sample phase on middle\r\n15.Sample phase on end"
 
 	; MSG_SPI_MODE_HEADER_START
 	.section .text.MSG_SPI_MODE_HEADER_START, code

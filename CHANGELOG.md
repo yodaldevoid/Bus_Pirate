@@ -27,6 +27,7 @@
 * Firmware code sections do not overlap each other anymore. (#10)
 * Delays are more accurate. (#23)
 * 1-Wire now supports Overdrive mode. (#40)
+* SPI macros to interactively tweak SPI parameters are now documented.
 
 ### Other:
 

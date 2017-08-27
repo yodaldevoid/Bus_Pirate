@@ -261,8 +261,6 @@ void BPMSG1185_str(void);
 #define BPMSG1185 bp_message_write_line(BPMSG1185_str, 3)
 void BPMSG1186_str(void);
 #define BPMSG1186 bp_message_write_line(BPMSG1186_str, 5)
-void BPMSG1192_str(void);
-#define BPMSG1192 bp_message_write_line(BPMSG1192_str, 52)
 void BPMSG1194_str(void);
 #define BPMSG1194 bp_message_write_buffer(BPMSG1194_str, 3)
 void BPMSG1195_str(void);
@@ -539,6 +537,8 @@ void MSG_SPI_CS_MODE_PROMPT_str(void);
 #define MSG_SPI_CS_MODE_PROMPT bp_message_write_line(MSG_SPI_CS_MODE_PROMPT_str, 29)
 void MSG_SPI_EDGE_PROMPT_str(void);
 #define MSG_SPI_EDGE_PROMPT bp_message_write_line(MSG_SPI_EDGE_PROMPT_str, 67)
+void MSG_SPI_MACRO_MENU_str(void);
+#define MSG_SPI_MACRO_MENU bp_message_write_line(MSG_SPI_MACRO_MENU_str, 206)
 void MSG_SPI_MODE_HEADER_START_str(void);
 #define MSG_SPI_MODE_HEADER_START bp_message_write_buffer(MSG_SPI_MODE_HEADER_START_str, 32)
 void MSG_SPI_MODE_IDENTIFIER_str(void);

@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -23,8 +24,6 @@
 
 #include <stdint.h>
 
-void spiProcess(void);
-
 /**
  * Start accepting binary I/O commands for SPI operations.
  */
@@ -32,27 +31,31 @@ void spi_enter_binary_io(void);
 
 /**
  * Writes the given byte on the SPI bus.
- * 
+ *
  * @param[in] value the value to write.
- * 
+ *
  * @return the byte read from the bus after the data write.
  */
 uint8_t spi_write_byte(const uint8_t value);
 
-void SPIstart(void);
-void SPIstartr(void);
-void SPIstop(void);
-unsigned int SPIread(void);
-unsigned int SPIwrite(unsigned int c);
-void SPIsetup(void);
-void SPIsetup_exc(void);
-void SPIcleanup(void);
-void SPImacro(unsigned int macro);
-void SPIpins(void);
-void spi_setup(unsigned char spiSpeed);
-void spiDisable(void);
+void spi_start(void);
+void spi_start_with_read(void);
+void spi_stop(void);
+uint16_t spi_read(void);
+uint16_t spi_write(const uint16_t value);
+void spi_setup_prepare(void);
+void spi_setup_execute(void);
+void spi_cleanup(void);
+void spi_run_macro(const uint16_t macro);
+void spi_print_pins_state(void);
+void spi_setup(const uint8_t speed);
 
-void SPIsettings(void);
+/**
+ * Disable SPI interface.
+ */
+void spi_disable_interface(void);
+
+void spi_print_settings(void);
 
 #endif /* BP_ENABLE_SPI_SUPPORT */
 

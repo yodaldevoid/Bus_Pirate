@@ -31,7 +31,7 @@ void LCDmacro(unsigned int c);
 void LCDpins(void);
 
 #ifndef BP_ENABLE_SPI_SUPPORT
-void spiDisable(void);
+void spi_disable_interface(void);
 #endif /* !BP_ENABLE_SPI_SUPPORT */
 
 #endif /* BP_ENABLE_HD44780_SUPPORT */
