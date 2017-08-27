@@ -124,7 +124,7 @@ void LCDsetup_exc(void);
 #define SPICLK_ODC              BP_CLK_ODC      
 #define SPICS_ODC               BP_CS_ODC       
 
-unsigned char spiWriteByte(unsigned char c){
+unsigned char spi_write_byte(unsigned char c){
         SPI1BUF = c;
         while(!IFS0bits.SPI1IF);
         c=SPI1BUF;
@@ -366,7 +366,7 @@ void HD44780_WriteNibble(unsigned char reg, unsigned char dat){
 
 //write value to 595 IO expander, message and return on ACK error
 void HD44780_SPIwrite(unsigned char datout){
-        spiWriteByte(datout);
+        spi_write_byte(datout);
         SPICS=1;
         //bpDelayUS(255);
         SPICS=0;

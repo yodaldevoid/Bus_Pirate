@@ -21,8 +21,23 @@
 
 #ifdef BP_ENABLE_SPI_SUPPORT
 
+#include <stdint.h>
+
 void spiProcess(void);
-void binSPI(void);
+
+/**
+ * Start accepting binary I/O commands for SPI operations.
+ */
+void spi_enter_binary_io(void);
+
+/**
+ * Writes the given byte on the SPI bus.
+ * 
+ * @param[in] value the value to write.
+ * 
+ * @return the byte read from the bus after the data write.
+ */
+uint8_t spi_write_byte(const uint8_t value);
 
 void SPIstart(void);
 void SPIstartr(void);
@@ -36,7 +51,7 @@ void SPImacro(unsigned int macro);
 void SPIpins(void);
 void spi_setup(unsigned char spiSpeed);
 void spiDisable(void);
-unsigned char spiWriteByte(unsigned char c);
+
 void SPIsettings(void);
 
 #endif /* BP_ENABLE_SPI_SUPPORT */

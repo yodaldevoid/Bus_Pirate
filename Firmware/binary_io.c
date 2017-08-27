@@ -134,7 +134,7 @@ void binBB(void) {
       } else if (inByte == 1) { // goto SPI mode
         binReset();
 #ifdef BP_ENABLE_SPI_SUPPORT
-        binSPI(); // go into rawSPI loop
+        spi_enter_binary_io(); // go into rawSPI loop
 #endif            /* BP_ENABLE_SPI_SUPPORT */
         binReset();
         send_binary_io_mode_identifier();

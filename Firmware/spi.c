@@ -92,13 +92,56 @@ static void handle_extended_avr_command(void);
 
 #endif /* BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS */
 
-struct _SPI {
-    unsigned char ckp : 1;
-    unsigned char cke : 1;
-    unsigned char smp : 1;
-    //	unsigned char wwr:1;
-    unsigned char csl : 1; // to /CS or  not to CS
-} spiSettings;
+/**
+ * SPI bit read happens in the middle of a bit write.
+ */
+#define SPI_SAMPLING_ON_DATA_OUTPUT_MIDDLE 0
+
+/**
+ * SPI bit read happens after a bit write.
+ */
+#define SPI_SAMPLING_ON_DATA_OUTPUT_END 1
+
+/**
+ * SPI bus clock line will idle when low.
+ */
+#define SPI_CLOCK_IDLE_LOW 0
+
+/**
+ * SPI bus clock line will idle when high.
+ */
+#define SPI_CLOCK_IDLE_HIGH 1
+
+/**
+ * SPI data reads and writes happen when the clock goes from idle to active.
+ */
+#define SPI_TRANSITION_FROM_IDLE_TO_ACTIVE 0
+
+/**
+ * SPI data reads and writes happen when the clock goes from active to idle.
+ */
+#define SPI_TRANSITION_FROM_ACTIVE_TO_IDLE 1
+
+typedef struct {
+    
+    /** Clock polarity. */
+    uint8_t clock_polarity : 1;
+    
+    /** Clock edge. */
+    uint8_t clock_edge : 1;
+    
+    /** Data sample timing. */
+    uint8_t data_sample_timing : 1;
+    
+    /** CS line state. */
+    uint8_t cs_line_state : 1;
+    
+} spi_state_t; 
+
+/**
+ * The SPI protocol state.
+ */
+static spi_state_t spi_state = { 0 };
 
 static const uint8_t spi_bus_speed[] = {
     0b00000000, /*  31 kHz - Primary prescaler 64:1 / Secondary prescaler 8:1 */
@@ -117,11 +160,13 @@ static const uint8_t spi_bus_speed[] = {
 
 void engage_spi_cs(bool write_with_read) {
     mode_configuration.write_with_read = write_with_read;
-    SPICS = !spiSettings.csl;
-    if (spiSettings.csl) {
+    SPICS = !spi_state.cs_line_state;
+    if (spi_state.cs_line_state) {
         UART1TX('/');
+        MSG_SPI_CS_ENABLED;
+    } else {
+        MSG_SPI_CS_DISABLED;
     }
-    MSG_SPI_CS_ENABLED;
 }
 
 inline void SPIstartr(void) {
@@ -133,21 +178,23 @@ inline void SPIstart(void) {
 }
 
 void SPIstop(void) {
-    SPICS = spiSettings.csl;
-    if (spiSettings.csl) {
-        UART1TX('\\');
+    SPICS = spi_state.cs_line_state;
+    if (spi_state.cs_line_state) {
+        UART1TX('/');
+        MSG_SPI_CS_ENABLED;
+    } else {
+        MSG_SPI_CS_DISABLED;
     }
-    MSG_SPI_CS_ENABLED;
 }
 
 inline unsigned int SPIread(void) {
-    return spiWriteByte(0xFF);
+    return spi_write_byte(0xFF);
 }
 
 unsigned int SPIwrite(unsigned int c) {
     unsigned char r;
 
-    r = spiWriteByte(c);
+    r = spi_write_byte(c);
     if (mode_configuration.write_with_read == 1) {
         return r;
     }
@@ -160,13 +207,13 @@ void SPIsettings(void) {
     BPMSG1191;
     bp_write_dec_byte((mode_configuration.speed + 1));
     bpSP;
-    bp_write_dec_byte(spiSettings.ckp);
+    bp_write_dec_byte(spi_state.clock_polarity);
     bpSP;
-    bp_write_dec_byte(spiSettings.cke);
+    bp_write_dec_byte(spi_state.clock_edge);
     bpSP;
-    bp_write_dec_byte(spiSettings.smp);
+    bp_write_dec_byte(spi_state.data_sample_timing);
     bpSP;
-    bp_write_dec_byte(spiSettings.csl);
+    bp_write_dec_byte(spi_state.cs_line_state);
     bpSP;
     bp_write_dec_byte(mode_configuration.high_impedance);
     MSG_MODE_HEADER_END;
@@ -188,12 +235,6 @@ void SPIsetup(void) {
     consumewhitechars();
     output = getint();
 
-    //	bpWdec(speed); bpSP;
-    //	bpWdec(clkpol); bpSP;
-    //	bpWdec(clkedge); bpSP;
-    //	bpWdec(sample); bpSP;
-    //	bpWdec(output); bpBR;
-
     // check for userinput (and sanitycheck it!!)
     if ((speed > 0) && (speed <= 4)) {
         mode_configuration.speed = speed - 1;
@@ -202,25 +243,25 @@ void SPIsetup(void) {
     }
 
     if ((clkpol > 0) && (clkpol <= 2)) {
-        spiSettings.ckp = clkpol - 1;
+        spi_state.clock_polarity = clkpol - 1;
     } else {
         speed = 0; // when speed is 0 we ask the user
     }
 
     if ((clkedge > 0) && (clkedge <= 2)) {
-        spiSettings.cke = clkedge - 1;
+        spi_state.clock_edge = clkedge - 1;
     } else {
         speed = 0; // when speed is 0 we ask the user
     }
 
     if ((sample > 0) && (sample <= 2)) {
-        spiSettings.smp = sample - 1;
+        spi_state.data_sample_timing = sample - 1;
     } else {
         speed = 0; // when speed is 0 we ask the user
     }
 
     if ((cslow > 0) && (cslow <= 2)) {
-        spiSettings.csl = (cslow - 1);
+        spi_state.cs_line_state = (cslow - 1);
     } else {
         speed = 0; // when speed is 0 we ask the user
     }
@@ -245,20 +286,20 @@ void SPIsetup(void) {
         //bpWstring("Clock polarity:\x0D\x0A 1. Idle low *default\x0D\x0A 2. Idle high\x0D\x0A");
         //bpWmessage(MSG_OPT_CKP);
         BPMSG1188;
-        spiSettings.ckp = getnumber(1, 1, 2, 0) - 1;
+        spi_state.clock_polarity = getnumber(1, 1, 2, 0) - 1;
 
         //bpWstring("Output clock edge:\x0D\x0A 1. Idle to active\x0D\x0A 2. Active to idle *default\x0D\x0A");
         //bpWmessage(MSG_OPT_CKE);
         BPMSG1189;
-        spiSettings.cke = getnumber(2, 1, 2, 0) - 1;
+        spi_state.clock_edge = getnumber(2, 1, 2, 0) - 1;
 
         //bpWstring("Input sample phase:\x0D\x0A 1. Middle *default\x0D\x0A 2. End\x0D\x0A");
         //bpWmessage(MSG_OPT_SMP);
         BPMSG1190;
-        spiSettings.smp = getnumber(1, 1, 2, 0) - 1;
+        spi_state.data_sample_timing = getnumber(1, 1, 2, 0) - 1;
 
         MSG_SPI_CS_MODE_PROMPT;
-        spiSettings.csl = getnumber(2, 1, 2, 0) - 1;
+        spi_state.cs_line_state = getnumber(2, 1, 2, 0) - 1;
 
         MSG_PIN_OUTPUT_TYPE_PROMPT;
         mode_configuration.high_impedance = (~(getnumber(1, 1, 2, 0) - 1));
@@ -274,7 +315,7 @@ void SPIsetup_exc(void)
     spi_setup(spi_bus_speed[mode_configuration.speed]);
 
     // set cs the way the user wants
-    SPICS = spiSettings.csl; 
+    SPICS = spi_state.cs_line_state; 
 } 
 
 inline void SPIcleanup(void) {
@@ -288,39 +329,49 @@ void SPImacro(unsigned int macro) {
             //bpWline(OUMSG_SPI_MACRO_MENU);
             BPMSG1192;
             break;
+            
         case 1://sniff CS low
             BPMSG1071; //moved to a more generic message
             BPMSG1250;
             spiSniffer(0, 1); //configure for terminal mode
             break;
+            
         case 2://sniff all
             BPMSG1071; //moved to a more generic message
             BPMSG1250;
             spiSniffer(1, 1); //configure for terminal mode
             break;
+            
         case 3: //sniff CS high
             break;
+            
         case 10:
-            spiSettings.ckp = 0;
+            spi_state.clock_polarity = SPI_CLOCK_IDLE_LOW;
             goto SPImacro_settings_cleanup;
+            
         case 11:
-            spiSettings.ckp = 1;
+            spi_state.clock_polarity = SPI_CLOCK_IDLE_HIGH;
             goto SPImacro_settings_cleanup;
+            
         case 12:
-            spiSettings.cke = 0;
+            spi_state.clock_edge = SPI_TRANSITION_FROM_IDLE_TO_ACTIVE;
             goto SPImacro_settings_cleanup;
+            
         case 13:
-            spiSettings.cke = 1;
+            spi_state.clock_edge = SPI_TRANSITION_FROM_ACTIVE_TO_IDLE;
             goto SPImacro_settings_cleanup;
+            
         case 14:
-            spiSettings.smp = 0;
+            spi_state.data_sample_timing = SPI_SAMPLING_ON_DATA_OUTPUT_MIDDLE;
             goto SPImacro_settings_cleanup;
+            
         case 15:
-            spiSettings.smp = 1;
+            spi_state.data_sample_timing = SPI_SAMPLING_ON_DATA_OUTPUT_END;
+            
 SPImacro_settings_cleanup:
-            SPI1CON1bits.CKP = spiSettings.ckp;
-            SPI1CON1bits.CKE = spiSettings.cke;
-            SPI1CON1bits.SMP = spiSettings.smp;
+            SPI1CON1bits.CKP = spi_state.clock_polarity;
+            SPI1CON1bits.CKE = spi_state.clock_edge;
+            SPI1CON1bits.SMP = spi_state.data_sample_timing;
             SPIsettings();
             break;
         default:
@@ -367,13 +418,10 @@ void spi_setup(uint8_t spi_speed) {
     /* CKE=1, CKP=0, SMP=0 */
     //(SPIspeed[modeConfig.speed]);
     SPI1CON1 = spi_speed;  
-    SPI1CON1bits.MSTEN = 1;
-    // CKP idle low
-    SPI1CON1bits.CKP = spiSettings.ckp;
-    // CKE (output edge) active to idle
-    SPI1CON1bits.CKE = spiSettings.cke;
-    // SMP data sampled middle of output time
-    SPI1CON1bits.SMP = spiSettings.smp;
+    SPI1CON1bits.MSTEN = ON;
+    SPI1CON1bits.CKP = spi_state.clock_polarity;
+    SPI1CON1bits.CKE = spi_state.clock_edge;
+    SPI1CON1bits.SMP = spi_state.data_sample_timing;
     SPI1CON2 = 0;
     SPI1STAT = 0; // clear SPI
     SPI1STATbits.SPIEN = 1;
@@ -394,13 +442,23 @@ void spiDisable(void) {
     //make all input maybe???
 }
 
-unsigned char spiWriteByte(unsigned char c) {
-
-    SPI1BUF = c;
-    while (!IFS0bits.SPI1IF);
-    c = SPI1BUF;
-    IFS0bits.SPI1IF = 0;
-    return c;
+uint8_t spi_write_byte(const uint8_t value) {
+    uint8_t result;
+    
+    /* Put the value on the bus. */
+    SPI1BUF = value;
+    
+    /* Wait until a byte has been read. */
+    while (!IFS0bits.SPI1IF) {
+    }
+    
+    /* Get the byte read from the bus. */
+    result = SPI1BUF;
+    
+    /* Free the SPI interface. */
+    IFS0bits.SPI1IF = OFF;
+    
+    return result;
 }
 
 //
@@ -515,15 +573,14 @@ void spiSlaveSetup(void) {
 
     //clear old SPI settings first
     SPI1CON1 = (spi_bus_speed[mode_configuration.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
-    SPI1CON1bits.CKP = spiSettings.ckp;
-    SPI1CON1bits.CKE = spiSettings.cke;
-    //SPI1CON1bits.SMP=spiSettings.smp;
+    SPI1CON1bits.CKP = spi_state.clock_polarity;
+    SPI1CON1bits.CKE = spi_state.clock_edge;
     SPI1CON2 = 0;
     SPI1STAT = 0; // clear SPI
 
     SPI2CON1 = (spi_bus_speed[mode_configuration.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
-    SPI2CON1bits.CKP = spiSettings.ckp;
-    SPI2CON1bits.CKE = spiSettings.cke;
+    SPI2CON1bits.CKP = spi_state.clock_polarity;
+    SPI2CON1bits.CKE = spi_state.clock_edge;
     SPI2CON2 = 0;
     SPI2STAT = 0; // clear SPI
 
@@ -588,21 +645,21 @@ rawSPI mode:
  * 00000010 - Bulk Memory Read from Flash
  */
 
-void binSPI(void) {
+void spi_enter_binary_io(void) {
     static unsigned char inByte, rawCommand, i;
     unsigned int j, fw, fr;
 
     //useful default values
     /* CKE=1, CKP=0, SMP=0 */
     mode_configuration.speed = 1;
-    spiSettings.ckp = 0;
-    spiSettings.cke = 1;
-    spiSettings.smp = 0;
-    mode_configuration.high_impedance = 1;
+    spi_state.clock_polarity = SPI_CLOCK_IDLE_LOW;
+    spi_state.clock_edge = SPI_TRANSITION_FROM_ACTIVE_TO_IDLE;
+    spi_state.data_sample_timing = SPI_SAMPLING_ON_DATA_OUTPUT_MIDDLE;
+    mode_configuration.high_impedance = ON;
     spi_setup(spi_bus_speed[mode_configuration.speed]);
     MSG_SPI_MODE_IDENTIFIER;
     
-    while (1) {
+    for (;;) {
 
         inByte = UART1RX(); /* JTR usb port; */ //grab it
         rawCommand = (inByte >> 4); //get command bits in seperate variable
@@ -619,18 +676,18 @@ void binSPI(void) {
                         break;
                     case 2:
                         IOLAT &= (~CS); //SPICS=0; //cs enable/low
-                        UART1TX(1);
+                        REPORT_IO_SUCCESS();
                         break;
                     case 3:
                         IOLAT |= CS; //SPICS=1; //cs disable/high
-                        UART1TX(1);
+                        REPORT_IO_SUCCESS();
                         break;
                     case 0b1101: //all traffic 13
-                        UART1TX(1);
+                        REPORT_IO_SUCCESS();
                         spiSniffer(1, 0);
                         break;
                     case 0b1110://cs low 14
-                        UART1TX(1);
+                        REPORT_IO_SUCCESS();
                         spiSniffer(0, 0);
                         break;
                         //case 0b1111://cs high
@@ -656,7 +713,7 @@ void binSPI(void) {
 
                         //check length and report error
                         if (fw > BP_TERMINAL_BUFFER_SIZE || fr > BP_TERMINAL_BUFFER_SIZE) {
-                            UART1TX(0);
+                            REPORT_IO_FAILURE();
                             break;
                         }
 
@@ -668,15 +725,15 @@ void binSPI(void) {
 
                         if (inByte == 4) SPICS = 0;
                         for (j = 0; j < fw; j++) {
-                            spiWriteByte(bus_pirate_configuration.terminal_input[j]);
+                            spi_write_byte(bus_pirate_configuration.terminal_input[j]);
                         }
                         bp_delay_us(1);
                         for (j = 0; j < fr; j++) { //read bulk bytes from SPI
-                            bus_pirate_configuration.terminal_input[j] = spiWriteByte(0xff);
+                            bus_pirate_configuration.terminal_input[j] = spi_write_byte(0xff);
                         }
                         if (inByte == 4) SPICS = 1;
 
-                        UART1TX(1); //send 1/OK
+                        REPORT_IO_SUCCESS();
 
                         for (j = 0; j < fr; j++) { //send the read buffer contents over serial
                             UART1TX(bus_pirate_configuration.terminal_input[j]);
@@ -691,23 +748,23 @@ void binSPI(void) {
 #endif /* BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS */
                         
                     default:
-                        UART1TX(0);
+                        REPORT_IO_FAILURE();
                         break;
                 }
                 break;
             case 0b0001://get x+1 bytes
                 inByte &= (~0b11110000); //clear command portion
                 inByte++; //increment by 1, 0=1byte
-                UART1TX(1); //send 1/OK
+                REPORT_IO_SUCCESS();
 
                 for (i = 0; i < inByte; i++) {
-                    UART1TX(spiWriteByte(UART1RX()));
+                    UART1TX(spi_write_byte(UART1RX()));
                 }
 
                 break;
             case 0b0100: //configure peripherals w=power, x=pullups, y=AUX, z=CS
                 bp_binary_io_peripherals_set(inByte);
-                UART1TX(1); //send 1/OK
+                REPORT_IO_SUCCESS();
                 break;
 
 #ifdef BUSPIRATEV4
@@ -719,32 +776,42 @@ void binSPI(void) {
             case 0b0110://set speed
                 inByte &= (~0b11110000); //clear command portion
                 if (inByte > sizeof(spi_bus_speed)) {
-                    UART1TX(BP_BINARY_IO_RESULT_FAILURE);
+                    REPORT_IO_FAILURE();
                     break;
                 }
                 mode_configuration.speed = inByte;
                 spi_setup(spi_bus_speed[mode_configuration.speed]); //resetup SPI
-                UART1TX(1); //send 1/OK
+                REPORT_IO_SUCCESS();
                 break;
-            case 0b1000: //set SPI config
-                //wxyz //w=HiZ(0)/3.3v(1), x=CKP idle (low=0), y=CKE clock edge (active to idle=1), z=SMP sample (middle=0)
-                spiSettings.ckp = 0;
-                spiSettings.cke = 0;
-                spiSettings.smp = 0;
-                mode_configuration.high_impedance = 0;
-                if (inByte & 0b100) spiSettings.ckp = 1; //set idle
-                if (inByte & 0b10) spiSettings.cke = 1; //set edge
-                if (inByte & 0b1) spiSettings.smp = 1; //set sample time
-                if ((inByte & 0b1000) == 0) mode_configuration.high_impedance = 1; //hiz output if this bit is 1
-                spi_setup(spi_bus_speed[mode_configuration.speed]); //resetup SPI
-                UART1TX(1); //send 1/OK
+                
+                /* Set SPI configuration. */
+            case 0b1000:
+                spi_state.clock_polarity = SPI_CLOCK_IDLE_LOW;
+                spi_state.clock_edge = SPI_TRANSITION_FROM_IDLE_TO_ACTIVE;
+                spi_state.data_sample_timing =
+                        SPI_SAMPLING_ON_DATA_OUTPUT_MIDDLE;
+                mode_configuration.high_impedance = OFF;
+                spi_state.clock_polarity =
+                        (inByte & 0b0100) ? SPI_CLOCK_IDLE_HIGH :
+                            SPI_CLOCK_IDLE_LOW;
+                spi_state.clock_edge =
+                        (inByte & 0b0010) ? SPI_TRANSITION_FROM_IDLE_TO_ACTIVE :
+                            SPI_TRANSITION_FROM_ACTIVE_TO_IDLE;
+                spi_state.data_sample_timing =
+                        (inByte & 0b0001) ? SPI_SAMPLING_ON_DATA_OUTPUT_END :
+                            SPI_SAMPLING_ON_DATA_OUTPUT_MIDDLE;
+                mode_configuration.high_impedance =
+                        (inByte & 0b1000) == 0 ? ON : OFF;
+                spi_setup(spi_bus_speed[mode_configuration.speed]);
+                REPORT_IO_SUCCESS();
                 break;
+                
             default:
-                UART1TX(0x00); //send 0/Error
+                REPORT_IO_FAILURE();
                 break;
-        }//command switch
-    }//while loop
-}//function
+        }
+    }
+}
 
 #ifdef BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
 
@@ -790,18 +857,18 @@ void handle_extended_avr_command(void) {
             REPORT_IO_SUCCESS();
             while (length > 0) {
                 /* Fetch low byte from word. */
-                spiWriteByte(AVR_FETCH_LOW_BYTE_COMMAND);
-                spiWriteByte((address >> 8) & 0xFF);
-                spiWriteByte(address & 0xFF);
-                UART1TX(spiWriteByte(0x00));
+                spi_write_byte(AVR_FETCH_LOW_BYTE_COMMAND);
+                spi_write_byte((address >> 8) & 0xFF);
+                spi_write_byte(address & 0xFF);
+                UART1TX(spi_write_byte(0x00));
                 length--;
                 
                 if (length > 0) {
                     /* Fetch high byte from word. */
-                    spiWriteByte(AVR_FETCH_HIGH_BYTE_COMMAND);
-                    spiWriteByte((address >> 8) & 0xFF);
-                    spiWriteByte(address & 0xFF);
-                    UART1TX(spiWriteByte(0x00));
+                    spi_write_byte(AVR_FETCH_HIGH_BYTE_COMMAND);
+                    spi_write_byte((address >> 8) & 0xFF);
+                    spi_write_byte(address & 0xFF);
+                    UART1TX(spi_write_byte(0x00));
                     length--;
                 }
                 
@@ -820,4 +887,3 @@ void handle_extended_avr_command(void) {
 #endif /* BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS */
 
 #endif /* BP_ENABLE_SPI_SUPPORT */
-
