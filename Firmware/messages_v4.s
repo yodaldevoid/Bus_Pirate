@@ -322,12 +322,6 @@ _BPMSG1069_str:
 _BPMSG1070_str:
 	.pascii "Searching I2C address space. Found devices at:"
 
-	; BPMSG1071
-	.section .text.BPMSG1071, code
-	.global _BPMSG1071_str
-_BPMSG1071_str:
-	.pascii "Sniffer"
-
 	; BPMSG1072
 	.section .text.BPMSG1072, code
 	.global _BPMSG1072_str
@@ -808,36 +802,6 @@ _BPMSG1185_str:
 _BPMSG1186_str:
 	.pascii " FAIL"
 
-	; BPMSG1187
-	.section .text.BPMSG1187, code
-	.global _BPMSG1187_str
-_BPMSG1187_str:
-	.pascii "Set speed:\r\n 1.  30KHz\r\n 2. 125KHz\r\n 3. 250KHz\r\n 4.   1MHz\r\n 5.  50KHz\r\n 6. 1.3MHz\r\n 7.   2MHz\r\n 8. 2.6MHz\r\n 9. 3.2MHz\r\n10.   4MHz\r\n11. 5.3MHz\r\n12.   8MHz"
-
-	; BPMSG1188
-	.section .text.BPMSG1188, code
-	.global _BPMSG1188_str
-_BPMSG1188_str:
-	.pascii "Clock polarity:\r\n 1. Idle low *default\r\n 2. Idle high"
-
-	; BPMSG1189
-	.section .text.BPMSG1189, code
-	.global _BPMSG1189_str
-_BPMSG1189_str:
-	.pascii "Output clock edge:\r\n 1. Idle to active\r\n 2. Active to idle *default"
-
-	; BPMSG1190
-	.section .text.BPMSG1190, code
-	.global _BPMSG1190_str
-_BPMSG1190_str:
-	.pascii "Input sample phase:\r\n 1. Middle *default\r\n 2. End"
-
-	; BPMSG1191
-	.section .text.BPMSG1191, code
-	.global _BPMSG1191_str
-_BPMSG1191_str:
-	.pascii "SPI (spd ckp ske smp csl hiz)=( "
-
 	; BPMSG1192
 	.section .text.BPMSG1192, code
 	.global _BPMSG1192_str
@@ -1071,12 +1035,6 @@ _BPMSG1245_str:
 	.global _BPMSG1248_str
 _BPMSG1248_str:
 	.pascii "Input a custom BAUD rate:"
-
-	; BPMSG1250
-	.section .text.BPMSG1250, code
-	.global _BPMSG1250_str
-_BPMSG1250_str:
-	.pascii "Any key to exit"
 
 	; BPMSG1251
 	.section .text.BPMSG1251, code
@@ -1390,6 +1348,12 @@ _MSG_1WIRE_SPEED_PROMPT_str:
 _MSG_ACK_str:
 	.pascii "ACK"
 
+	; MSG_ANY_KEY_TO_EXIT_PROMPT
+	.section .text.MSG_ANY_KEY_TO_EXIT_PROMPT, code
+	.global _MSG_ANY_KEY_TO_EXIT_PROMPT_str
+_MSG_ANY_KEY_TO_EXIT_PROMPT_str:
+	.pascii "Any key to exit"
+
 	; MSG_BASE_CONVERTER_EQUAL_SIGN
 	.section .text.MSG_BASE_CONVERTER_EQUAL_SIGN, code
 	.global _MSG_BASE_CONVERTER_EQUAL_SIGN_str
@@ -1690,6 +1654,12 @@ _MSG_RAW_MODE_IDENTIFIER_str:
 _MSG_RESET_MESSAGE_str:
 	.pascii "RESET"
 
+	; MSG_SNIFFER_MESSAGE
+	.section .text.MSG_SNIFFER_MESSAGE, code
+	.global _MSG_SNIFFER_MESSAGE_str
+_MSG_SNIFFER_MESSAGE_str:
+	.pascii "Sniffer"
+
 	; MSG_SOFTWARE_MODE_SPEED_PROMPT
 	.section .text.MSG_SOFTWARE_MODE_SPEED_PROMPT, code
 	.global _MSG_SOFTWARE_MODE_SPEED_PROMPT_str
@@ -1720,6 +1690,18 @@ _MSG_SPI_CS_ENABLED_str:
 _MSG_SPI_CS_MODE_PROMPT_str:
 	.pascii "CS:\r\n 1. CS\r\n 2. /CS *default"
 
+	; MSG_SPI_EDGE_PROMPT
+	.section .text.MSG_SPI_EDGE_PROMPT, code
+	.global _MSG_SPI_EDGE_PROMPT_str
+_MSG_SPI_EDGE_PROMPT_str:
+	.pascii "Output clock edge:\r\n 1. Idle to active\r\n 2. Active to idle *default"
+
+	; MSG_SPI_MODE_HEADER_START
+	.section .text.MSG_SPI_MODE_HEADER_START, code
+	.global _MSG_SPI_MODE_HEADER_START_str
+_MSG_SPI_MODE_HEADER_START_str:
+	.pascii "SPI (spd ckp ske smp csl hiz)=( "
+
 	; MSG_SPI_MODE_IDENTIFIER
 	.section .text.MSG_SPI_MODE_IDENTIFIER, code
 	.global _MSG_SPI_MODE_IDENTIFIER_str
@@ -1731,6 +1713,24 @@ _MSG_SPI_MODE_IDENTIFIER_str:
 	.global _MSG_SPI_PINS_STATE_str
 _MSG_SPI_PINS_STATE_str:
 	.pascii "CS\tMISO\tCLK\tMOSI"
+
+	; MSG_SPI_POLARITY_PROMPT
+	.section .text.MSG_SPI_POLARITY_PROMPT, code
+	.global _MSG_SPI_POLARITY_PROMPT_str
+_MSG_SPI_POLARITY_PROMPT_str:
+	.pascii "Clock polarity:\r\n 1. Idle low *default\r\n 2. Idle high"
+
+	; MSG_SPI_SAMPLE_PROMPT
+	.section .text.MSG_SPI_SAMPLE_PROMPT, code
+	.global _MSG_SPI_SAMPLE_PROMPT_str
+_MSG_SPI_SAMPLE_PROMPT_str:
+	.pascii "Input sample phase:\r\n 1. Middle *default\r\n 2. End"
+
+	; MSG_SPI_SPEED_PROMPT
+	.section .text.MSG_SPI_SPEED_PROMPT, code
+	.global _MSG_SPI_SPEED_PROMPT_str
+_MSG_SPI_SPEED_PROMPT_str:
+	.pascii "Set speed:\r\n 1.  30KHz\r\n 2. 125KHz\r\n 3. 250KHz\r\n 4.   1MHz\r\n 5.  50KHz\r\n 6. 1.3MHz\r\n 7.   2MHz\r\n 8. 2.6MHz\r\n 9. 3.2MHz\r\n10.   4MHz\r\n11. 5.3MHz\r\n12.   8MHz"
 
 	; MSG_UART_MODE_IDENTIFIER
 	.section .text.MSG_UART_MODE_IDENTIFIER, code

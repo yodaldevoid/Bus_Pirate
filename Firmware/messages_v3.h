@@ -99,8 +99,6 @@ void BPMSG1069_str(void);
 #define BPMSG1069 bp_message_write_buffer(BPMSG1069_str, 53)
 void BPMSG1070_str(void);
 #define BPMSG1070 bp_message_write_line(BPMSG1070_str, 46)
-void BPMSG1071_str(void);
-#define BPMSG1071 bp_message_write_line(BPMSG1071_str, 7)
 void BPMSG1072_str(void);
 #define BPMSG1072 bp_message_write_line(BPMSG1072_str, 34)
 void BPMSG1073_str(void);
@@ -263,16 +261,6 @@ void BPMSG1185_str(void);
 #define BPMSG1185 bp_message_write_line(BPMSG1185_str, 3)
 void BPMSG1186_str(void);
 #define BPMSG1186 bp_message_write_line(BPMSG1186_str, 5)
-void BPMSG1187_str(void);
-#define BPMSG1187 bp_message_write_line(BPMSG1187_str, 154)
-void BPMSG1188_str(void);
-#define BPMSG1188 bp_message_write_line(BPMSG1188_str, 53)
-void BPMSG1189_str(void);
-#define BPMSG1189 bp_message_write_line(BPMSG1189_str, 67)
-void BPMSG1190_str(void);
-#define BPMSG1190 bp_message_write_line(BPMSG1190_str, 49)
-void BPMSG1191_str(void);
-#define BPMSG1191 bp_message_write_buffer(BPMSG1191_str, 32)
 void BPMSG1192_str(void);
 #define BPMSG1192 bp_message_write_line(BPMSG1192_str, 52)
 void BPMSG1194_str(void);
@@ -359,8 +347,6 @@ void BPMSG1245_str(void);
 #define BPMSG1245 bp_message_write_buffer(BPMSG1245_str, 11)
 void BPMSG1248_str(void);
 #define BPMSG1248 bp_message_write_line(BPMSG1248_str, 28)
-void BPMSG1250_str(void);
-#define BPMSG1250 bp_message_write_line(BPMSG1250_str, 15)
 void BPMSG1251_str(void);
 #define BPMSG1251 bp_message_write_line(BPMSG1251_str, 17)
 void BPMSG1252_str(void);
@@ -433,6 +419,8 @@ void MSG_1WIRE_SPEED_PROMPT_str(void);
 #define MSG_1WIRE_SPEED_PROMPT bp_message_write_line(MSG_1WIRE_SPEED_PROMPT_str, 62)
 void MSG_ACK_str(void);
 #define MSG_ACK bp_message_write_buffer(MSG_ACK_str, 3)
+void MSG_ANY_KEY_TO_EXIT_PROMPT_str(void);
+#define MSG_ANY_KEY_TO_EXIT_PROMPT bp_message_write_line(MSG_ANY_KEY_TO_EXIT_PROMPT_str, 15)
 void MSG_BASE_CONVERTER_EQUAL_SIGN_str(void);
 #define MSG_BASE_CONVERTER_EQUAL_SIGN bp_message_write_buffer(MSG_BASE_CONVERTER_EQUAL_SIGN_str, 3)
 void MSG_BBIO_MODE_IDENTIFIER_str(void);
@@ -537,6 +525,8 @@ void MSG_RAW_BRG_VALUE_INPUT_str(void);
 #define MSG_RAW_BRG_VALUE_INPUT bp_message_write_line(MSG_RAW_BRG_VALUE_INPUT_str, 23)
 void MSG_RAW_MODE_IDENTIFIER_str(void);
 #define MSG_RAW_MODE_IDENTIFIER bp_message_write_buffer(MSG_RAW_MODE_IDENTIFIER_str, 4)
+void MSG_SNIFFER_MESSAGE_str(void);
+#define MSG_SNIFFER_MESSAGE bp_message_write_line(MSG_SNIFFER_MESSAGE_str, 7)
 void MSG_SOFTWARE_MODE_SPEED_PROMPT_str(void);
 #define MSG_SOFTWARE_MODE_SPEED_PROMPT bp_message_write_line(MSG_SOFTWARE_MODE_SPEED_PROMPT_str, 59)
 void MSG_SPI_COULD_NOT_KEEP_UP_str(void);
@@ -547,10 +537,20 @@ void MSG_SPI_CS_ENABLED_str(void);
 #define MSG_SPI_CS_ENABLED bp_message_write_line(MSG_SPI_CS_ENABLED_str, 10)
 void MSG_SPI_CS_MODE_PROMPT_str(void);
 #define MSG_SPI_CS_MODE_PROMPT bp_message_write_line(MSG_SPI_CS_MODE_PROMPT_str, 29)
+void MSG_SPI_EDGE_PROMPT_str(void);
+#define MSG_SPI_EDGE_PROMPT bp_message_write_line(MSG_SPI_EDGE_PROMPT_str, 67)
+void MSG_SPI_MODE_HEADER_START_str(void);
+#define MSG_SPI_MODE_HEADER_START bp_message_write_buffer(MSG_SPI_MODE_HEADER_START_str, 32)
 void MSG_SPI_MODE_IDENTIFIER_str(void);
 #define MSG_SPI_MODE_IDENTIFIER bp_message_write_buffer(MSG_SPI_MODE_IDENTIFIER_str, 4)
 void MSG_SPI_PINS_STATE_str(void);
 #define MSG_SPI_PINS_STATE bp_message_write_line(MSG_SPI_PINS_STATE_str, 16)
+void MSG_SPI_POLARITY_PROMPT_str(void);
+#define MSG_SPI_POLARITY_PROMPT bp_message_write_line(MSG_SPI_POLARITY_PROMPT_str, 53)
+void MSG_SPI_SAMPLE_PROMPT_str(void);
+#define MSG_SPI_SAMPLE_PROMPT bp_message_write_line(MSG_SPI_SAMPLE_PROMPT_str, 49)
+void MSG_SPI_SPEED_PROMPT_str(void);
+#define MSG_SPI_SPEED_PROMPT bp_message_write_line(MSG_SPI_SPEED_PROMPT_str, 154)
 void MSG_UART_MODE_IDENTIFIER_str(void);
 #define MSG_UART_MODE_IDENTIFIER bp_message_write_buffer(MSG_UART_MODE_IDENTIFIER_str, 4)
 void MSG_UART_PINS_STATE_str(void);

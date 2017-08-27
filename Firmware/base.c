@@ -171,8 +171,7 @@ void bp_adc_continuous_probe(void) {
 
   // bpWline(OUMSG_PS_ADCC);
   BPMSG1042;
-  // bpWline(OUMSG_PS_ANY_KEY);
-  BPMSG1250;
+  MSG_ANY_KEY_TO_EXIT_PROMPT;
   // bpWstring(OUMSG_PS_ADC_VOLT_PROBE);
   BPMSG1044;
   bp_write_voltage(0);

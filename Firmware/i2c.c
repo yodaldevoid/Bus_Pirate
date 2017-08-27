@@ -471,8 +471,8 @@ void i2c_macro(unsigned int c) {
   case 2:
     i2c_cleanup();
     
-    BPMSG1071;
-    BPMSG1250;
+    MSG_SNIFFER_MESSAGE;
+    MSG_ANY_KEY_TO_EXIT_PROMPT;
     i2c_sniffer(true);
 
 #ifdef BP_I2C_USE_HW_BUS

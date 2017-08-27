@@ -81,8 +81,8 @@ void KEYBmacro(unsigned int c)
 				break;
 		case 1:	//bpWline(OUMSG_KB__MACRO_LIVE);
 				BPMSG1239;
-				BPMSG1250;
-				while(1)
+                MSG_ANY_KEY_TO_EXIT_PROMPT;
+                while(1)
 				{	if(kbReadByte()==0)
 					{	bp_write_formatted_integer(scan_code);
 						bpSP;

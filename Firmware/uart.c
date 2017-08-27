@@ -387,7 +387,7 @@ void uart_run_macro(const uint16_t macro) {
 
   case UART_MACRO_RAW_UART:
     BPMSG1206;
-    BPMSG1250;
+    MSG_ANY_KEY_TO_EXIT_PROMPT;
 
     U2STAbits.OERR = OFF;
     for (;;) {

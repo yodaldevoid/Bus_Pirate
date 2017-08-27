@@ -48,8 +48,16 @@ extern command_t last_command;
 extern bus_pirate_configuration_t bus_pirate_configuration; //we use the big buffer
 extern bool command_error;
 
-static void spiSlaveDisable(void);
-static void spiSlaveSetup(void);
+/**
+ * Set up the SPI interfaces to operate in slave mode.
+ */
+static void spi_slave_enable(void);
+
+/**
+ * Gets the SPI interfaces out of slave mode.
+ */
+static void spi_slave_disable(void);
+
 static void spiSniffer(unsigned char csState, unsigned char termMode);
 
 /**
@@ -203,9 +211,8 @@ unsigned int SPIwrite(unsigned int c) {
 }
 
 void SPIsettings(void) {
-    //bpWstring("SPI (spd ckp ske smp hiz)=( ");
-    BPMSG1191;
-    bp_write_dec_byte((mode_configuration.speed + 1));
+    MSG_SPI_MODE_HEADER_START;
+    bp_write_dec_byte(mode_configuration.speed + 1);
     bpSP;
     bp_write_dec_byte(spi_state.clock_polarity);
     bpSP;
@@ -220,93 +227,65 @@ void SPIsettings(void) {
 }
 
 void SPIsetup(void) {
-    int speed, clkpol, clkedge, sample, output, cslow;
+    bool user_prompt;
+    int spi_speed;
+    int spi_clock_polarity;
+    int spi_clock_edge;
+    int spi_data_sampling;
+    int spi_enabled;
+    int spi_cs_line_state;
 
     consumewhitechars();
-    speed = getint();
+    spi_speed = getint();
     consumewhitechars();
-    clkpol = getint();
+    spi_clock_polarity = getint();
     consumewhitechars();
-    clkedge = getint();
+    spi_clock_edge = getint();
     consumewhitechars();
-    sample = getint();
+    spi_data_sampling = getint();
     consumewhitechars();
-    cslow = getint();
+    spi_cs_line_state = getint();
     consumewhitechars();
-    output = getint();
+    spi_enabled = getint();
+    
+    user_prompt = !(((spi_speed > 0) && (spi_speed <= 4)) &&
+            ((spi_clock_polarity > 0) && (spi_clock_polarity <= 2)) &&
+            ((spi_clock_edge > 0) && (spi_clock_edge <= 2)) &&
+            ((spi_data_sampling > 0) && (spi_data_sampling <= 2)) &&
+            ((spi_cs_line_state > 0) && (spi_cs_line_state <= 2)) &&
+            ((spi_enabled > 0) && (spi_enabled <= 2)));
+    
+    if (user_prompt) {
+        command_error = false;
 
-    // check for userinput (and sanitycheck it!!)
-    if ((speed > 0) && (speed <= 4)) {
-        mode_configuration.speed = speed - 1;
-    } else {
-        speed = 0; // when speed is 0 we ask the user
-    }
-
-    if ((clkpol > 0) && (clkpol <= 2)) {
-        spi_state.clock_polarity = clkpol - 1;
-    } else {
-        speed = 0; // when speed is 0 we ask the user
-    }
-
-    if ((clkedge > 0) && (clkedge <= 2)) {
-        spi_state.clock_edge = clkedge - 1;
-    } else {
-        speed = 0; // when speed is 0 we ask the user
-    }
-
-    if ((sample > 0) && (sample <= 2)) {
-        spi_state.data_sample_timing = sample - 1;
-    } else {
-        speed = 0; // when speed is 0 we ask the user
-    }
-
-    if ((cslow > 0) && (cslow <= 2)) {
-        spi_state.cs_line_state = (cslow - 1);
-    } else {
-        speed = 0; // when speed is 0 we ask the user
-    }
-
-
-    if ((output > 0) && (output <= 2)) {
-        mode_configuration.high_impedance = (~(output - 1));
-    } else {
-        speed = 0; // when speed is 0 we ask the user
-    }
-
-
-    if (speed == 0) // no (valid) cmdline options found
-    {
-        command_error = false; // reset errorflag because of no cmdlineinput
-
-        //bpWstring("Set speed:\x0D\x0A 1. 30KHz\x0D\x0A 2. 125KHz\x0D\x0A 3. 250KHz\x0D\x0A 4. 1MHz\x0D\x0A");
-        //bpWline(OUMSG_SPI_SPEED);
-        BPMSG1187;
+        MSG_SPI_SPEED_PROMPT;
         mode_configuration.speed = getnumber(1, 1, 12, 0) - 1;
 
-        //bpWstring("Clock polarity:\x0D\x0A 1. Idle low *default\x0D\x0A 2. Idle high\x0D\x0A");
-        //bpWmessage(MSG_OPT_CKP);
-        BPMSG1188;
+        MSG_SPI_POLARITY_PROMPT;
         spi_state.clock_polarity = getnumber(1, 1, 2, 0) - 1;
 
-        //bpWstring("Output clock edge:\x0D\x0A 1. Idle to active\x0D\x0A 2. Active to idle *default\x0D\x0A");
-        //bpWmessage(MSG_OPT_CKE);
-        BPMSG1189;
+        MSG_SPI_EDGE_PROMPT;
         spi_state.clock_edge = getnumber(2, 1, 2, 0) - 1;
 
-        //bpWstring("Input sample phase:\x0D\x0A 1. Middle *default\x0D\x0A 2. End\x0D\x0A");
-        //bpWmessage(MSG_OPT_SMP);
-        BPMSG1190;
+        MSG_SPI_SAMPLE_PROMPT;
         spi_state.data_sample_timing = getnumber(1, 1, 2, 0) - 1;
 
         MSG_SPI_CS_MODE_PROMPT;
         spi_state.cs_line_state = getnumber(2, 1, 2, 0) - 1;
 
         MSG_PIN_OUTPUT_TYPE_PROMPT;
-        mode_configuration.high_impedance = (~(getnumber(1, 1, 2, 0) - 1));
+        mode_configuration.high_impedance = ~(getnumber(1, 1, 2, 0) - 1);
     } else {
+        mode_configuration.speed = spi_speed - 1;
+        spi_state.clock_polarity = spi_clock_polarity - 1;
+        spi_state.clock_edge = spi_clock_edge - 1;
+        spi_state.data_sample_timing = spi_data_sampling - 1;        
+        spi_state.cs_line_state = (spi_cs_line_state - 1);
+        mode_configuration.high_impedance = ~(spi_enabled - 1);
         SPIsettings();
     }
-    mode_configuration.write_with_read = 0;
+
+    mode_configuration.write_with_read = OFF;
 }
 
 void SPIsetup_exc(void)
@@ -331,14 +310,14 @@ void SPImacro(unsigned int macro) {
             break;
             
         case 1://sniff CS low
-            BPMSG1071; //moved to a more generic message
-            BPMSG1250;
+            MSG_SNIFFER_MESSAGE;
+            MSG_ANY_KEY_TO_EXIT_PROMPT;
             spiSniffer(0, 1); //configure for terminal mode
             break;
             
         case 2://sniff all
-            BPMSG1071; //moved to a more generic message
-            BPMSG1250;
+            MSG_SNIFFER_MESSAGE;
+            MSG_ANY_KEY_TO_EXIT_PROMPT;
             spiSniffer(1, 1); //configure for terminal mode
             break;
             
@@ -374,6 +353,7 @@ SPImacro_settings_cleanup:
             SPI1CON1bits.SMP = spi_state.data_sample_timing;
             SPIsettings();
             break;
+            
         default:
             MSG_UNKNOWN_MACRO_ERROR;
             break;
@@ -390,14 +370,14 @@ void spi_setup(uint8_t spi_speed) {
     //use open drain control register to
     //enable Hi-Z mode on hardware module outputs
     //inputs are already HiZ
-    if (mode_configuration.high_impedance == 1) {
-        SPIMOSI_ODC = 1;
-        SPICLK_ODC = 1;
-        SPICS_ODC = 1;
+    if (mode_configuration.high_impedance == ON) {
+        SPIMOSI_ODC = ON;
+        SPICLK_ODC = ON;
+        SPICS_ODC = ON;
     } else {
-        SPIMOSI_ODC = 0;
-        SPICLK_ODC = 0;
-        SPICS_ODC = 0;
+        SPIMOSI_ODC = OFF;
+        SPICLK_ODC = OFF;
+        SPICS_ODC = OFF;
     }
 
 	//PPS Setup
@@ -475,7 +455,7 @@ spiSnifferStart:
 
     UARTbufSetup();
     spiDisable();
-    spiSlaveSetup();
+    spi_slave_enable();
 
     if (csState == 0) { //mode 0, use CS pin
         SPI1CON1bits.SSEN = 1; //CS pin active
@@ -545,87 +525,149 @@ spiSnifferStart:
             break;
         }
     }
-    spiSlaveDisable();
+    spi_slave_disable();
 
     spi_setup(spi_bus_speed[mode_configuration.speed]);
 }
 
-//configure both SPI units for slave mode on different pins
-//use current settings
-
-void spiSlaveSetup(void) {
-    //	unsigned char c;
-    //SPI1STATbits.SPIEN=0; //SPI module off
-
-    //assign pins for SPI slave mode
-    SPICS_TRIS = 1; //B6 cs input
-    SPICLK_TRIS = 1; //B8 sck input
-    SPIMISO_TRIS = 1; //B7 SDI input
-    SPIMOSI_TRIS = 1; //b9 SDO input
+void spi_slave_enable(void) {
     
-    //More PPS
-    RPINR21bits.SS1R = BP_CS_RPIN; //SPICS_RPIN; //assign CS function to bus pirate CS pin
+    /* Assign slave SPI pin directions. */
+    SPICS_TRIS = INPUT;
+    SPICLK_TRIS = INPUT;
+    SPIMISO_TRIS = INPUT;
+    SPIMOSI_TRIS = INPUT;
+    
+    /* Route SPI pins to the appropriate destinations. */
+    RPINR21bits.SS1R = BP_CS_RPIN;
     RPINR23bits.SS2R = BP_CS_RPIN;
-    RPINR20bits.SDI1R = BP_MOSI_RPIN; //B9 MOSI
-    RPINR20bits.SCK1R = BP_CLK_RPIN; //SPICLK_RPIN; //assign SPI1 CLK input to bus pirate CLK pin
-    RPINR22bits.SDI2R = BP_MISO_RPIN; //B7 MiSo
-    RPINR22bits.SCK2R = BP_CLK_RPIN; //SPICLK_RPIN; //assign SPI2 CLK input to bus pirate CLK pin
+    RPINR20bits.SDI1R = BP_MOSI_RPIN;
+    RPINR20bits.SCK1R = BP_CLK_RPIN;
+    RPINR22bits.SDI2R = BP_MISO_RPIN;
+    RPINR22bits.SCK2R = BP_CLK_RPIN;
 
-    //clear old SPI settings first
-    SPI1CON1 = (spi_bus_speed[mode_configuration.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
-    SPI1CON1bits.CKP = spi_state.clock_polarity;
-    SPI1CON1bits.CKE = spi_state.clock_edge;
-    SPI1CON2 = 0;
-    SPI1STAT = 0; // clear SPI
+    /* Prepare SPI interfaces first. */
+    
+    /*
+     * MSB
+     * ---00000000xxxxx
+     *    |||||||||||||
+     *    |||||||||||++---> PPRE:   Primary prescale bits.
+     *    ||||||||+++-----> SPRE:   Secondary prescale bits.
+     *    |||||||+--------> MSTEN:  Slave mode.
+     *    ||||||+---------> CKP:    Clock idle LOW.
+     *    |||||+----------> SSEN:   Pin controlled by port function.
+     *    ||||+-----------> CKE:    Transition happens from idle to active.
+     *    |||+------------> SMP:    Data sampled on data output middle.
+     *    ||+-------------> MODE16: Communication is byte-wide.
+     *    |+--------------> DISSDO: SDO1 pin is controlled by the module.
+     *    +---------------> DISSCK: Internal SPI clock is enabled.
+     */
+    SPI1CON1 = (spi_bus_speed[mode_configuration.speed] & 0b11111) |
+            ((spi_state.clock_polarity & 0b1) << _SPI1CON1_CKP_POSITION) |
+            ((spi_state.clock_edge & 0b1) << _SPI1CON1_CKE_POSITION);
+    
+    /*
+     * MSB
+     * 000-----------0-
+     * |||           |
+     * |||           +---> FRMDLY: Frame sync pulse precedes first bit clock.
+     * ||+---------------> FRMPOL: Frame sync pulse is active low.
+     * |+----------------> SPIFSD: Frame sync pulse output.
+     * +-----------------> FRMEN:  Framed SPI1 support disabled.
+     */
+    SPI1CON2 = 0x0000;
+    
+    /*
+     * MSB
+     * 0-0------0----??
+     * | |      |
+     * | |      +--------> SPIROV:  Overflow flag cleared.
+     * | +---------------> SPISIDL: Continue module operation in idle mode.
+     * +-----------------> SPIEN:   Module disabled.
+     */
+    SPI1STAT = 0x0000;
 
-    SPI2CON1 = (spi_bus_speed[mode_configuration.speed]); // CKE (output edge) active to idle, CKP idle low, SMP data sampled middle of output time.
-    SPI2CON1bits.CKP = spi_state.clock_polarity;
-    SPI2CON1bits.CKE = spi_state.clock_edge;
-    SPI2CON2 = 0;
-    SPI2STAT = 0; // clear SPI
+    /*
+     * MSB
+     * ---00000000xxxxx
+     *    |||||||||||||
+     *    |||||||||||++---> PPRE:   Primary prescale bits.
+     *    ||||||||+++-----> SPRE:   Secondary prescale bits.
+     *    |||||||+--------> MSTEN:  Slave mode.
+     *    ||||||+---------> CKP:    Clock idle LOW.
+     *    |||||+----------> SSEN:   Pin controlled by port function.
+     *    ||||+-----------> CKE:    Transition happens from idle to active.
+     *    |||+------------> SMP:    Data sampled on data output middle.
+     *    ||+-------------> MODE16: Communication is byte-wide.
+     *    |+--------------> DISSDO: SDO2 pin is controlled by the module.
+     *    +---------------> DISSCK: Internal SPI clock is enabled.
+     */
+    SPI2CON1 = (spi_bus_speed[mode_configuration.speed] & 0b11111) |
+            ((spi_state.clock_polarity & 0b1) << _SPI1CON1_CKP_POSITION) |
+            ((spi_state.clock_edge & 0b1) << _SPI1CON1_CKE_POSITION);
+    
+    /*
+     * MSB
+     * 000-----------0-
+     * |||           |
+     * |||           +---> FRMDLY: Frame sync pulse precedes first bit clock.
+     * ||+---------------> FRMPOL: Frame sync pulse is active low.
+     * |+----------------> SPIFSD: Frame sync pulse output.
+     * +-----------------> FRMEN:  Framed SPI2 support disabled.
+     */
+    SPI2CON2 = 0x0000;
+    
+    /*
+     * MSB
+     * 0-0------0----??
+     * | |      |
+     * | |      +--------> SPIROV:  Overflow flag cleared.
+     * | +---------------> SPISIDL: Continue module operation in idle mode.
+     * +-----------------> SPIEN:   Module disabled.
+     */
+    SPI2STAT = 0x0000;
 
-    //To set up the SPI module for the Enhanced Buffer
-    //Slave mode of operation:
-    //1. Clear the SPIxBUF register.
-    SPI1BUF = 0;
-    SPI2BUF = 0;
-    //3. Write the desired settings to the SPIxCON1 and SPIxCON2 registers with MSTEN (SPIxCON1<5>) = 0.
-    //4. Clear the SMP bit.
-    SPI1CON1bits.SMP = 0;
-    SPI2CON1bits.SMP = 0;
-
-    //	SPI1CON1bits.SSEN=1; //CS pin active
-    //	SPI2CON1bits.SSEN=1; //CS pin active
-
-    SPI1CON1bits.DISSDO = 1; //Disable SDO pin in slave mode
-    SPI1CON1bits.MSTEN = 0;
-    SPI2CON1bits.DISSDO = 1; //Disable SDO pin in slave mode
-    SPI2CON1bits.MSTEN = 0;
-    //5. If the CKE bit is set, then the SSEN bit must be set, thus enabling the SSx pin.
-    //6. Clear the SPIROV bit (SPIxSTAT<6>).
-    SPI1STATbits.SPIROV = 0;
-    SPI2STATbits.SPIROV = 0;
-    //7. Select Enhanced Buffer mode by setting the SPIBEN bit (SPIxCON2<0>).
-    SPI1CON2bits.SPIBEN = 1;
-    SPI2CON2bits.SPIBEN = 1;
-    //8. Enable SPI operation by setting the SPIEN bit(SPIxSTAT<15>).
-    //SPI1STATbits.SPIEN=1;
-
+    /* Setup the SPI module to operate in enhanced buffer mode. */
+    
+    /* Clear RX/TX registers. */
+    SPI1BUF = 0x0000;
+    SPI2BUF = 0x0000;
+    
+    /* Set the appropriate mode bits while MSTEN is OFF. */
+    SPI1CON1bits.DISSDO = ON;
+    SPI2CON1bits.DISSDO = ON;
+    
+    /* Clear the SMP bits. */
+    SPI1CON1bits.SMP = OFF;
+    SPI2CON1bits.SMP = OFF;
+    
+    /* Clear the overflow bits. */
+    SPI1STATbits.SPIROV = OFF;
+    SPI2STATbits.SPIROV = OFF;
+    
+    /* Select enhanced buffer mode. */
+    SPI1CON2bits.SPIBEN = ON;
+    SPI2CON2bits.SPIBEN = ON;
 }
 
-void spiSlaveDisable(void) {
-    SPI1STATbits.SPIEN = 0; //SPI module off
-    SPI1CON1bits.DISSDO = 0; //restore SDO pin
-    SPI2STATbits.SPIEN = 0; //SPI module off
-    SPI2CON1bits.DISSDO = 0; //restore SDO pin
+void spi_slave_disable(void) {
     
-    RPINR21bits.SS1R = 0b11111; //assign CS input to none
-    RPINR23bits.SS2R = 0b11111; //assign CS input to none
+    /* Turn the modules off. */
+    SPI1STATbits.SPIEN = OFF;
+    SPI2STATbits.SPIEN = OFF;
+    
+    /* Restore the initial SDOx pin state. */
+    SPI1CON1bits.DISSDO = OFF;
+    SPI2CON1bits.DISSDO = OFF;
+    
+    /* Clear pin assignments. */
+    RPINR21bits.SS1R = 0b11111;
+    RPINR23bits.SS2R = 0b11111;
     RPINR20bits.SDI1R = 0b11111;
-    RPINR20bits.SCK1R = 0b11111; //assign CLK input to none
+    RPINR20bits.SCK1R = 0b11111;
     RPINR22bits.SDI2R = 0b11111;
-    RPINR22bits.SCK2R = 0b11111; //assign CLK input to none
-
+    RPINR22bits.SCK2R = 0b11111;
 }
 
 /*

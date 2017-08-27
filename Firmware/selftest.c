@@ -316,7 +316,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
     BP_USBLED_ON();
 #endif /* BUSPIRATEV4 */
     BPMSG1178;
-    BPMSG1250;
+    MSG_ANY_KEY_TO_EXIT_PROMPT;
     UART1RX();
 #ifdef BUSPIRATEV4
     BP_USBLED_OFF();
