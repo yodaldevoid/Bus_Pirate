@@ -66,7 +66,7 @@ def parse_prog_args():
 		return (options, args)
 	elif len(args) != 1:
 		parser.print_help()
-		print options
+		print(options)
 		sys.exit(1)
 	else:
 		return (options, args)
@@ -84,45 +84,45 @@ if __name__ == '__main__':
 	try:
 		spi = SPI(opt.dev_name, 115200)
 	except SerialException as ex:
-		print ex
+		print(ex)
 		sys.exit();
 
-	print "Entering binmode: ",
+	print("Entering binmode: ")
 	if spi.BBmode():
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
 
-	print "Entering raw SPI mode: ",
+	print("Entering raw SPI mode: ")
 	if spi.enter_SPI():
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
 		
-	print "Configuring SPI peripherals: ",
+	print("Configuring SPI peripherals: ")
 	if spi.cfg_pins(PinCfg.POWER | PinCfg.CS | PinCfg.AUX):
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
-	print "Configuring SPI speed: ",
+	print("Configuring SPI speed: ")
 	if spi.set_speed(SPISpeed._2_6MHZ):
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
-	print "Configuring SPI configuration: ",
+	print("Configuring SPI configuration: ")
 	if spi.cfg_spi(SPICfg.CLK_EDGE | SPICfg.OUT_TYPE):
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
 	spi.timeout(0.2)
 
 	if opt.command == "read":
-		print "Reading EEPROM."
+		print("Reading EEPROM.")
 		spi.CS_Low()
 		spi.bulk_trans(5, [0xB, 0, 0, 0, 0])
 		for i in range((int(opt.flash_size)/16)):
@@ -131,7 +131,7 @@ if __name__ == '__main__':
 		spi.CS_High()
 
 	elif opt.command == "write":
-		print "Writing EEPROM."
+		print("Writing EEPROM.")
 		spi.CS_Low()
 		spi.bulk_trans(4, [0xA, 0, 0, 0])
 		for i in range((int(opt.flash_size)/16)):
@@ -139,21 +139,21 @@ if __name__ == '__main__':
 		spi.CS_High()
 
 	elif opt.command == "id":
-		print "Reading Chip ID: ",
+		print("Reading Chip ID: ")
 		spi.CS_Low()
 		d = spi.bulk_trans(4, [0x9F, 0, 0, 0])
 		spi.CS_High()
 		for each in d[1:]:
-			print "%02X " % ord(each),
+			print("%02X " % ord(each))
 		print
 
 	elif opt.command == "erase":
 		pass
 
-	print "Reset Bus Pirate to user terminal: ",
+	print("Reset Bus Pirate to user terminal: ")
 	if spi.resetBP():
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
 		
