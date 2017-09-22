@@ -21,6 +21,7 @@ along with pyBusPirate.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from .BitBang import *
+from builtins import bytes
 
 class SPISpeed:
 	_30KHZ = 0b000
@@ -48,32 +49,32 @@ class SPI(BBIO):
 		BBIO.__init__(self, port, speed)
 
 	def CS_Low(self):
-		self.port.write("\x02")
+		self.port.write(b"\x02")
 		self.timeout(0.1)
 		return self.response(1, True)
 
 	def CS_High(self):
-		self.port.write("\x03")
+		self.port.write(b"\x03")
 		self.timeout(0.1)
 		return self.response(1, True)
 
 	def low_nibble(self, nibble):
-		self.port.write(chr(0x20 | nibble))
+		self.port.write(bytes([0x20 | nibble]))
 		self.timeout(0.1)
 		return self.response(1, True)
 
 	def high_nibble(self, nibble):
-		self.port.write(chr(0x30 | nibble))
+		self.port.write(bytes([0x30 | nibble]))
 		self.timeout(0.1)
 		return self.response(1, True)
 
 	def cfg_spi(self, spi_cfg):
-		self.port.write(chr(0x80 | spi_cfg))
+		self.port.write(bytes([0x80 | spi_cfg]))
 		self.timeout(0.1)
 		return self.response()
 
 	def read_spi_cfg(self):
-		self.port.write("\x90")
+		self.port.write(b"\x90")
 		self.timeout(0.1)
 		return self.response(1, True)
 
