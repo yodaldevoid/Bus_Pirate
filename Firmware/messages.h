@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -17,8 +18,8 @@
 #ifndef BP_MESSAGES_H
 #define BP_MESSAGES_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "configuration.h"
 
@@ -38,7 +39,7 @@ void print_help(void);
 /**
  * Prints a given byte array range from the packed string buffer to the serial
  * port.
- * 
+ *
  * @param[in] strptr pointer to the string.
  */
 void bp_message_write_buffer(unsigned long strptr);
@@ -46,14 +47,14 @@ void bp_message_write_buffer(unsigned long strptr);
 /**
  * Prints a given byte array range from the packed string buffer to the serial
  * port, appending a CRLF pair at the end.
- * 
+ *
  * @param[in] strptr pointer to the string.
  */
 void bp_message_write_line(unsigned long strptr);
 
 /**
  * Prompts the user to agree or not on a particular question.
- * 
+ *
  * @return true if the user pressed either 'y' or 'Y', false otherwise.
  */
 bool agree(void);
