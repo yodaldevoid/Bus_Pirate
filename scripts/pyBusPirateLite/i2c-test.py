@@ -37,7 +37,7 @@ def i2c_read_bytes(address, numbytes, ret=False):
 	i2c.bulk_trans(len(address),address)
 	while numbytes > 0:
 		if not ret:
-			print ord(i2c.read_byte())
+			print(ord(i2c.read_byte()))
 		else:
 			data_out.append(ord(i2c.read_byte()))
 		if numbytes > 1:
@@ -50,38 +50,38 @@ def i2c_read_bytes(address, numbytes, ret=False):
 
 if __name__ == '__main__':
 	i2c = I2C("/dev/ttyUSB0", 115200)
-	print "Entering binmode: ",
+	print("Entering binmode: ")
 	if i2c.BBmode():
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
 
-	print "Entering raw I2C mode: ",
+	print("Entering raw I2C mode: ")
 	if i2c.enter_I2C():
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
 		
-	print "Configuring I2C."
+	print("Configuring I2C.")
 	if not i2c.cfg_pins(I2CPins.POWER | I2CPins.PULLUPS):
-		print "Failed to set I2C peripherals."
+		print("Failed to set I2C peripherals.")
 		sys.exit()
 	if not i2c.set_speed(I2CSpeed._50KHZ):
-		print "Failed to set I2C Speed."
+		print("Failed to set I2C Speed.")
 		sys.exit()
 	i2c.timeout(0.2)
 	
-	print "Reading EEPROM."
+	print("Reading EEPROM.")
 	i2c_write_data([0xa0, 0,0, 1, 2,3,4,5,6,7,8,9])
 	i2c_write_data([0xa0, 0,0])
-	print i2c_read_bytes([0xa1],5)
+	print(i2c_read_bytes([0xa1],5))
 	
-	print "Reset Bus Pirate to user terminal: "
+	print("Reset Bus Pirate to user terminal: ")
 	if i2c.resetBP():
-		print "OK."
+		print("OK.")
 	else:
-		print "failed."
+		print("failed.")
 		sys.exit()
 		
