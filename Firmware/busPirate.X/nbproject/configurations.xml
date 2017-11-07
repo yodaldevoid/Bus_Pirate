@@ -114,7 +114,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>ICD3PlatformTool</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>1.31</languageToolchainVersion>
+        <languageToolchainVersion>1.33</languageToolchainVersion>
         <platform>4</platform>
       </toolsSet>
       <compileType>
@@ -748,7 +748,7 @@
         <targetPluginBoard></targetPluginBoard>
         <platformTool>Simulator</platformTool>
         <languageToolchain>XC16</languageToolchain>
-        <languageToolchainVersion>1.31</languageToolchainVersion>
+        <languageToolchainVersion>1.33</languageToolchainVersion>
         <platform>4</platform>
       </toolsSet>
       <compileType>

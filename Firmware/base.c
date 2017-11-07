@@ -30,7 +30,6 @@ extern mode_configuration_t mode_configuration;
 #pragma config JTAGEN = OFF
 #pragma config GCP = OFF
 #pragma config GWRP = OFF
-#pragma config COE = OFF
 #pragma config FWDTEN = OFF
 #pragma config ICS = PGx1
 #endif /* BUSPIRATEV3 */
@@ -39,7 +38,6 @@ extern mode_configuration_t mode_configuration;
 #pragma config JTAGEN = OFF
 #pragma config GCP = OFF
 #pragma config GWRP = OFF
-#pragma config COE = OFF
 #pragma config FWDTEN = OFF
 #pragma config ICS = PGx2
 #pragma config IESO = OFF
