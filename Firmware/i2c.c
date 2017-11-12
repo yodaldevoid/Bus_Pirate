@@ -390,7 +390,7 @@ void i2c_cleanup(void) {
 #else
 
     /* Disable external I2C module. */
-    I2C1CONBits.I2CEN = OFF;
+    I2C1CONbits.I2CEN = OFF;
 
 #endif /* BUSPIRATEV4 */
   }
