@@ -241,10 +241,8 @@ void engage_spi_cs(bool write_with_read) {
   SPICS = !spi_state.cs_line_state;
   if (spi_state.cs_line_state) {
     UART1TX('/');
-    MSG_SPI_CS_ENABLED;
-  } else {
-    MSG_SPI_CS_DISABLED;
   }
+  MSG_SPI_CS_ENABLED;
 }
 
 inline void spi_start_with_read(void) { engage_spi_cs(ON); }
@@ -255,10 +253,8 @@ void spi_stop(void) {
   SPICS = spi_state.cs_line_state;
   if (spi_state.cs_line_state) {
     UART1TX('/');
-    MSG_SPI_CS_ENABLED;
-  } else {
-    MSG_SPI_CS_DISABLED;
   }
+  MSG_SPI_CS_DISABLED;
 }
 
 inline uint16_t spi_read(void) { return spi_write_byte(0xFF); }
