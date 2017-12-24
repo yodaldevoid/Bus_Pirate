@@ -283,7 +283,7 @@
         <property key="enable-ansi-warnings" value="false"/>
         <property key="enable-fatal-warnings" value="true"/>
         <property key="enable-large-arrays" value="false"/>
-        <property key="enable-omit-frame-pointer" value="false"/>
+        <property key="enable-omit-frame-pointer" value="true"/>
         <property key="enable-procedural-abstraction" value="false"/>
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
@@ -305,7 +305,7 @@
         <property key="oXC16gcc-sfr-warn" value="false"/>
         <property key="oXC16gcc-smar-io-lvl" value="1"/>
         <property key="oXC16gcc-smart-io-fmt" value=""/>
-        <property key="optimization-level" value="0"/>
+        <property key="optimization-level" value="1"/>
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros" value=""/>
@@ -845,7 +845,7 @@
         <property key="enable-ansi-warnings" value="false"/>
         <property key="enable-fatal-warnings" value="true"/>
         <property key="enable-large-arrays" value="false"/>
-        <property key="enable-omit-frame-pointer" value="false"/>
+        <property key="enable-omit-frame-pointer" value="true"/>
         <property key="enable-procedural-abstraction" value="false"/>
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
@@ -867,7 +867,7 @@
         <property key="oXC16gcc-sfr-warn" value="false"/>
         <property key="oXC16gcc-smar-io-lvl" value="1"/>
         <property key="oXC16gcc-smart-io-fmt" value=""/>
-        <property key="optimization-level" value="0"/>
+        <property key="optimization-level" value="1"/>
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros" value=""/>
@@ -990,6 +990,9 @@
         <property key="tracecontrol.tracebufmax" value="546000"/>
         <property key="tracecontrol.tracefile" value="defmplabxtrace.log"/>
         <property key="tracecontrol.traceresetonrun" value="false"/>
+        <property key="uart0io.output" value="window"/>
+        <property key="uart0io.outputfile" value=""/>
+        <property key="uart0io.uartioenabled" value="false"/>
         <property key="uart10io.output" value="window"/>
         <property key="uart10io.outputfile" value=""/>
         <property key="uart10io.uartioenabled" value="false"/>
@@ -1098,6 +1101,8 @@
                   value="report"/>
         <property key="warningmessagebreakoptions.W0052_INSTRUCTION_DIV_TOO_MANY_REPEAT"
                   value="report"/>
+        <property key="warningmessagebreakoptions.W0053_INVALID_INTCON_VS_FIELD_VALUE"
+                  value="report"/>
         <property key="warningmessagebreakoptions.W0101_SIM_UPDATE_FAILED"
                   value="report"/>
         <property key="warningmessagebreakoptions.W0102_SIM_PERIPH_MISSING"
@@ -1117,6 +1122,8 @@
         <property key="warningmessagebreakoptions.W0109_SIM_PERIPHERAL_IN_DEVELOPMENT"
                   value="report"/>
         <property key="warningmessagebreakoptions.W0110_SIM_UNEXPECTED_EVENT"
+                  value="report"/>
+        <property key="warningmessagebreakoptions.W0111_SIM_UNSUPPORTED_SELECTION"
                   value="report"/>
         <property key="warningmessagebreakoptions.W0201_ADC_NO_STIMULUS_FILE"
                   value="report"/>
@@ -1212,6 +1219,12 @@
         <property key="warningmessagebreakoptions.W10001_RESERVED_IRQ_HANDLER_INVOKED"
                   value="report"/>
         <property key="warningmessagebreakoptions.W10002_UNSUPPORTED_CLK_SOURCE"
+                  value="report"/>
+        <property key="warningmessagebreakoptions.W10101_UNSUPPORTED_CHANNEL_MODE"
+                  value="report"/>
+        <property key="warningmessagebreakoptions.W10102_UNSUPPORTED_CLK_SOURCE"
+                  value="report"/>
+        <property key="warningmessagebreakoptions.W10103_UNSUPPORTED_RECEIVER_FILTER"
                   value="report"/>
         <property key="warningmessagebreakoptions.W1201_DATAFLASH_MEM_OUTSIDE_RANGE"
                   value="report"/>
