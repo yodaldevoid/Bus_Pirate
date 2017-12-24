@@ -27,8 +27,6 @@
 #define UARTTX_PIN BP_MOSI_RPOUT
 #define UARTTX_ODC BP_MOSI_ODC
 
-#define DATABITS_AND_PARITY_MASK 0b00000011
-
 void uart2_setup(const uint16_t baud_rate_generator_prescaler,
                  const bool open_drain_output, const bool invert_polarity,
                  const uint8_t databits_and_parity, const bool stop_bits) {
@@ -46,53 +44,41 @@ void uart2_setup(const uint16_t baud_rate_generator_prescaler,
    * Initialise UART2.
    *
    * MSB
-   * 0x000x0000000000
+   * 0x000x00000C1BBA
    * | ||| ||||||||||
-   * | ||| |||||||||+--> STSEL:  One stop bit.
-   * | ||| |||||||++---> PDSEL:  8-bit data, no parity.
-   * | ||| ||||||+-----> BRGH:   Standard mode (baud clock from Fcy/16).
-   * | ||| |||||+------> RXINV:  RX Idle state is '1'.
-   * | ||| ||||+-------> ABAUD:  Baud rate measurement disabled.
-   * | ||| |||+--------> LPBACK: Loopback mode disabled.
-   * | ||| ||+---------> WAKE:   No wake-up enabled.
-   * | ||| ++----------> UEN:    CTS and RTS controlled by port latches.
-   * | ||+-------------> RTSMD:  RTS pin in Flow Control mode.
-   * | |+--------------> IREN:   IrDA encoder/decoder disabled.
-   * | +---------------> USIDL:  Continue module operation in Idle mode.
-   * +-----------------> UARTEN: Disable port.
+   * | ||| |||||||||+-- STSEL:  One or two stop bits.
+   * | ||| |||||||++--- PDSEL:  Data bits and parity.
+   * | ||| ||||||+----- BRGH:   High speed mode (baud clock from Fcy/4).
+   * | ||| |||||+------ RXINV:  RX Idle state high/low.
+   * | ||| ||||+------- ABAUD:  Baud rate measurement disabled.
+   * | ||| |||+-------- LPBACK: Loopback mode disabled.
+   * | ||| ||+--------- WAKE:   No wake-up enabled.
+   * | ||| ++---------- UEN:    CTS and RTS controlled by port latches.
+   * | ||+------------- RTSMD:  RTS pin in Flow Control mode.
+   * | |+-------------- IREN:   IrDA encoder/decoder disabled.
+   * | +--------------- USIDL:  Continue module operation in Idle mode.
+   * +----------------- UARTEN: Disable port.
    */
-  U2MODE = 0;
-
-  /* Enable high speed UART mode. */
-  U2MODEbits.BRGH = ON;
-
-  /* Set polarity inversion on RX pin. */
-  U2MODEbits.RXINV = invert_polarity;
-
-  /* Set databits and parity. */
-  U2MODEbits.PDSEL = databits_and_parity & DATABITS_AND_PARITY_MASK;
-
-  /* Set stop bits. */
-  U2MODEbits.STSEL = stop_bits;
+  U2MODE = (MASKBOTTOM8(stop_bits, 1) << _U2MODE_STSEL_POSITION) |
+           (MASKBOTTOM8(databits_and_parity, 2) << _U2MODE_PDSEL_POSITION) |
+           (1 << _U2MODE_BRGH_POSITION) |
+           (MASKBOTTOM8(invert_polarity, 1) << _U2MODE_RXINV_POSITION);
 
   /*
    * Set UART2 status bits.
    *
    * MSB
-   * 000x00--000---0-
+   * 0A0x00--000---0-
    * ||| ||  |||   |
-   * ||| ||  |||   +---> OERR:    Clear overrun error status bit.
-   * ||| ||  ||+-------> ADDEN:   Address detect mode disabled.
-   * ||| ||  ++--------> URXISEL: RX Interrupt on every incoming byte.
-   * ||| |+------------> UTXEN:   Transmission disabled.
-   * ||| +-------------> UTXBRK:  Sync break transmission disabled.
-   * +-+---------------> UTXISEL: TX Interrupt on every outgoing byte.
-   *  +----------------> UTXINV:  TX Idle state is '1'.
+   * ||| ||  |||   +--- OERR:    Clear overrun error status bit.
+   * ||| ||  ||+------- ADDEN:   Address detect mode disabled.
+   * ||| ||  ++-------- URXISEL: RX Interrupt on every incoming byte.
+   * ||| |+------------ UTXEN:   Transmission disabled.
+   * ||| +------------- UTXBRK:  Sync break transmission disabled.
+   * +-+--------------- UTXISEL: TX Interrupt on every outgoing byte.
+   *  +---------------- UTXINV:  TX Idle state high/low.
    */
-  U2STA = 0;
-
-  /* Set polarity inversion on TX pin. */
-  U2STAbits.UTXINV = invert_polarity;
+  U2STA = MASKBOTTOM8(invert_polarity, 1) << _U2STA_UTXINV_POSITION;
 }
 
 void uart2_enable(void) {

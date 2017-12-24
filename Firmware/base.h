@@ -102,6 +102,14 @@
 #define LO8(value) ((uint16_t)(value)&0xFF)
 
 /**
+ * Returns the given value with only the requested bottom bits masked in.
+ *
+ * @param[in] value a 8-bits integer to mask.
+ * @param[in] bits how many bits to leave, starting from LSB.
+ */
+#define MASKBOTTOM8(value, bits) (((uint8_t)value) & ((1 << (uint8_t)bits) - 1))
+
+/**
  * Firmware version string, used at startup and for the 'i' command.
  */
 #define BP_FIRMWARE_STRING "Community Firmware v7.1 - goo.gl/gCzQnW "
