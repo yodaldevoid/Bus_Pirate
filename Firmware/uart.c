@@ -544,53 +544,47 @@ uint32_t uart_get_baud_rate(const bool quiet) {
 
     /* Stop timers. */
 
+    /* Clear timer 5 holding register. */
+    TMR5HLD = 0;
+
     /*
      * T4CON: TIMER4 CONTROL REGISTER
      *
      * MSB
-     * 0-0------0000-0-
+     * 0-0------0001-0-
      * | |      |||| |
-     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
-     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
-     * | |      |++------> TCKPS: Input prescaler 1:1.
-     * | |      +--------> TGATE: Gated time accumulation is disabled.
-     * | +---------------> TSIDL  Continues module operation in Idle mode.
-     * +-----------------> TON:   Stops 16-bit Timerx.
+     * | |      |||| +--- TCS:   Internal clock (FOSC/2)
+     * | |      |||+----- T32:   Timerx and Timery form a single 32-bit timer.
+     * | |      |++------ TCKPS: Input prescaler 1:1.
+     * | |      +-------- TGATE: Gated time accumulation is disabled.
+     * | +--------------- TSIDL  Continues module operation in Idle mode.
+     * +----------------- TON:   Stops 16-bit Timerx.
      */
-    T4CON = 0;
+    T4CON = 1 << _T4CON_T32_POSITION;
+
+    /* Clear timer 4 register. */
+    TMR4 = 0;
+
+    /* Clear timer 3 holding register. */
+    TMR3HLD = 0;
 
     /*
      * T2CON: TIMER2 CONTROL REGISTER
      *
      * MSB
-     * 0-0------0000-0-
+     * 0-0------0001-0-
      * | |      |||| |
-     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
-     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
-     * | |      |++------> TCKPS: Input prescaler 1:1.
-     * | |      +--------> TGATE: Gated time accumulation is disabled.
-     * | +---------------> TSIDL  Continues module operation in Idle mode.
-     * +-----------------> TON:   Stops 16-bit Timerx.
+     * | |      |||| +--- TCS:   Internal clock (FOSC/2)
+     * | |      |||+----- T32:   Timerx and Timery form a single 32-bit timer.
+     * | |      |++------ TCKPS: Input prescaler 1:1.
+     * | |      +-------- TGATE: Gated time accumulation is disabled.
+     * | +--------------- TSIDL  Continues module operation in Idle mode.
+     * +----------------- TON:   Stops 16-bit Timerx.
      */
-    T2CON = 0;
-
-    /* Merge timer 2 and 3. */
-    T2CONbits.T32 = ON;
-
-    /* Clear timer 3 holding register. */
-    TMR3HLD = 0;
+    T2CON = 1 << _T2CON_T32_POSITION;
 
     /* Clear timer 2 register. */
     TMR2 = 0;
-
-    /* Clear timer 5 holding register. */
-    TMR5HLD = 0;
-
-    /* Clear timer 4 register. */
-    TMR4 = 0;
-
-    /* Merge timer 4 and 5. */
-    T4CONbits.T32 = ON;
 
     if (!quiet) {
       BPMSG1281;
@@ -628,12 +622,12 @@ uint32_t uart_get_baud_rate(const bool quiet) {
      * MSB
      * 0-0------0000-0-
      * | |      |||| |
-     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
-     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
-     * | |      |++------> TCKPS: Input prescaler 1:1.
-     * | |      +--------> TGATE: Gated time accumulation is disabled.
-     * | +---------------> TSIDL  Continues module operation in Idle mode.
-     * +-----------------> TON:   Stops 16-bit Timerx.
+     * | |      |||| +--- TCS:   Internal clock (FOSC/2)
+     * | |      |||+----- T32:   Timerx and Timery act as 2 16-bit timers.
+     * | |      |++------ TCKPS: Input prescaler 1:1.
+     * | |      +-------- TGATE: Gated time accumulation is disabled.
+     * | +--------------- TSIDL  Continues module operation in Idle mode.
+     * +----------------- TON:   Stops 16-bit Timerx.
      */
     T4CON = 0;
 
@@ -643,12 +637,12 @@ uint32_t uart_get_baud_rate(const bool quiet) {
      * MSB
      * 0-0------0000-0-
      * | |      |||| |
-     * | |      |||| +---> TCS:   Internal clock (FOSC/2)
-     * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
-     * | |      |++------> TCKPS: Input prescaler 1:1.
-     * | |      +--------> TGATE: Gated time accumulation is disabled.
-     * | +---------------> TSIDL  Continues module operation in Idle mode.
-     * +-----------------> TON:   Stops 16-bit Timerx.
+     * | |      |||| +--- TCS:   Internal clock (FOSC/2)
+     * | |      |||+----- T32:   Timerx and Timery act as 2 16-bit timers.
+     * | |      |++------ TCKPS: Input prescaler 1:1.
+     * | |      +-------- TGATE: Gated time accumulation is disabled.
+     * | +--------------- TSIDL  Continues module operation in Idle mode.
+     * +----------------- TON:   Stops 16-bit Timerx.
      */
     T2CON = 0;
 
@@ -660,43 +654,8 @@ uint32_t uart_get_baud_rate(const bool quiet) {
     }
   }
 
-  /* Stop timers. */
-
-  T2CONbits.TON = OFF;
-  T4CONbits.TON = OFF;
-
   /* Neuter Timer2. */
   RPINR3bits.T2CKR = 0b011111;
-
-  /*
-   * T4CON: TIMER4 CONTROL REGISTER
-   *
-   * MSB
-   * 0-0------0000-0-
-   * | |      |||| |
-   * | |      |||| +---> TCS:   Internal clock (FOSC/2)
-   * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
-   * | |      |++------> TCKPS: Input prescaler 1:1.
-   * | |      +--------> TGATE: Gated time accumulation is disabled.
-   * | +---------------> TSIDL  Continues module operation in Idle mode.
-   * +-----------------> TON:   Stops 16-bit Timerx.
-   */
-  T4CON = 0;
-
-  /*
-   * T4CON: TIMER4 CONTROL REGISTER
-   *
-   * MSB
-   * 0-0------0000-0-
-   * | |      |||| |
-   * | |      |||| +---> TCS:   Internal clock (FOSC/2)
-   * | |      |||+-----> T32:   Timerx and Timery act as 2 16-bit timers.
-   * | |      |++------> TCKPS: Input prescaler 1:1.
-   * | |      +--------> TGATE: Gated time accumulation is disabled.
-   * | +---------------> TSIDL  Continues module operation in Idle mode.
-   * +-----------------> TON:   Stops 16-bit Timerx.
-   */
-  T2CON = 0;
 
   /* Clear timer 2 register. */
   TMR2 = 0;
