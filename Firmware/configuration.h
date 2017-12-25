@@ -55,7 +55,7 @@
  *
  * Enable 1-Wire protocol support in the built firmware.
  *
- * @note BPv3 default firmware status: OPTIONAL
+ * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
  *
  * From https://en.wikipedia.org/wiki/1-Wire :
@@ -78,7 +78,7 @@
  * Enable a cut-down BASIC interpreter to automate tasks in a more structured
  * way than macros alone.
  *
- * @note BPv3 default firmware status: OPTIONAL
+ * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
  */
 
@@ -88,7 +88,7 @@
  * Enable Direct I/O control over the hardware pins using the binary
  * communication protocol.
  *
- * @note BPv3 default firmware status: OPTIONAL
+ * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
  */
 
@@ -142,7 +142,7 @@
  * programming software described at
  * http://dangerousprototypes.com/docs/Pirate_PIC_Programmer
  *
- * @note BPv3 default firmware status: OPTIONAL
+ * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
  *
  * Current support is for PIC10, PIC12, PIC14, PIC16, and PIC18 MCU families.
@@ -163,7 +163,7 @@
  * Enable support for controlling two I/O pins in an arbitrary way to implement
  * custom binary protocols.
  *
- * @note BPv3 default firmware status: OPTIONAL
+ * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
  */
 
@@ -173,7 +173,7 @@
  * Enable support for controlling three I/O pins in an arbitrary way to
  * implement custom binary protocols.
  *
- * @note BPv3 default firmware status: OPTIONAL
+ * @note BPv3 default firmware status: INCLUDED
  * @note BPv4 default firmware status: INCLUDED
  */
 
@@ -314,16 +314,16 @@
 #endif /* BUSPIRATEV4 */
 
 #ifdef BUSPIRATEV3
-#undef BP_ENABLE_1WIRE_SUPPORT
-#undef BP_ENABLE_BASIC_SUPPORT
-#undef BP_ENABLE_DIO_SUPPORT
+#define BP_ENABLE_1WIRE_SUPPORT
+#define BP_ENABLE_BASIC_SUPPORT
+#define BP_ENABLE_DIO_SUPPORT
 #undef BP_ENABLE_HD44780_SUPPORT
 #define BP_ENABLE_I2C_SUPPORT
 #define BP_ENABLE_JTAG_SUPPORT
-#undef BP_ENABLE_PIC_SUPPORT
+#define BP_ENABLE_PIC_SUPPORT
 #undef BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
-#undef BP_ENABLE_RAW_2WIRE_SUPPORT
-#undef BP_ENABLE_RAW_3WIRE_SUPPORT
+#define BP_ENABLE_RAW_2WIRE_SUPPORT
+#define BP_ENABLE_RAW_3WIRE_SUPPORT
 #undef BP_ENABLE_SMPS_SUPPORT
 #define BP_ENABLE_SPI_SUPPORT
 #define BP_ENABLE_SUMP_SUPPORT
