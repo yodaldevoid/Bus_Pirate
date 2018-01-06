@@ -446,6 +446,18 @@
 
 #endif /* BP_ENABLE_SPI_SUPPORT */
 
+/* SMPS module configuration definitions. */
+
+#ifdef BP_ENABLE_SMPS_SUPPORT
+
+#ifdef BUSPIRATEV3
+
+#error "SMPS support is not available on Bus Pirate v3 boards."
+
+#endif /* BUSPIRATEV3 */
+
+#endif /* BP_ENABLE_SMPS_SUPPORT */
+
 /* JTAG module configuration definitions. */
 
 #ifdef BP_ENABLE_JTAG_SUPPORT
@@ -462,18 +474,6 @@
 #endif /* BUSPIRATEV3 */
 
 #ifdef BUSPIRATEV4
-
-/* SMPS module configuration definitions. */
-
-#ifdef BP_ENABLE_SMPS_SUPPORT
-
-#ifdef BUSPIRATEV3
-
-#error "SMPS support is not available on Bus Pirate v3 boards."
-
-#endif /* BUSPIRATEV3 */
-
-#endif /* BP_ENABLE_SMPS_SUPPORT */
 
 /**
  * Enable support for XSVF JTAG commands.
