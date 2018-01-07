@@ -441,30 +441,32 @@ void spi_setup(const uint8_t spi_speed) {
    * MSB
    * ---000xx0x1xxxxx
    *    |||||||||||||
-   *    |||||||||||++---> PPRE:   Primary prescale bits.
-   *    ||||||||+++-----> SPRE:   Secondary prescale bits.
-   *    |||||||+--------> MSTEN:  Master mode.
-   *    ||||||+---------> CKP:    Clock idle LOW.
-   *    |||||+----------> SSEN:   Pin controlled by port function.
-   *    ||||+-----------> CKE:    Transition happens from idle to active.
-   *    |||+------------> SMP:    Flag indicating when the data is sampled.
-   *    ||+-------------> MODE16: Communication is byte-wide.
-   *    |+--------------> DISSDO: SDO1 pin is controlled by the module.
-   *    +---------------> DISSCK: Internal SPI clock is enabled.
+   *    |||||||||||++--- PPRE:   Primary prescale bits.
+   *    ||||||||+++----- SPRE:   Secondary prescale bits.
+   *    |||||||+-------- MSTEN:  Master mode.
+   *    ||||||+--------- CKP:    Clock idle LOW.
+   *    |||||+---------- SSEN:   Pin controlled by port function.
+   *    ||||+----------- CKE:    Transition happens from idle to active.
+   *    |||+------------ SMP:    Flag indicating when the data is sampled.
+   *    ||+------------- MODE16: Communication is byte-wide.
+   *    |+-------------- DISSDO: SDO1 pin is controlled by the module.
+   *    +--------------- DISSCK: Internal SPI clock is enabled.
    */
-  SPI1CON1 = (spi_speed & 0b11111) | (ON << _SPI1CON1_MSTEN_POSITION) |
-             ((spi_state.clock_polarity & 0b1) << _SPI1CON1_CKP_POSITION) |
-             ((spi_state.clock_edge & 0b1) << _SPI1CON1_CKE_POSITION) |
-             ((spi_state.data_sample_timing & 0b1) << _SPI1CON1_SMP_POSITION);
+  SPI1CON1 =
+      (MASKBOTTOM8(spi_speed, 5) << _SPI1CON1_PPRE_POSITION) |
+      (ON << _SPI1CON1_MSTEN_POSITION) |
+      (MASKBOTTOM8(spi_state.clock_polarity, 1) << _SPI1CON1_CKP_POSITION) |
+      (MASKBOTTOM8(spi_state.clock_edge, 1) << _SPI1CON1_CKE_POSITION) |
+      (MASKBOTTOM8(spi_state.data_sample_timing, 1) << _SPI1CON1_SMP_POSITION);
 
   /*
    * MSB
    * 000-----------0-
    * |||           |
-   * |||           +---> FRMDLY: Frame sync pulse precedes first bit clock.
-   * ||+---------------> FRMPOL: Frame sync pulse is active low.
-   * |+----------------> SPIFSD: Frame sync pulse output.
-   * +-----------------> FRMEN:  Framed SPI1 support disabled.
+   * |||           +---- FRMDLY: Frame sync pulse precedes first bit clock.
+   * ||+---------------- FRMPOL: Frame sync pulse is active low.
+   * |+----------------- SPIFSD: Frame sync pulse output.
+   * +------------------ FRMEN:  Framed SPI1 support disabled.
    */
   SPI1CON2 = 0x0000;
 
@@ -472,9 +474,9 @@ void spi_setup(const uint8_t spi_speed) {
    * MSB
    * 0-0------0----??
    * | |      |
-   * | |      +--------> SPIROV:  Overflow flag cleared.
-   * | +---------------> SPISIDL: Continue module operation in idle mode.
-   * +-----------------> SPIEN:   Module disabled.
+   * | |      +--------- SPIROV:  Overflow flag cleared.
+   * | +---------------- SPISIDL: Continue module operation in idle mode.
+   * +------------------ SPIEN:   Module disabled.
    */
   SPI1STAT = 0x0000;
 
@@ -586,9 +588,9 @@ restart:
        * MSB
        * 0-0------0----??
        * | |      |
-       * | |      +--------> SPIROV:  Overflow flag cleared.
-       * | +---------------> SPISIDL: Continue module operation in idle mode.
-       * +-----------------> SPIEN:   Module disabled.
+       * | |      +--------- SPIROV:  Overflow flag cleared.
+       * | +---------------- SPISIDL: Continue module operation in idle mode.
+       * +------------------ SPIEN:   Module disabled.
        */
       SPI1STAT = 0x0000;
 
@@ -596,9 +598,9 @@ restart:
        * MSB
        * 0-0------0----??
        * | |      |
-       * | |      +--------> SPIROV:  Overflow flag cleared.
-       * | +---------------> SPISIDL: Continue module operation in idle mode.
-       * +-----------------> SPIEN:   Module disabled.
+       * | |      +--------- SPIROV:  Overflow flag cleared.
+       * | +---------------- SPISIDL: Continue module operation in idle mode.
+       * +------------------ SPIEN:   Module disabled.
        */
       SPI2STAT = 0x0000;
 
@@ -650,29 +652,31 @@ void spi_slave_enable(void) {
    * MSB
    * ---0000x0x0xxxxx
    *    |||||||||||||
-   *    |||||||||||++---> PPRE:   Primary prescale bits.
-   *    ||||||||+++-----> SPRE:   Secondary prescale bits.
-   *    |||||||+--------> MSTEN:  Slave mode.
-   *    ||||||+---------> CKP:    Clock idle state.
-   *    |||||+----------> SSEN:   Pin controlled by port function.
-   *    ||||+-----------> CKE:    Flag indicating when transitions happen.
-   *    |||+------------> SMP:    Data sampled on data output middle.
-   *    ||+-------------> MODE16: Communication is byte-wide.
-   *    |+--------------> DISSDO: SDO1 pin is controlled by the module.
-   *    +---------------> DISSCK: Internal SPI clock is enabled.
+   *    |||||||||||++--- PPRE:   Primary prescale bits.
+   *    ||||||||+++----- SPRE:   Secondary prescale bits.
+   *    |||||||+-------- MSTEN:  Slave mode.
+   *    ||||||+--------- CKP:    Clock idle state.
+   *    |||||+---------- SSEN:   Pin controlled by port function.
+   *    ||||+----------- CKE:    Flag indicating when transitions happen.
+   *    |||+------------ SMP:    Data sampled on data output middle.
+   *    ||+------------- MODE16: Communication is byte-wide.
+   *    |+-------------- DISSDO: SDO1 pin is controlled by the module.
+   *    +--------------- DISSCK: Internal SPI clock is enabled.
    */
-  SPI1CON1 = (spi_bus_speed[mode_configuration.speed] & 0b11111) |
-             ((spi_state.clock_polarity & 0b1) << _SPI1CON1_CKP_POSITION) |
-             ((spi_state.clock_edge & 0b1) << _SPI1CON1_CKE_POSITION);
+  SPI1CON1 =
+      (MASKBOTTOM8(spi_bus_speed[mode_configuration.speed], 5)
+       << _SPI1CON1_PPRE_POSITION) |
+      (MASKBOTTOM8(spi_state.clock_polarity, 1) << _SPI1CON1_CKP_POSITION) |
+      (MASKBOTTOM8(spi_state.clock_edge, 1) << _SPI1CON1_CKE_POSITION);
 
   /*
    * MSB
    * 000-----------0-
    * |||           |
-   * |||           +---> FRMDLY: Frame sync pulse precedes first bit clock.
-   * ||+---------------> FRMPOL: Frame sync pulse is active low.
-   * |+----------------> SPIFSD: Frame sync pulse output.
-   * +-----------------> FRMEN:  Framed SPI1 support disabled.
+   * |||           +---- FRMDLY: Frame sync pulse precedes first bit clock.
+   * ||+---------------- FRMPOL: Frame sync pulse is active low.
+   * |+----------------- SPIFSD: Frame sync pulse output.
+   * +------------------ FRMEN:  Framed SPI1 support disabled.
    */
   SPI1CON2 = 0x0000;
 
@@ -680,9 +684,9 @@ void spi_slave_enable(void) {
    * MSB
    * 0-0------0----??
    * | |      |
-   * | |      +--------> SPIROV:  Overflow flag cleared.
-   * | +---------------> SPISIDL: Continue module operation in idle mode.
-   * +-----------------> SPIEN:   Module disabled.
+   * | |      +--------- SPIROV:  Overflow flag cleared.
+   * | +---------------- SPISIDL: Continue module operation in idle mode.
+   * +------------------ SPIEN:   Module disabled.
    */
   SPI1STAT = 0x0000;
 
@@ -690,29 +694,31 @@ void spi_slave_enable(void) {
    * MSB
    * ---0000x0x0xxxxx
    *    |||||||||||||
-   *    |||||||||||++---> PPRE:   Primary prescale bits.
-   *    ||||||||+++-----> SPRE:   Secondary prescale bits.
-   *    |||||||+--------> MSTEN:  Slave mode.
-   *    ||||||+---------> CKP:    Clock idle state.
-   *    |||||+----------> SSEN:   Pin controlled by port function.
-   *    ||||+-----------> CKE:    Flag indicating when transitions happen.
-   *    |||+------------> SMP:    Data sampled on data output middle.
-   *    ||+-------------> MODE16: Communication is byte-wide.
-   *    |+--------------> DISSDO: SDO2 pin is controlled by the module.
-   *    +---------------> DISSCK: Internal SPI clock is enabled.
+   *    |||||||||||++--- PPRE:   Primary prescale bits.
+   *    ||||||||+++----- SPRE:   Secondary prescale bits.
+   *    |||||||+-------- MSTEN:  Slave mode.
+   *    ||||||+--------- CKP:    Clock idle state.
+   *    |||||+---------- SSEN:   Pin controlled by port function.
+   *    ||||+----------- CKE:    Flag indicating when transitions happen.
+   *    |||+------------ SMP:    Data sampled on data output middle.
+   *    ||+------------- MODE16: Communication is byte-wide.
+   *    |+-------------- DISSDO: SDO2 pin is controlled by the module.
+   *    +--------------- DISSCK: Internal SPI clock is enabled.
    */
-  SPI2CON1 = (spi_bus_speed[mode_configuration.speed] & 0b11111) |
-             ((spi_state.clock_polarity & 0b1) << _SPI2CON1_CKP_POSITION) |
-             ((spi_state.clock_edge & 0b1) << _SPI2CON1_CKE_POSITION);
+  SPI2CON1 =
+      (MASKBOTTOM8(spi_bus_speed[mode_configuration.speed], 5)
+       << _SPI2CON1_PPRE_POSITION) |
+      (MASKBOTTOM8(spi_state.clock_polarity, 1) << _SPI2CON1_CKP_POSITION) |
+      (MASKBOTTOM8(spi_state.clock_edge, 1) << _SPI2CON1_CKE_POSITION);
 
   /*
    * MSB
    * 000-----------0-
    * |||           |
-   * |||           +---> FRMDLY: Frame sync pulse precedes first bit clock.
-   * ||+---------------> FRMPOL: Frame sync pulse is active low.
-   * |+----------------> SPIFSD: Frame sync pulse output.
-   * +-----------------> FRMEN:  Framed SPI2 support disabled.
+   * |||           +---- FRMDLY: Frame sync pulse precedes first bit clock.
+   * ||+---------------- FRMPOL: Frame sync pulse is active low.
+   * |+----------------- SPIFSD: Frame sync pulse output.
+   * +------------------ FRMEN:  Framed SPI2 support disabled.
    */
   SPI2CON2 = 0x0000;
 
@@ -720,9 +726,9 @@ void spi_slave_enable(void) {
    * MSB
    * 0-0------0----??
    * | |      |
-   * | |      +--------> SPIROV:  Overflow flag cleared.
-   * | +---------------> SPISIDL: Continue module operation in idle mode.
-   * +-----------------> SPIEN:   Module disabled.
+   * | |      +--------- SPIROV:  Overflow flag cleared.
+   * | +---------------- SPISIDL: Continue module operation in idle mode.
+   * +------------------ SPIEN:   Module disabled.
    */
   SPI2STAT = 0x0000;
 
