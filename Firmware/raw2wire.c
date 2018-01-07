@@ -86,7 +86,7 @@ void raw2wire_print_settings(void) {
   MSG_MODE_HEADER_END;
 }
 
-void raw2wire_setup_execute(void) {
+void raw2wire_setup_prepare(void) {
   bool user_prompt;
   int speed;
   int output;
@@ -112,7 +112,7 @@ void raw2wire_setup_execute(void) {
   }
 }
 
-void raw2wire_setup_prepare(void) {
+void raw2wire_setup_execute(void) {
   R2WCLK = LOW;
   R2WDIO = LOW;
   R2WDIO_TRIS = INPUT;

@@ -713,7 +713,7 @@ bpv4reset:
                             
                             //Engaging Clutch
                             //finishes the set up and connects the pins...
-                            enabled_protocols[bus_pirate_configuration.bus_mode].setup_prepare();
+                            enabled_protocols[bus_pirate_configuration.bus_mode].setup_execute();
                             MSG_CLUTCH_ENGAGED;
                         } else {
                             BP_VREG_OFF();
@@ -1180,7 +1180,7 @@ void changemode(void) {
             enabled_protocols[bus_pirate_configuration.bus_mode].cleanup();
             bp_reset_board_state();
             bus_pirate_configuration.bus_mode = busmode;
-            enabled_protocols[bus_pirate_configuration.bus_mode].setup_execute();
+            enabled_protocols[bus_pirate_configuration.bus_mode].setup_prepare();
             MSG_CLUTCH_DISENGAGED;
             if (busmode) {
                BP_LEDMODE = 1; // mode led is on when proto >0
@@ -1196,7 +1196,7 @@ void changemode(void) {
             enabled_protocols[bus_pirate_configuration.bus_mode].cleanup();
             bp_reset_board_state();
             bus_pirate_configuration.bus_mode = busmode;
-            enabled_protocols[bus_pirate_configuration.bus_mode].setup_execute();
+            enabled_protocols[bus_pirate_configuration.bus_mode].setup_prepare();
             if (busmode) BP_LEDMODE = 1; // mode led is on when proto >0
             //bpWmessage(MSG_READY);
             BPMSG1085;
