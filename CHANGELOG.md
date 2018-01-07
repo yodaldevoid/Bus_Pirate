@@ -32,8 +32,9 @@
 ### Other:
 
 * The message generation program has been turned into a Python script, to increase portability.
-* Unused strings are stripped away by the linker when possible. (#60)
+* Unused strings are stripped away by the linker whenever possible. (#60)
 * Support for Bus Pirate v1A has been removed. (#6)
 * Support for Bus Pirate v2, v2.5, and v2go is not going to be built in by default. (#6)
 * Hardware schematics have been migrated to their own repo at [https://github.com/BusPirate/hardware](https://github.com/BusPirate/hardware) (#14)
 * Documentation from Dangerous Prototypes' wiki has been converted into Markdown format and placed in the source repository. (#27)
+* Firmware will now build by default with Optimisation level 1, this allows to fit more protocols on v3 boards in the default configuration.
