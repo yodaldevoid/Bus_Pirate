@@ -323,22 +323,6 @@ void BPMSG1228_str(void);
 #define BPMSG1228 bp_message_write_buffer(__builtin_tbladdress(BPMSG1228_str))
 void BPMSG1234_str(void);
 #define BPMSG1234 bp_message_write_buffer(__builtin_tbladdress(BPMSG1234_str))
-void BPMSG1237_str(void);
-#define BPMSG1237 bp_message_write_buffer(__builtin_tbladdress(BPMSG1237_str))
-void BPMSG1238_str(void);
-#define BPMSG1238 bp_message_write_line(__builtin_tbladdress(BPMSG1238_str))
-void BPMSG1239_str(void);
-#define BPMSG1239 bp_message_write_line(__builtin_tbladdress(BPMSG1239_str))
-void BPMSG1240_str(void);
-#define BPMSG1240 bp_message_write_line(__builtin_tbladdress(BPMSG1240_str))
-void BPMSG1241_str(void);
-#define BPMSG1241 bp_message_write_line(__builtin_tbladdress(BPMSG1241_str))
-void BPMSG1242_str(void);
-#define BPMSG1242 bp_message_write_line(__builtin_tbladdress(BPMSG1242_str))
-void BPMSG1243_str(void);
-#define BPMSG1243 bp_message_write_line(__builtin_tbladdress(BPMSG1243_str))
-void BPMSG1244_str(void);
-#define BPMSG1244 bp_message_write_line(__builtin_tbladdress(BPMSG1244_str))
 void BPMSG1245_str(void);
 #define BPMSG1245 bp_message_write_buffer(__builtin_tbladdress(BPMSG1245_str))
 void BPMSG1248_str(void);
@@ -489,6 +473,22 @@ void MSG_I2C_STOP_BIT_str(void);
 #define MSG_I2C_STOP_BIT bp_message_write_line(__builtin_tbladdress(MSG_I2C_STOP_BIT_str))
 void MSG_I2C_WRITE_ADDRESS_END_str(void);
 #define MSG_I2C_WRITE_ADDRESS_END bp_message_write_buffer(__builtin_tbladdress(MSG_I2C_WRITE_ADDRESS_END_str))
+void MSG_KEYBOARD_ERROR_NODATA_str(void);
+#define MSG_KEYBOARD_ERROR_NODATA bp_message_write_line(__builtin_tbladdress(MSG_KEYBOARD_ERROR_NODATA_str))
+void MSG_KEYBOARD_ERROR_PARITY_str(void);
+#define MSG_KEYBOARD_ERROR_PARITY bp_message_write_line(__builtin_tbladdress(MSG_KEYBOARD_ERROR_PARITY_str))
+void MSG_KEYBOARD_ERROR_STARTBIT_str(void);
+#define MSG_KEYBOARD_ERROR_STARTBIT bp_message_write_line(__builtin_tbladdress(MSG_KEYBOARD_ERROR_STARTBIT_str))
+void MSG_KEYBOARD_ERROR_STOPBIT_str(void);
+#define MSG_KEYBOARD_ERROR_STOPBIT bp_message_write_line(__builtin_tbladdress(MSG_KEYBOARD_ERROR_STOPBIT_str))
+void MSG_KEYBOARD_ERROR_TIMEOUT_str(void);
+#define MSG_KEYBOARD_ERROR_TIMEOUT bp_message_write_buffer(__builtin_tbladdress(MSG_KEYBOARD_ERROR_TIMEOUT_str))
+void MSG_KEYBOARD_ERROR_UNKNOWN_str(void);
+#define MSG_KEYBOARD_ERROR_UNKNOWN bp_message_write_line(__builtin_tbladdress(MSG_KEYBOARD_ERROR_UNKNOWN_str))
+void MSG_KEYBOARD_LIVE_INPUT_START_str(void);
+#define MSG_KEYBOARD_LIVE_INPUT_START bp_message_write_line(__builtin_tbladdress(MSG_KEYBOARD_LIVE_INPUT_START_str))
+void MSG_KEYBOARD_MACRO_MENU_str(void);
+#define MSG_KEYBOARD_MACRO_MENU bp_message_write_line(__builtin_tbladdress(MSG_KEYBOARD_MACRO_MENU_str))
 void MSG_MODE_HEADER_END_str(void);
 #define MSG_MODE_HEADER_END bp_message_write_line(__builtin_tbladdress(MSG_MODE_HEADER_END_str))
 void MSG_NACK_str(void);

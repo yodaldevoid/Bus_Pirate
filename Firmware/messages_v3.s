@@ -964,54 +964,6 @@ _BPMSG1233_str:
 _BPMSG1234_str:
 	.pasciz "GND\t"
 
-	; BPMSG1237
-	.section .text.BPMSG1237, code
-	.global _BPMSG1237_str
-_BPMSG1237_str:
-	.pasciz " TIMEOUT"
-
-	; BPMSG1238
-	.section .text.BPMSG1238, code
-	.global _BPMSG1238_str
-_BPMSG1238_str:
-	.pasciz " 0. Macro menu\r\n 1. Live input monitor"
-
-	; BPMSG1239
-	.section .text.BPMSG1239, code
-	.global _BPMSG1239_str
-_BPMSG1239_str:
-	.pasciz "Input monitor, any key exits"
-
-	; BPMSG1240
-	.section .text.BPMSG1240, code
-	.global _BPMSG1240_str
-_BPMSG1240_str:
-	.pasciz " *startbit error"
-
-	; BPMSG1241
-	.section .text.BPMSG1241, code
-	.global _BPMSG1241_str
-_BPMSG1241_str:
-	.pasciz " *parity error"
-
-	; BPMSG1242
-	.section .text.BPMSG1242, code
-	.global _BPMSG1242_str
-_BPMSG1242_str:
-	.pasciz " *stopbit error"
-
-	; BPMSG1243
-	.section .text.BPMSG1243, code
-	.global _BPMSG1243_str
-_BPMSG1243_str:
-	.pasciz " NONE"
-
-	; BPMSG1244
-	.section .text.BPMSG1244, code
-	.global _BPMSG1244_str
-_BPMSG1244_str:
-	.pasciz " UNKNOWN ERROR"
-
 	; BPMSG1245
 	.section .text.BPMSG1245, code
 	.global _BPMSG1245_str
@@ -1383,6 +1335,54 @@ _MSG_I2C_STOP_BIT_str:
 	.global _MSG_I2C_WRITE_ADDRESS_END_str
 _MSG_I2C_WRITE_ADDRESS_END_str:
 	.pasciz " W) "
+
+	; MSG_KEYBOARD_ERROR_NODATA
+	.section .text.MSG_KEYBOARD_ERROR_NODATA, code
+	.global _MSG_KEYBOARD_ERROR_NODATA_str
+_MSG_KEYBOARD_ERROR_NODATA_str:
+	.pasciz " NONE"
+
+	; MSG_KEYBOARD_ERROR_PARITY
+	.section .text.MSG_KEYBOARD_ERROR_PARITY, code
+	.global _MSG_KEYBOARD_ERROR_PARITY_str
+_MSG_KEYBOARD_ERROR_PARITY_str:
+	.pasciz " *parity error"
+
+	; MSG_KEYBOARD_ERROR_STARTBIT
+	.section .text.MSG_KEYBOARD_ERROR_STARTBIT, code
+	.global _MSG_KEYBOARD_ERROR_STARTBIT_str
+_MSG_KEYBOARD_ERROR_STARTBIT_str:
+	.pasciz " *startbit error"
+
+	; MSG_KEYBOARD_ERROR_STOPBIT
+	.section .text.MSG_KEYBOARD_ERROR_STOPBIT, code
+	.global _MSG_KEYBOARD_ERROR_STOPBIT_str
+_MSG_KEYBOARD_ERROR_STOPBIT_str:
+	.pasciz " *stopbit error"
+
+	; MSG_KEYBOARD_ERROR_TIMEOUT
+	.section .text.MSG_KEYBOARD_ERROR_TIMEOUT, code
+	.global _MSG_KEYBOARD_ERROR_TIMEOUT_str
+_MSG_KEYBOARD_ERROR_TIMEOUT_str:
+	.pasciz " TIMEOUT"
+
+	; MSG_KEYBOARD_ERROR_UNKNOWN
+	.section .text.MSG_KEYBOARD_ERROR_UNKNOWN, code
+	.global _MSG_KEYBOARD_ERROR_UNKNOWN_str
+_MSG_KEYBOARD_ERROR_UNKNOWN_str:
+	.pasciz " UNKNOWN ERROR"
+
+	; MSG_KEYBOARD_LIVE_INPUT_START
+	.section .text.MSG_KEYBOARD_LIVE_INPUT_START, code
+	.global _MSG_KEYBOARD_LIVE_INPUT_START_str
+_MSG_KEYBOARD_LIVE_INPUT_START_str:
+	.pasciz "Input monitor, any key exits"
+
+	; MSG_KEYBOARD_MACRO_MENU
+	.section .text.MSG_KEYBOARD_MACRO_MENU, code
+	.global _MSG_KEYBOARD_MACRO_MENU_str
+_MSG_KEYBOARD_MACRO_MENU_str:
+	.pasciz " 0. Macro menu\r\n 1. Live input monitor"
 
 	; MSG_MODE_HEADER_END
 	.section .text.MSG_MODE_HEADER_END, code

@@ -1,17 +1,18 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate. This work is published from
+ * United States.
  *
  * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
  */
 
 #include "pc_at_keyboard.h"
@@ -20,277 +21,331 @@
 
 #include "base.h"
 
-#define KBCLK_TRIS 	BP_CLK_DIR
-#define KBCLK 			BP_CLK
+#define KBCLK_TRIS BP_CLK_DIR
+#define KBCLK BP_CLK
 
-#define KBDIO_TRIS 	BP_MOSI_DIR
-#define KBDIO 			BP_MOSI
+#define KBDIO_TRIS BP_MOSI_DIR
+#define KBDIO BP_MOSI
+
+#define KEYBOARD_CLOCK_DID_CHANGE false
+#define KEYBOARD_CLOCK_DID_NOT_CHANGE true
+
+#define KEYBOARD_WRITE_SUCCESS false
+#define KEYBOARD_WRITE_TIMEOUT true
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 
-static unsigned char kbReadBit(void);
-static unsigned char kbReadCode(void);
-static unsigned char kbReadByte(void);
-static unsigned char kbWriteByte(unsigned char c);
-static unsigned char kbWriteBit(unsigned char c);
-static void kbScancodeResults(unsigned char c);
-static unsigned char kbWaitClock(unsigned char c);
+typedef enum {
+  KEYBOARD_MACRO_MENU = 0,
+  KEYBOARD_MACRO_LIVE_INPUT_MONITOR
+} keyboard_macro_identifier_t;
 
-static uint8_t scan_code;
+typedef enum {
+  KEYBOARD_READ_LOW = 0,
+  KEYBOARD_READ_HIGH,
+  KEYBOARD_READ_TIMEOUT
+} keyboard_read_result_t;
 
-void KEYBsetup(void) {
-    mode_configuration.high_impedance=1;//yes, always HiZ
+typedef enum {
+  KEYBOARD_WRITE_BYTE_ACK = 0,
+  KEYBOARD_WRITE_BYTE_NACK,
+  KEYBOARD_WRITE_BYTE_TIMEOUT
+} keyboard_write_byte_result_t;
+
+typedef enum {
+  KEYBOARD_SCANCODE_READ_SUCCESS = 0,
+  KEYBOARD_SCANCODE_READ_START_BIT_ERROR,
+  KEYBOARD_SCANCODE_READ_PARITY_ERROR,
+  KEYBOARD_SCANCODE_READ_STOP_BIT_ERROR,
+  KEYBOARD_SCANCODE_READ_TIMEOUT_ERROR,
+  KEYBOARD_SCANCODE_READ_NO_DATA = 0xFF
+} keyboard_scancode_read_result_t;
+
+static keyboard_read_result_t read_bit(void);
+static bool keyboard_wait_clock_change(const bool expected);
+static keyboard_scancode_read_result_t read_scancode(uint8_t *output);
+static keyboard_scancode_read_result_t read_byte(uint8_t *output);
+static keyboard_write_byte_result_t write_byte(const uint8_t value);
+static bool write_bit(const bool value);
+static void handle_scancode(const keyboard_scancode_read_result_t result);
+
+void pc_at_keyboard_prepare(void) { mode_configuration.high_impedance = ON; }
+
+void pc_at_keyboard_execute(void) {
+  KBDIO_TRIS = INPUT;
+  KBCLK_TRIS = OUTPUT;
+  KBCLK = LOW;
+  KBDIO = LOW;
 }
 
-void KEYBsetup_exc(void) {
-	//writes to the PORTs write to the LATCH
-	KBDIO_TRIS=1;//data input
-	KBCLK_TRIS=0;//clock output/low
-	KBCLK=0;			//B8 scl 
-	KBDIO=0;			//B9 sda
-}    
-
-unsigned int KEYBread(void)
-{	kbScancodeResults(kbReadByte());
-	return scan_code;
+uint16_t pc_at_keyboard_read(void) {
+  uint8_t scancode;
+  handle_scancode(read_byte(&scancode));
+  return scancode;
 }
 
-unsigned int KEYBwrite(unsigned int value) {
-    switch (kbWriteByte(value)) {
-        case 0:
-            MSG_ACK;
-            break;
-            
-        case 1:
-            MSG_NACK;
-            break;
-            
-        default:
-            BPMSG1237;
-            break;
+uint16_t pc_at_keyboard_send(const uint16_t value) {
+  switch (write_byte(value)) {
+  case 0:
+    MSG_ACK;
+    break;
+
+  case 1:
+    MSG_NACK;
+    break;
+
+  default:
+    MSG_KEYBOARD_ERROR_TIMEOUT;
+    break;
+  }
+
+  return 0x100;
+}
+
+void pc_at_keyboard_run_macro(const uint16_t macro) {
+  switch (macro) {
+  case KEYBOARD_MACRO_MENU:
+    MSG_KEYBOARD_MACRO_MENU;
+    break;
+
+  case KEYBOARD_MACRO_LIVE_INPUT_MONITOR:
+    MSG_KEYBOARD_LIVE_INPUT_START;
+    MSG_ANY_KEY_TO_EXIT_PROMPT;
+    for (;;) {
+      uint8_t scancode;
+
+      if (read_byte(&scancode) == KEYBOARD_SCANCODE_READ_SUCCESS) {
+        bp_write_formatted_integer(scancode);
+        bpSP;
+      }
+
+      if (UART1RXRdy()) {
+        UART1RX();
+        bpBR;
+        break;
+      }
+    }
+    break;
+
+  default:
+    MSG_UNKNOWN_MACRO_ERROR;
+    break;
+  }
+}
+
+void handle_scancode(const keyboard_scancode_read_result_t result) {
+  switch (result) {
+  case KEYBOARD_SCANCODE_READ_SUCCESS:
+    break;
+
+  case KEYBOARD_SCANCODE_READ_START_BIT_ERROR:
+    MSG_KEYBOARD_ERROR_STARTBIT;
+    break;
+
+  case KEYBOARD_SCANCODE_READ_PARITY_ERROR:
+    MSG_KEYBOARD_ERROR_PARITY;
+    break;
+
+  case KEYBOARD_SCANCODE_READ_STOP_BIT_ERROR:
+    MSG_KEYBOARD_ERROR_STOPBIT;
+    break;
+
+  case KEYBOARD_SCANCODE_READ_TIMEOUT_ERROR:
+    MSG_KEYBOARD_ERROR_TIMEOUT;
+    break;
+
+  case KEYBOARD_SCANCODE_READ_NO_DATA:
+    MSG_KEYBOARD_ERROR_NODATA;
+    break;
+
+  default:
+    MSG_KEYBOARD_ERROR_UNKNOWN;
+    break;
+  }
+}
+
+keyboard_read_result_t read_bit(void) {
+  keyboard_read_result_t result;
+
+  if (keyboard_wait_clock_change(LOW) == KEYBOARD_CLOCK_DID_NOT_CHANGE) {
+    return KEYBOARD_READ_TIMEOUT;
+  }
+
+  result = (keyboard_read_result_t)KBDIO;
+
+  if (keyboard_wait_clock_change(HIGH) == KEYBOARD_CLOCK_DID_NOT_CHANGE) {
+    return KEYBOARD_READ_TIMEOUT;
+  }
+
+  return result;
+}
+
+keyboard_scancode_read_result_t read_scancode(uint8_t *output) {
+  uint8_t scancode = 0;
+  uint8_t parity = 0;
+  uint8_t bit_index;
+  keyboard_read_result_t read;
+
+  if (KBDIO != LOW) {
+    return KEYBOARD_SCANCODE_READ_START_BIT_ERROR;
+  }
+
+  if (keyboard_wait_clock_change(HIGH) == KEYBOARD_CLOCK_DID_NOT_CHANGE) {
+    return KEYBOARD_SCANCODE_READ_TIMEOUT_ERROR;
+  }
+
+  for (bit_index = 0; bit_index < 8; bit_index++) {
+    scancode >>= 1;
+    switch (read_bit()) {
+    case KEYBOARD_READ_HIGH:
+      scancode |= 0b10000000;
+      parity ^= 1;
+      break;
+
+    case KEYBOARD_READ_TIMEOUT:
+      return KEYBOARD_SCANCODE_READ_TIMEOUT_ERROR;
+
+    default:
+      break;
+    }
+  }
+
+  read = read_bit();
+  if (read == KEYBOARD_READ_TIMEOUT) {
+    return KEYBOARD_SCANCODE_READ_TIMEOUT_ERROR;
+  }
+
+  if ((uint8_t)read == parity) {
+    return KEYBOARD_SCANCODE_READ_PARITY_ERROR;
+  }
+
+  read = read_bit();
+  if (read == KEYBOARD_READ_TIMEOUT) {
+    return KEYBOARD_SCANCODE_READ_TIMEOUT_ERROR;
+  }
+
+  KBCLK_TRIS = OUTPUT;
+  if (read != KEYBOARD_READ_HIGH) {
+    return KEYBOARD_SCANCODE_READ_STOP_BIT_ERROR;
+  }
+
+  *output = scancode;
+  return KEYBOARD_SCANCODE_READ_SUCCESS;
+}
+
+keyboard_scancode_read_result_t read_byte(uint8_t *result) {
+  uint8_t counter;
+  keyboard_scancode_read_result_t read = KEYBOARD_SCANCODE_READ_NO_DATA;
+
+  KBDIO_TRIS = INPUT;
+  KBCLK_TRIS = INPUT;
+
+  for (counter = 0; counter < 255; counter++) {
+    if (KBCLK == LOW) {
+      read = read_scancode(result);
+      if ((read == KEYBOARD_SCANCODE_READ_SUCCESS) ||
+          (read == KEYBOARD_SCANCODE_READ_TIMEOUT_ERROR)) {
+        break;
+      }
     }
 
-	return 0x100;
+    bp_delay_us(5);
+  }
+
+  KBCLK_TRIS = OUTPUT;
+
+  return read;
 }
 
-void KEYBmacro(unsigned int c)
-{	switch(c)
-	{	case 0:	//bpWline(OUMSG_KB_MACRO_MENU);
-				BPMSG1238;
-				break;
-		case 1:	//bpWline(OUMSG_KB__MACRO_LIVE);
-				BPMSG1239;
-                MSG_ANY_KEY_TO_EXIT_PROMPT;
-                while(1)
-				{	if(kbReadByte()==0)
-					{	bp_write_formatted_integer(scan_code);
-						bpSP;
-					}
-					if(UART1RXRdy() == 1) //any key pressed, exit
-					{	c=UART1RX(); /* JTR usb port; */
-						bpBR;
-						break;
-					}						
-				}
-				break;
-		default:
-            MSG_UNKNOWN_MACRO_ERROR;
-            break;
-	}
+bool write_bit(const bool value) {
+  if (keyboard_wait_clock_change(HIGH) == KEYBOARD_CLOCK_DID_NOT_CHANGE) {
+    return KEYBOARD_WRITE_TIMEOUT;
+  }
+
+  KBDIO_TRIS = value;
+
+  if (keyboard_wait_clock_change(LOW) == KEYBOARD_CLOCK_DID_NOT_CHANGE) {
+    return KEYBOARD_WRITE_TIMEOUT;
+  }
+
+  return KEYBOARD_WRITE_SUCCESS;
 }
 
-void kbScancodeResults(unsigned char c)
-{	switch(c)
-	{	case 0:		// all ok
-			//bpWbyte(kbScancode.code);
-			//bpSP;		
-			break;
-		case 1:
-			//bpWstring(OUMSG_KB_ERROR_STARTBIT);
-			BPMSG1240;				
-			break;
-		case 2:
-			//bpWbyte(kbScancode.code);
-			//bpWstring(OUMSG_KB_ERROR_PARITY);
-			BPMSG1241;
-			break;
-		case 3:
-			//bpWbyte(kbScancode.code);
-			//bpWstring(OUMSG_KB_ERROR_STOPBIT);
-			BPMSG1242;
-			break;
-		case 4:
-			//bpWstring(OUMSG_KB_ERROR_TIMEOUT);
-			bpSP;
-			BPMSG1237;
-			break;
-		case 0xff://no data
-			//bpWstring(OUMSG_KB_ERROR_NONE);				
-			BPMSG1243;
-			break;
-		default:
-			//bpWstring(OUMSG_KB_ERROR_UNK);				
-			BPMSG1244;
-			break;
-	}
+keyboard_write_byte_result_t write_byte(const uint8_t value) {
+  uint8_t bit_index;
+  uint8_t parity = 0;
+  keyboard_read_result_t result;
+
+  KBCLK_TRIS = OUTPUT;
+  KBCLK = LOW;
+
+  bp_delay_us(60);
+
+  KBDIO = LOW;
+  KBDIO_TRIS = OUTPUT;
+
+  KBCLK_TRIS = INPUT;
+  bp_delay_us(1);
+
+  if (keyboard_wait_clock_change(LOW) == KEYBOARD_CLOCK_DID_NOT_CHANGE) {
+    return KEYBOARD_WRITE_BYTE_TIMEOUT;
+  }
+
+  for (bit_index = 0; bit_index < 8; bit_index++) {
+    if ((value & (1 << bit_index)) == HIGH) {
+      if (write_bit(HIGH) != KEYBOARD_WRITE_SUCCESS) {
+        return KEYBOARD_WRITE_BYTE_TIMEOUT;
+      }
+      parity ^= 1;
+    } else {
+      if (write_bit(LOW) != KEYBOARD_WRITE_SUCCESS) {
+        return KEYBOARD_WRITE_BYTE_TIMEOUT;
+      }
+    }
+  }
+
+  parity ^= 1;
+
+  if (write_bit(MASKBOTTOM8(parity, 1) != KEYBOARD_WRITE_SUCCESS)) {
+    return KEYBOARD_WRITE_BYTE_TIMEOUT;
+  }
+
+  KBDIO_TRIS = INPUT;
+  KBDIO = LOW;
+
+  if (keyboard_wait_clock_change(HIGH) == KEYBOARD_CLOCK_DID_NOT_CHANGE) {
+    return KEYBOARD_WRITE_BYTE_TIMEOUT;
+  }
+
+  if (read_bit() == KEYBOARD_READ_TIMEOUT) {
+    return KEYBOARD_WRITE_BYTE_TIMEOUT;
+  }
+
+  result = read_bit();
+  if (result == KEYBOARD_READ_TIMEOUT) {
+    return KEYBOARD_WRITE_BYTE_TIMEOUT;
+  }
+
+  KBCLK_TRIS = OUTPUT;
+  KBCLK = LOW;
+
+  return (result == KEYBOARD_READ_LOW) ? KEYBOARD_WRITE_BYTE_ACK
+                                       : KEYBOARD_WRITE_BYTE_NACK;
 }
 
-unsigned char kbReadBit(void){
-	unsigned char j;
+bool keyboard_wait_clock_change(const bool expected) {
+  volatile uint16_t delay = 0xFFFF;
 
-	if(kbWaitClock(0)!=0) return 2; //wait for clock High->LOW (ACTIVE)
+  while (delay > 0) {
+    if (KBCLK == expected) {
+      return KEYBOARD_CLOCK_DID_CHANGE;
+    }
 
-	j=KBDIO; //read the data pin
+    --delay;
+  }
 
-	if(kbWaitClock(1)!=0) return 2; //wait for clock low->HIGH (IDLE)
-
-	return j;
-}
-
-//reads scancode into kbScancode structure
-//returns 0 - success
-//1 - startbit error
-//2 - parity error
-//3 - stopbit error
-//4 - read bit timeout error
-unsigned char kbReadCode(void){
-	unsigned char i, par=0,c=0, b;
-
-	//get startbit
-	if(KBDIO!=0) return 1;//startbit should be 0
-
-	//while(KBCLK==0);//wait for clock HIGH (IDLE)
-	if(kbWaitClock(1)!=0) return 4;
-
-	//grab the eight databits LSB
-	for(i=0;i<8;i++){
-		c=c>>1;
-		b=kbReadBit();
-		if(b==2) return 4; //bit timeout
-		if(b==1){
-			c+=0b10000000;
-			par^=1;
-		}
-	}
-    scan_code = c;
-
-	//get parity bit and check
-	b=kbReadBit();
-	if(b==2) return 4; //bit timeout
-	//odd parity:if these are the same, there is an error
-	//condense to bitwise op...
-	if(b==par){
-		return 2; //error
- 	}
-    
-
-	//get stopbit
-	b=kbReadBit();
-	if(b==2) return 4; //bit timeout
-	KBCLK_TRIS=0;//set clock low again to idle keyboard
-    //stopbit should be 1
-	if(b!=1) return 3;
-	
-	//success!
-	return 0;
-}
-
-unsigned char kbReadByte(void){
-	unsigned char i,c=0xff;
-
-	//let clk float, clk and data will drop if there is data	
-	KBDIO_TRIS=1;//data input
-	KBCLK_TRIS=1;//clock input/high (keyboard will go low if scan code ready)
-
-	for(i=0;i<255;i++){//do a loop, wait for change
-	//while(1){//for debugging
-		if(KBCLK==0){//check clock status
-			c=kbReadCode();//read the scancode
-			if(c==0 || c==4)break;//success or error, break the loop
-		}
-		bp_delay_us(5);//delay
-	}
-
-	//disable any further data by dropping clock line
-	KBCLK_TRIS=0;//set clock low again
-
-	return c;
-}
-
-//writes a bit using the KB clock signal.
-// 0=success, 2=timeout
-unsigned char kbWriteBit(unsigned char c){
-
-	if(kbWaitClock(1)!=0) return 2; //wait for low-high transition
-	KBDIO_TRIS=c;//set data direction
-	if(kbWaitClock(0)!=0) return 2; //wait for high-low transition
-	return 0;	//data now entered, you have a tiny bit of time before next bit
-}
-
-//@c - byte to send
-//@returns - ack bit
-unsigned char kbWriteByte(unsigned char c){
-	unsigned char par=0;
-	unsigned int i;
-
-	//take clk low to own the bus
-	//clock should already be low
-	KBCLK_TRIS=0;//clock low
-	KBCLK=0;
-
-	bp_delay_us(60);//delay at least 1 bit period (60us), interrupt any other data transfer
-
-	//data low to signal host->kb transfer
-	KBDIO=0;
-	KBDIO_TRIS=0;//data low
-
-	//take clock high again, KB will start own clock
-	KBCLK_TRIS=1;//clock high/input
-	bp_delay_us(1);
-
-	//while(KBCLK==1);//wait for first falling edge
-	if(kbWaitClock(0)!=0) return 4; //timeout
-
-	//bang out the bits LSB first out using the kb clock signal
-	for(i=0;i<8;i++){
-		if((c&1)==1){
-			if(kbWriteBit(1)!=0)return 4;//send LSB first
-			par^=1;//track parity bit
-		}else{
-			if(kbWriteBit(0)!=0)return 4;//send LSB first
-		}		
-		c=c>>1;//-- Shift next bit into position		
-	}
-	
-	//write parity bit
-	par^=1;//shift parity bit once more so it is opposite
-	if(kbWriteBit(par)!=0)return 4;//send parity bit
-
-	KBDIO_TRIS=1;//configure data for input
-	KBDIO=0;
-
-	//while(KBCLK==0);//wait for low->high transition to align with a readbit 
-	if(kbWaitClock(1)!=0) return 4; //timeout
-
-	if(kbReadBit()==2) return 4;//junk bit (stopbit/high)
-	i=kbReadBit();//ack bit
-	if(i==2) return 4;
-
-	KBCLK_TRIS=0;//set clock low again to halt data
-	KBCLK=0;
-
-	return i;//return ack bit
-}
-
-
-unsigned char kbWaitClock(unsigned char c){
-	unsigned int i=0xffff;
-	while(1){
-		if(KBCLK==c)return 0; //clock changed
-		i--;
-		if(i==0)return 1;//timeout
-	}
+  return KEYBOARD_CLOCK_DID_NOT_CHANGE;
 }
 
 #endif /* BP_ENABLE_PC_AT_KEYBOARD_SUPPORT */
