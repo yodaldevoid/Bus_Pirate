@@ -1,174 +1,138 @@
-#sample PERL script to get and parse Bus Pirate version string from firmware v2.8+
-# version.pl -h1 for help
-# This example is for educational use and it's totally free
-#knowledge shouldn't be locked up, demo code shouldn't be licensed
-#released into the Public Domain or CC0, your choice.
+#!/usr/bin/env perl -w
 
-# For windows: configure your COM port below
-# you'll also need Win32::Serialport http://search.cpan.org/~bbirth/Win32-SerialPort-0.19/lib/Win32/SerialPort.pm
+# This file is part of the Bus Pirate project
+# (http://code.google.com/p/the-bus-pirate/).
 #
-# For others: use the Device::SerialPort version and modify the serial port name
-# you'll need Device::SerialPort  http://search.cpan.org/~cook/Device-SerialPort-1.002/SerialPort.pm
+# Written and maintained by the Bus Pirate project.
+#
+# To the extent possible under law, the project has waived all copyright and
+# related or neighboring rights to Bus Pirate. This work is published from
+# United States.
+#
+# For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.
 
-#ANOTHER NOTE:
-# This is my first time using Perl,
-# I was lazy and used short delays to wait for incoming bytes.
-# The proper way is probably with some kind of loop, buffer, system timeout, etc, etc, etc.
-#commands:
+use strict;
+use warnings;
 
+use Carp;
+use Config;
+use English qw(-no_match_vars);
 use Getopt::Std;
-getopt ('ph');
+use Term::ANSIColor;
 
-print "Getting version string.\n";
+our $VERSION = '0.0.1';
 
-$mysport="COM2";
+my %options;
+my $port;
+my @version;
+my $reset_tag;
+my $hardware_type;
+my $firmware_version;
+my $hardware_version;
+my $update_url;
 
-if($opt_h ne ""){
-	print "# Get version string. Use with firmware v2.6+. \n";
-	print "# -h1 This screen.\n";
-	print "# -p Serial port name or number (default COM2).\n";
-	print "# Example: version.pl -p COM2\n"; 
-	die "";
+getopt( 'ph', \%options );
+
+if ( exists $options{'h'} ) {
+    print "# Get version string. Use with firmware v7.0 and later.\n";
+    print "# -h This screen.\n";
+    print "# -p Serial port name (default " . get_default_port_name() . ").\n";
+    print "# Example: "
+      . $PROGRAM_NAME . " -p "
+      . get_default_port_name() . "\n";
+    exit 0;
 }
 
-if($opt_p ne ""){
-	$mysport=$opt_p;
-}
+$port = open_port( $options{'p'} || get_default_port_name() );
 
-# Set up the serial port for Windows
-use Win32::SerialPort;
-my $port = Win32::SerialPort->new($mysport); #change to your com port
-#setup serial port for Linux
-#use Device::SerialPort;
-#my $port = Device::SerialPort->new("/"); #change to your com port
-
-#port configuration  115200/8/N/1
 $port->databits(8);
-$port->baudrate(115200);
-$port->parity("none");
+$port->baudrate(115_200);
+$port->parity('none');
 $port->stopbits(1);
-$port->buffers(1, 1); #1 byte or it buffers everything forever
-$port->write_settings		|| undef $port; #set
-unless ($port)			{ die "couldn't write_settings"; }
+$port->buffers( 1, 1 );
+$port->write_settings() || undef $port;
 
-print "Entering binmode: ";
-if(&enterBinModefast==1){
-	print "OK.\n";
-}else{
-	print "failed.\n";
-	die "Couldn't complete test.\n";
+if ( not defined $port ) {
+    print "Could not write serial port settings!\n";
+    exit -1;
 }
 
-#exit bin mode
-print "Exiting binmode: ";
-if(&exitBinMode==1){
-	print "OK.\n";
-}else{
-	print "failed.\n";
-	die "Couldn't complete test.\n";
+$port->write("\n\n\n\n\n\n\n\n\n\n#\n");
+sleep 1;
+@version = split( /\r\n/smx, $port->read(1000) );
+$port->close();
+
+if ( scalar(@version) < 6 ) {
+    print "\nPlease reset the Bus Pirate unit and try again\n";
+    exit -2;
 }
 
-select(undef,undef,undef, .2); #sleep for fraction of second for data to 
-print "Version info:\n";
-$version=$port->read(1000);
+(
+    $reset_tag, $hardware_type, $firmware_version, $hardware_version,
+    $update_url
+) = @version[ -6 .. -1 ];
 
-my @values = split('\x0d\x0a', $version);
-#$value[1] is a line feed
-#hardware version
-print "Hardware: " . $values[1] . "\n";
-#hardware version
-print "Firmware: " . $values[2] . "\n";
-#hardware version
-print "PIC chip: " . $values[3] . "\n";
-#news and updates
-print "Updates URL: " . $values[4] . "\n";
-#print $version;
-
-###############################
-#
-#
-# 		Helper functions
-#
-#
-###############################
-
-#Returns to user terminal mode from raw binary mode
-#resets hardware  and exits binary mode
-#returns BBIO version, or 0 for failure
-sub exitBinMode{
-
-	#make sure we're in BBIO (not spi, etc) binmode before sending reset command
-	my $ver=&enterBinMode; #return to BBIO mode (0x00), (should get BBIOx)
-	
-	#if we're ready, send the reset command
-	if($ver){
-		$port->write("\x0F"); #send 0x0f to do a hardware reset
-		select(undef,undef,undef, .02); #sleep for fraction of second for data to arrive #sleep(1);
-		$char= $port->read(1); #look for BBIOx
-		if($char && ($char eq "\x01") ){
-			return 1; #return version number
-		}
-
-	}
-	return $ver;
+if ( $reset_tag ne 'RESET' ) {
+    print "\nPlease reset the Bus Pirate unit and try again\n";
+    exit -2;
 }
 
-#this function puts the Bus Pirate in binmode
-#returns binmode version number, 0 for failure
-sub enterBinMode {
-#it could take 1 or 20 0x00 to enter Bus Pirate binary mode
-#it will take 20 if we're currently at the user terminal mode
-#it will only take 1 if the Bus Pirate is already in a raw mode
-#BP replies BBIOx where x is the protocol version
-	
-	my $count=40;
-	my $char="";
-	while($count){
-		$port->write("\x00"); #send 0x00
-		select(undef,undef,undef, .02); #sleep for fraction of second for data to arrive #sleep(1);
-		$char= $port->read(5); #look for BBIOx
-		if($char && ($char eq "BBIO1") ){
-			return 1; #return version number
-		}
-		$count--; #if timeout, then try again
-	}
-	return 0; #for fail, version number for success
+print color('yellow')
+  . 'Hardware type:    '
+  . color('bold white')
+  . $hardware_type
+  . color('reset') . "\n";
+print color('yellow')
+  . 'Firmware version: '
+  . color('bold white')
+  . $firmware_version
+  . color('reset') . "\n";
+print color('yellow')
+  . 'Hardware version: '
+  . color('bold white')
+  . $hardware_version
+  . color('reset') . "\n";
+print color('yellow')
+  . 'Update URL:       '
+  . color('bold white')
+  . $update_url
+  . color('reset') . "\n";
+
+exit 0;
+
+sub get_default_port_name {
+    my $osname = $Config{'osname'};
+
+    if ( $osname eq 'MSWin32' ) {
+        return 'COM1';
+    }
+    elsif ( $osname eq 'linux' ) {
+        return '/dev/ttyACM0';
+    }
+    elsif ( $osname eq 'darwin' ) {
+        return '/dev/cu.usbmodem00000001';
+    }
+    else {
+        return '/dev/ttyUSB0';
+    }
 }
 
-sub enterBinModefast {
-#it could take 1 or 20 0x00 to enter Bus Pirate binary mode
-#this just blasts 20 0x00, then reads five and discards the rest. 
-#BP replies BBIOx where x is the protocol version
-	
-	my $count=20;
-	my $char="";
-	
-	while($count){
-		$port->write("\x00"); #send 0x00
-		$count--;
-	}
-	
-	select(undef,undef,undef, .02); #sleep for fraction of second for data to arrive #sleep(1);
-	
-	$char= $port->read(5); #look for BBIOx
-	
-	if($char && ($char eq "BBIO1")){
-		#print "(" . $char . ") "; #debug
-		return 1; #return version number
-	}
+sub open_port {
+    my $port_name = shift;
 
-	$char= $port->read(); #flush buffer, could have 20 x 0x00
-		
-	return 0; #for fail, version number for success
+    if ( $Config{'osname'} eq 'MSWin32' ) {
+        require Win32::SerialPort;
+        return Win32::SerialPort->new($port_name);
+    }
+    else {
+        require Device::SerialPort;
+        return Device::SerialPort->new($port_name);
+    }
 }
 
-#The Bus Pirate might be stuck in a configuration menu or something when we connect
-#send <enter> 10 times, then #<enter> to reset the Bus Pirate
-#need to pause and flush buffer when complete
-sub userTerminalReset{
-	$port->write("\n\n\n\n\n\n\n\n\n\n#\n");
-	#now flush garbage from read buffer
-}
+# vim:number:cc=80:
 
-#debug variable transformation
-#$char =~ s/\cM/\r\n/; #debug
