@@ -29,8 +29,12 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
-int picmode;
-int piccmddelay;
+static int picmode;
+static int piccmddelay;
+
+static void clock_out_zero(void);
+static void clock_out_data(const uint16_t data, const uint8_t bits);
+static uint16_t clock_in_data(const uint8_t bits);
 
 void picinit(void)
 {	int mode, delay;
@@ -113,8 +117,26 @@ void picstop(void)					// switch to datamode
 	BPMSG1076;
 }
 
+uint16_t clock_in_data(const uint8_t bits) {
+    uint8_t index;
+    uint16_t data;
+
+    data = 0;
+    for (index = 0; index < bits; index++) {
+        data >>= 1;
+        bitbang_set_pins_high(CLK, PICSPEED / 2);
+        data |= (bitbang_read_pin(MOSI) == HIGH ? 1 : 0) << (1 << (bits - 1));
+    }
+
+	bitbang_set_pins_high(CLK, PICSPEED / 2);
+	bitbang_set_pins_low(CLK, PICSPEED / 2);
+	bitbang_set_pins_low(MOSI, PICSPEED / 5);
+
+    return data;
+}
+
 unsigned int picread(void)
-{	int i;
+{
 	unsigned int c;
 
 	if(picmode&PICCMDMSK)
@@ -129,70 +151,52 @@ unsigned int picread(void)
 	{	case PICMODE6:	bitbang_read_pin(MOSI);		// switch in to input
 						bitbang_set_pins_high(CLK, PICSPEED/2);
 						bitbang_set_pins_low(CLK, PICSPEED/2);
-						for(i=0; i<14; i++)
-						{	c>>=1;
-							bitbang_set_pins_high(CLK, PICSPEED/2);
-							if(bitbang_read_pin(MOSI)) c|=0x2000;		// bit14
-							bitbang_set_pins_low(CLK, PICSPEED/2);
-						}
-						bitbang_set_pins_high(CLK, PICSPEED/2);
-						bitbang_set_pins_low(CLK, PICSPEED/2);
-						bitbang_set_pins_low(MOSI, PICSPEED/5);
+                        c = clock_in_data(14);
 						break;
 		case PICMODE4:	bitbang_read_pin(MOSI);
-						for(i=0; i<16; i++)
-						{	c>>=1;
-							bitbang_set_pins_high(CLK, PICSPEED/2);
-							if(bitbang_read_pin(MOSI)) c|=0x8000;		// bit16
-							bitbang_set_pins_low(CLK, PICSPEED/2);
-						}
-						bitbang_set_pins_high(CLK, PICSPEED/2);
-						bitbang_set_pins_low(CLK, PICSPEED/2);
-						bitbang_set_pins_low(MOSI, PICSPEED/5);
+                        c = clock_in_data(16);
 						break;
 		default:		MSG_PIC_UNKNOWN_MODE;
 					BPMSG1078;
 						return 0;
 	}
 
-//	bpWbin(c>>8); bpSP;
-//	bpWbin(c&0x0FF); bpSP;
 	return c;
 }
 
+
+void clock_out_data(const uint16_t data, const uint8_t bits) {
+    uint8_t index;
+    uint8_t mask;
+
+    mask = 1;
+    for (index = 0; index < bits; index++) {
+        bitbang_set_pins_high(CLK, PICSPEED / 4);
+        bitbang_set_pins((data & mask) == mask, MOSI, PICSPEED / 4);
+        bitbang_set_pins_low(CLK, PICSPEED / 4);
+		bitbang_set_pins_low(MOSI, PICSPEED / 4);
+        mask <<= 1;
+    }
+}
+
+void clock_out_zero(void) {
+    bitbang_set_pins_high(CLK, PICSPEED / 4);
+    bitbang_set_pins_low(MOSI, PICSPEED / 4);
+    bitbang_set_pins_low(CLK, PICSPEED / 4);
+    bitbang_set_pins_low(CLK, PICSPEED / 4);
+}
+
 unsigned int picwrite(unsigned int c)
-{	int i;
+{
 	int mask;
 
 	mask=0x01;
 
 	if(picmode&PICCMDMSK)				// we got a command
 	{	switch(picmode&PICMODEMSK)		// make it future proof
-		{	case PICMODE6:	for(i=0; i<6; i++)
-							{	bitbang_set_pins_high(CLK, PICSPEED/4);
-								if(c&mask)
-								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
-								}
-								else
-								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
-								}
-								bitbang_set_pins_low(CLK, PICSPEED/4);
-								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
-								mask<<=1;
-							}
+		{	case PICMODE6: clock_out_data(c, 6);
 							break;
-			case PICMODE4:	for(i=0; i<4; i++)
-							{	bitbang_set_pins_high(CLK, PICSPEED/4);
-								if(c&mask)
-								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
-								}
-								else
-								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
-								}
-								bitbang_set_pins_low(CLK, PICSPEED/4);
-								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
-								mask<<=1;
-							}
+			case PICMODE4:	clock_out_data(c, 4);
 							break;
 			default:		//bpWline("unknown");
 						BPMSG1078;
@@ -202,39 +206,12 @@ unsigned int picwrite(unsigned int c)
 	}
 	else									// send data
 	{	switch(picmode&PICMODEMSK)		// make it future proof
-		{	case PICMODE6:	bitbang_set_pins_high(CLK, PICSPEED/4);			// send leading 0
-							bitbang_set_pins_low(MOSI, PICSPEED/4);
-							bitbang_set_pins_low(CLK, PICSPEED/4);
-							bitbang_set_pins_low(CLK, PICSPEED/4);
-							for(i=0; i<14; i++)				// 14 bits
-							{	bitbang_set_pins_high(CLK, PICSPEED/4);
-								if(c&mask)
-								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
-								}
-								else
-								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
-								}
-								bitbang_set_pins_low(CLK, PICSPEED/4);
-								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
-								mask<<=1;
-							}
-							bitbang_set_pins_high(CLK, PICSPEED/4);			// send trailing 0
-							bitbang_set_pins_low(MOSI, PICSPEED/4);
-							bitbang_set_pins_low(CLK, PICSPEED/4);
-							bitbang_set_pins_low(CLK, PICSPEED/4);
+		{	case PICMODE6:
+                            clock_out_zero();
+                            clock_out_data(c, 14);
+                            clock_out_zero();
 							break;
-			case PICMODE4:	for(i=0; i<16; i++)				// does 16 bits at a time
-							{	bitbang_set_pins_high(CLK, PICSPEED/4);
-								if(c&mask)
-								{	bitbang_set_pins_high(MOSI, PICSPEED/4);
-								}
-								else
-								{	bitbang_set_pins_low(MOSI, PICSPEED/4);
-								}
-								bitbang_set_pins_low(CLK, PICSPEED/4);
-								bitbang_set_pins_low(MOSI, PICSPEED/4);		// both dat and clk low 
-								mask<<=1;
-							}
+			case PICMODE4:	clock_out_data(c, 16);
 							break;
 			default:		//bpWline("unknown");
 						BPMSG1078;
