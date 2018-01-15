@@ -248,8 +248,8 @@ void i2c_start(void) {
   if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
     if (bitbang_i2c_start()) {
       /* There is a short or pull-ups are wrong. */
-      BPMSG1019;
-      BPMSG1020;
+      MSG_WARNING_HEADER;
+      MSG_WARNING_SHORT_OR_NO_PULLUP;
       bpBR;
     }
   } else {
@@ -416,8 +416,8 @@ void i2c_macro(unsigned int c) {
 #else
     if ((BP_CLK == LOW) || (BP_MOSI == LOW)) {
 #endif /* BUSPIRATEV4 */
-      BPMSG1019;
-      BPMSG1020;
+      MSG_WARNING_HEADER;
+      MSG_WARNING_SHORT_OR_NO_PULLUP;
       bpBR;
       return;
     }

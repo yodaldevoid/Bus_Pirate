@@ -1168,12 +1168,6 @@ _MSG_1WIRE_READ_ROM_MACRO_NAME_str:
 _MSG_1WIRE_SEARCH_MACRO_NAME_str:
 	.pasciz "SEARCH (0xF0)"
 
-	; MSG_1WIRE_SHORT_OR_NO_PULLUP
-	.section .text.MSG_1WIRE_SHORT_OR_NO_PULLUP, code
-	.global _MSG_1WIRE_SHORT_OR_NO_PULLUP_str
-_MSG_1WIRE_SHORT_OR_NO_PULLUP_str:
-	.pasciz "*Short or no pull-up "
-
 	; MSG_1WIRE_SKIP_ROM_MACRO_NAME
 	.section .text.MSG_1WIRE_SKIP_ROM_MACRO_NAME, code
 	.global _MSG_1WIRE_SKIP_ROM_MACRO_NAME_str
@@ -1185,12 +1179,6 @@ _MSG_1WIRE_SKIP_ROM_MACRO_NAME_str:
 	.global _MSG_1WIRE_SPEED_PROMPT_str
 _MSG_1WIRE_SPEED_PROMPT_str:
 	.pasciz "Set speed:\r\n 1. Standard (~16.3kbps) \r\n 2. Overdrive (~160kps)"
-
-	; MSG_1WIRE_WARNING
-	.section .text.MSG_1WIRE_WARNING, code
-	.global _MSG_1WIRE_WARNING_str
-_MSG_1WIRE_WARNING_str:
-	.pasciz "Warning: "
 
 	; MSG_ACK
 	.section .text.MSG_ACK, code
@@ -1683,4 +1671,16 @@ _MSG_UNKNOWN_MACRO_ERROR_str:
 	.global _MSG_VREG_TOO_LOW_str
 _MSG_VREG_TOO_LOW_str:
 	.pasciz "VREG too low, is there a short?"
+
+	; MSG_WARNING_HEADER
+	.section .text.MSG_WARNING_HEADER, code
+	.global _MSG_WARNING_HEADER_str
+_MSG_WARNING_HEADER_str:
+	.pasciz "Warning: "
+
+	; MSG_WARNING_SHORT_OR_NO_PULLUP
+	.section .text.MSG_WARNING_SHORT_OR_NO_PULLUP, code
+	.global _MSG_WARNING_SHORT_OR_NO_PULLUP_str
+_MSG_WARNING_SHORT_OR_NO_PULLUP_str:
+	.pasciz "*Short or no pull-up "
 

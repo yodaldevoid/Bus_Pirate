@@ -176,10 +176,8 @@ MSG_1WIRE_NO_DEVICE	1	"No device, try (ALARM) SEARCH macro first"
 MSG_1WIRE_NO_DEVICE_DETECTED	0	"*No device detected "
 MSG_1WIRE_READ_ROM_MACRO_NAME	0	"READ ROM (0x33): "
 MSG_1WIRE_SEARCH_MACRO_NAME	1	"SEARCH (0xF0)"
-MSG_1WIRE_SHORT_OR_NO_PULLUP	0	"*Short or no pull-up "
 MSG_1WIRE_SKIP_ROM_MACRO_NAME	1	"SKIP ROM (0xCC)"
 MSG_1WIRE_SPEED_PROMPT	1	"Set speed:\r\n 1. Standard (~16.3kbps) \r\n 2. Overdrive (~160kps)"
-MSG_1WIRE_WARNING	0	"Warning: "
 
 MSG_ACK	0	"ACK"
 MSG_ANY_KEY_TO_EXIT_PROMPT	1	"Any key to exit"
@@ -250,5 +248,7 @@ MSG_SPI_SPEED_PROMPT	1	"Set speed:\r\n 1.  30KHz\r\n 2. 125KHz\r\n 3. 250KHz\r\n
 MSG_UART_MODE_IDENTIFIER	0	"ART1"
 MSG_UNKNOWN_MACRO_ERROR	1	"Unknown macro, try ? or (0) for help"
 MSG_VREG_TOO_LOW	1	"VREG too low, is there a short?"
+MSG_WARNING_HEADER	0	"Warning: "
+MSG_WARNING_SHORT_OR_NO_PULLUP	0	"*Short or no pull-up "
 
 // vim:cc=80:noet:number:

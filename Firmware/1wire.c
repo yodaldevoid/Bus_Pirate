@@ -924,9 +924,9 @@ void onewire_reset(void) {
     return;
   }
 
-  MSG_1WIRE_WARNING;
+  MSG_WARNING_HEADER;
   if (reset_result == ONEWIRE_BUS_RESET_SHORT) {
-    MSG_1WIRE_SHORT_OR_NO_PULLUP;
+    MSG_WARNING_SHORT_OR_NO_PULLUP;
   } else {
     MSG_1WIRE_NO_DEVICE_DETECTED;
   }

@@ -391,14 +391,10 @@ void MSG_1WIRE_READ_ROM_MACRO_NAME_str(void);
 #define MSG_1WIRE_READ_ROM_MACRO_NAME bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_READ_ROM_MACRO_NAME_str))
 void MSG_1WIRE_SEARCH_MACRO_NAME_str(void);
 #define MSG_1WIRE_SEARCH_MACRO_NAME bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_SEARCH_MACRO_NAME_str))
-void MSG_1WIRE_SHORT_OR_NO_PULLUP_str(void);
-#define MSG_1WIRE_SHORT_OR_NO_PULLUP bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_SHORT_OR_NO_PULLUP_str))
 void MSG_1WIRE_SKIP_ROM_MACRO_NAME_str(void);
 #define MSG_1WIRE_SKIP_ROM_MACRO_NAME bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_SKIP_ROM_MACRO_NAME_str))
 void MSG_1WIRE_SPEED_PROMPT_str(void);
 #define MSG_1WIRE_SPEED_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_SPEED_PROMPT_str))
-void MSG_1WIRE_WARNING_str(void);
-#define MSG_1WIRE_WARNING bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_WARNING_str))
 void MSG_ACK_str(void);
 #define MSG_ACK bp_message_write_buffer(__builtin_tbladdress(MSG_ACK_str))
 void MSG_ANY_KEY_TO_EXIT_PROMPT_str(void);
@@ -563,5 +559,9 @@ void MSG_UNKNOWN_MACRO_ERROR_str(void);
 #define MSG_UNKNOWN_MACRO_ERROR bp_message_write_line(__builtin_tbladdress(MSG_UNKNOWN_MACRO_ERROR_str))
 void MSG_VREG_TOO_LOW_str(void);
 #define MSG_VREG_TOO_LOW bp_message_write_line(__builtin_tbladdress(MSG_VREG_TOO_LOW_str))
+void MSG_WARNING_HEADER_str(void);
+#define MSG_WARNING_HEADER bp_message_write_buffer(__builtin_tbladdress(MSG_WARNING_HEADER_str))
+void MSG_WARNING_SHORT_OR_NO_PULLUP_str(void);
+#define MSG_WARNING_SHORT_OR_NO_PULLUP bp_message_write_buffer(__builtin_tbladdress(MSG_WARNING_SHORT_OR_NO_PULLUP_str))
 
 #endif /* BP_MESSAGES_V3_H */
