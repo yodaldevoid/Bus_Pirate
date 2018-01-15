@@ -15,11 +15,16 @@
  * FOR A PARTICULAR PURPOSE.
  */
 
+/**
+ * @file aux_pin.c
+ *
+ * @brief AUX pins handler implementation file.
+ */
 #include <stdint.h>
 
+#include "aux_pin.h"
 #include "base.h"
 #include "proc_menu.h"
-#include "aux_pin.h"
 
 // TRISDbits.TRISD5
 #define AUXPIN_DIR BP_AUX0_DIR
@@ -33,45 +38,74 @@
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
-static enum _auxmode {
-  AUX_IO = 0,
-  AUX_FREQ,
-  AUX_PWM,
-} AUXmode = AUX_IO;
-
-unsigned long bpFreq_count(void);
-unsigned long bpPeriod_count(unsigned int n);
-
-static uint16_t pwm_frequency;
-static uint16_t pwm_duty_cycle;
+/**
+ * @brief Possible modes for the AUX pins.
+ */
+typedef enum {
+  /** The AUX pin is set in I/O mode. */
+  AUX_MODE_IO = 0,
+  /** The AUX pin is set in Frequency Counting mode. */
+  AUX_MODE_FREQUENCY,
+  /** The AUX pin is set in PWM Signal Generation mode. */
+  AUX_MODE_PWM
+} __attribute__((packed)) aux_mode_t;
 
 /**
+ * @brief Reads the AUX signal for one second, returning the detected frequency.
+ *
+ * @return the detected frequency on the AUX pin in the second spent sampling,
+ * in Hz.
+ */
+static uint32_t poll_frequency_counter_value(void);
+
+unsigned long bpPeriod_count(unsigned int n);
+
+/**
+ * @brief AUX pins manager internal state variables container.
+ */
+typedef struct {
+  /** The PWM frequency in use. */
+  uint16_t pwm_frequency;
+  /** The PWM duty cycle in use. */
+  uint16_t pwm_duty_cycle;
+  /** The AUX pin mode. */
+  aux_mode_t mode;
+} __attribute__((packed)) aux_state_t;
+
+/**
+ * @brief AUX pins manager state.
+ */
+static aux_state_t state = {0};
+
+/**
+ * @brief Sets up input clock prescaler and returns an appropriate divisor.
+ *
  * Sets up timer #1's input clock prescaler for the given frequency and returns
  * an appropriate divisor for it.
  *
  * @param[in] frequency the given frequency to set things up for.
- * 
+ *
  * @return the appropriate PWM frequency divisor.
  */
 static uint16_t setup_prescaler_divisor(const uint16_t frequency);
 
 /**
- * PWM frequency divisor for 1:256 prescaler.
+ * @brief PWM frequency divisor for 1:256 prescaler.
  */
 #define PWM_DIVISOR_PRESCALER_1_256 62
 
 /**
- * PWM frequency divisor for 1:64 prescaler.
+ * @brief PWM frequency divisor for 1:64 prescaler.
  */
 #define PWM_DIVISOR_PRESCALER_1_64 250
 
 /**
- * PWM frequency divisor for 1:8 prescaler.
+ * @brief PWM frequency divisor for 1:8 prescaler.
  */
 #define PWM_DIVISOR_PRESCALER_1_8 2000
 
 /**
- * PWM frequency divisor for 1:1 prescaler.
+ * @brief PWM frequency divisor for 1:1 prescaler.
  */
 #define PWM_DIVISOR_PRESCALER_1_1 16000
 
@@ -113,48 +147,47 @@ uint16_t setup_prescaler_divisor(const uint16_t frequency) {
 }
 
 inline void bp_update_duty_cycle(const uint16_t duty_cycle) {
-    bp_update_pwm(pwm_frequency, duty_cycle);
+  bp_update_pwm(state.pwm_frequency, duty_cycle);
 }
 
 void bp_update_pwm(const uint16_t frequency, const uint16_t duty_cycle) {
-    uint16_t period;
-    uint16_t cycle;
-    uint16_t divisor;
+  uint16_t period;
+  uint16_t cycle;
+  uint16_t divisor;
 
-    pwm_frequency = frequency;
-    pwm_duty_cycle = duty_cycle;
-        
-    /* Shut timers down. */
-    T2CON = 0;
-    T4CON = 0;
-    OC5CON = 0;
-    
-    /* Detach the AUX pin from the PWM generator if no PWM signal is needed. */
-    if (frequency == 0) {
-        AUXPIN_RPOUT = 0;
-        AUXmode = AUX_IO;
-        return;
-    }
-    
-    divisor = setup_prescaler_divisor(frequency);
-    period = (divisor / frequency) - 1;
-    PR2 = period;
-    cycle = (period * duty_cycle) / 100;
-    
-    /* Attach the AUX pin to the PWM generator. */
-    AUXPIN_RPOUT = OC5_IO;
-    
-    /* Setup the PWM generator. */
-    OC5R = cycle;
-    OC5RS = cycle;
-    OC5CON = 0x06;
-    T2CONbits.TON = ON;
-    
-    AUXmode = AUX_PWM;
+  state.pwm_frequency = frequency;
+  state.pwm_duty_cycle = duty_cycle;
+
+  /* Shut timers down. */
+  T2CON = 0;
+  T4CON = 0;
+  OC5CON = 0;
+
+  /* Detach the AUX pin from the PWM generator if no PWM signal is needed. */
+  if (frequency == 0) {
+    AUXPIN_RPOUT = 0;
+    state.mode = AUX_MODE_IO;
+    return;
+  }
+
+  divisor = setup_prescaler_divisor(frequency);
+  period = (divisor / frequency) - 1;
+  PR2 = period;
+  cycle = (period * duty_cycle) / 100;
+
+  /* Attach the AUX pin to the PWM generator. */
+  AUXPIN_RPOUT = OC5_IO;
+
+  /* Setup the PWM generator. */
+  OC5R = cycle;
+  OC5RS = cycle;
+  OC5CON = 0x06;
+  T2CONbits.TON = ON;
+  state.mode = AUX_MODE_PWM;
 }
 
 // setup the PWM/frequency generator
-void bpPWM(void) {
+void bp_pwm_setup(void) {
   unsigned int PWM_period, PWM_dutycycle, PWM_freq, PWM_div;
   int done;
   float PWM_pd;
@@ -164,11 +197,11 @@ void bpPWM(void) {
   T4CON = 0;
   OC5CON = 0;
 
-  if (AUXmode == AUX_PWM) { // PWM is on, stop it
-    AUXPIN_RPOUT = 0;       // remove output from AUX pin
+  if (state.mode == AUX_MODE_PWM) { // PWM is on, stop it
+    AUXPIN_RPOUT = 0;               // remove output from AUX pin
     // bpWline(OUMSG_AUX_PWM_OFF);
     BPMSG1028;
-    AUXmode = AUX_IO;
+    state.mode = AUX_MODE_IO;
 
     if (cmdbuf[((cmdstart + 1) & CMDLENMSK)] == 0x00) {
       // return if no arguments to function
@@ -226,17 +259,17 @@ void bpPWM(void) {
   T2CONbits.TON = ON;
 
   BPMSG1034;
-  AUXmode = AUX_PWM;
+  state.mode = AUX_MODE_PWM;
 }
 
 // frequency measurement
-void bpFreq(void) {
+void bp_frequency_counter_setup(void) {
   // frequency accuracy optimized by selecting measurement method, either
   //   counting frequency or measuring period, to maximize resolution.
   // Note: long long int division routine used by C30 is not open-coded  */
   unsigned long long f, p;
 
-  if (AUXmode == AUX_PWM) {
+  if (state.mode == AUX_MODE_PWM) {
     // bpWline(OUMSG_AUX_FREQ_PWM);
     BPMSG1037;
     return;
@@ -256,7 +289,7 @@ void bpFreq(void) {
 
   T2CON = 0b111010; //(TCKPS1|TCKPS0|T32|TCS); // prescale to 256
 
-  f = bpFreq_count(); // all measurements within 26bits (<67MHz)
+  f = poll_frequency_counter_value(); // all measurements within 26bits (<67MHz)
 
   // counter only seems to be good til around 6.7MHz,
   // use 4.2MHz (nearest power of 2 without exceeding 6.7MHz) for reliable
@@ -267,13 +300,14 @@ void bpFreq(void) {
     // bpWline("Autorange");
     BPMSG1245;
     T2CON = 0b001010; //(TCKPS1|TCKPS0|T32|TCS); prescale to 0
-    f = bpFreq_count();
+    f = poll_frequency_counter_value();
   }
   // at 4000Hz 1 bit resolution of frequency measurement = 1 bit resolution of
   // period measurement
   if (f >
       3999) { // when < 4 KHz  counting edges is inferior to measuring period(s)
-    bp_write_dec_dword_friendly(f); // this function uses comma's to seperate thousands.
+    bp_write_dec_dword_friendly(
+        f); // this function uses comma's to seperate thousands.
     MSG_PWM_HZ_MARKER;
   } else if (f > 0) {
     BPMSG1245;
@@ -361,8 +395,7 @@ void bpFreq(void) {
   T2CON = 0;
 }
 
-// frequency measurement
-unsigned long bpBinFreq(void) {
+unsigned long bp_measure_frequency(void) {
   // static unsigned int j,k;
   unsigned long l;
 
@@ -376,12 +409,12 @@ unsigned long bpBinFreq(void) {
 
   T2CON = 0b111010; //(TCKPS1|TCKPS0|T32|TCS);
 
-  l = bpFreq_count();
+  l = poll_frequency_counter_value();
   if (l > 0xff) {     // got count
     l *= 256;         // adjust for prescaler...
   } else {            // no count, maybe it's less than prescaler (256hz)
     T2CON = 0b001010; //(TCKPS1|TCKPS0|T32|TCS); prescale to 0
-    l = bpFreq_count();
+    l = poll_frequency_counter_value();
   }
 
   // return clock input to other pin
@@ -391,45 +424,56 @@ unsigned long bpBinFreq(void) {
   return l;
 }
 
-unsigned long bpFreq_count(void) {
-  static unsigned int j;
-  static unsigned long l;
+uint32_t poll_frequency_counter_value(void) {
+  uint32_t counter_low;
+  uint32_t counter_high;
 
-  PR3 = 0xffff; // most significant word
-  PR2 = 0xffff; // least significant word
+  /* Set 32-bits period register for timer #2 (0xFFFFFFFF). */
+  PR3 = 0xFFFF;
+  PR2 = 0xFFFF;
 
-  // clear counter, first write hold, then tmr2....
-  TMR3HLD = 0x00;
-  TMR2 = 0x00;
+  /* Clear timer #2 counter. */
 
-  // timer 4 internal, measures interval
-  TMR5HLD = 0x00;
-  TMR4 = 0x00;
-  T4CON = 0b1000; //.T32=1, bit 3
+  TMR3HLD = 0;
+  TMR2 = 0;
 
-  // one second of counting time
-  PR5 = 0xf4;        // most significant word
-  PR4 = 0x2400;      // least significant word
-  IFS1bits.T5IF = 0; // clear interrupt flag
+  /* Clear timer #4 counter. */
 
-  // start timer4
-  T4CONbits.TON = 1;
-  // start count (timer2)
-  T2CONbits.TON = 1;
+  TMR5HLD = 0;
+  TMR4 = 0;
 
-  // wait for timer4 (timer 5 interrupt)
-  while (IFS1bits.T5IF == 0)
-    ;
+  /* Set timer #4 as 32 bits. */
+  T4CONbits.T32 = YES;
 
-  // stop count (timer2)
-  T2CONbits.TON = 0;
-  T4CONbits.TON = 0;
+  /* Set 32-bits period register for timer #4 (0x00F42400, one second). */
 
-  // spit out 32bit value
-  j = TMR2;
-  l = TMR3HLD;
-  l = (l << 16) + j;
-  return l;
+  PR5 = 0x00F4;
+  PR4 = 0x2400;
+
+  /* Clear timer #4 interrupt flag (32 bits mode). */
+  IFS1bits.T5IF = OFF;
+
+  /* Start timer #4. */
+  T4CONbits.TON = ON;
+
+  /* Start timer #2. */
+  T2CONbits.TON = ON;
+
+  /* Wait for timer #4 interrupt to occur. */
+  while (IFS1bits.T5IF == 0) {
+  }
+
+  /* Stop timers. */
+
+  T2CONbits.TON = OFF;
+  T4CONbits.TON = OFF;
+
+  /* Timer #2 now contains the frequency value. */
+
+  counter_low = TMR2;
+  counter_high = TMR3HLD;
+
+  return (counter_high << 16) + counter_low;
 }
 
 // bpPeriod_count function for frequency measurment uses input compare periphers
@@ -571,7 +615,6 @@ unsigned long bpPeriod_count(unsigned int n) {
 }
 #endif
 
-/* Leaves the selected AUX pin into INPUT/HiZ mode. */
 void bp_aux_pin_set_high_impedance(void) {
 #ifdef BUSPIRATEV3
   if (mode_configuration.alternate_aux == 0) {
@@ -732,8 +775,7 @@ bool bp_aux_pin_read(void) {
 #endif /* BUSPIRATEV3 */
 }
 
-// setup the Servo PWM
-void bpServo(void) {
+void bp_servo_setup(void) {
   unsigned int PWM_period, PWM_dutycycle;
   unsigned char entryloop = 0;
   float PWM_pd;
@@ -743,12 +785,12 @@ void bpServo(void) {
   T4CON = 0;
   OC5CON = 0;
 
-  if (AUXmode == AUX_PWM) { // PWM is on, stop it
+  if (state.mode == AUX_MODE_PWM) { // PWM is on, stop it
     if (cmdbuf[((cmdstart + 1) & CMDLENMSK)] ==
         0x00) {         // no extra data, stop servo
       AUXPIN_RPOUT = 0; // remove output from AUX pin
       BPMSG1028;
-      AUXmode = AUX_IO;
+      state.mode = AUX_MODE_IO;
       return; // return if no arguments to function
     }
   }
@@ -781,7 +823,7 @@ servoset:
   PR2 = PWM_period;
   T2CONbits.TON = ON;
   BPMSG1255;
-  AUXmode = AUX_PWM;
+  state.mode = AUX_MODE_PWM;
 
   if (entryloop == 1) {
     PWM_pd = getnumber(-1, 0, 180, 1);

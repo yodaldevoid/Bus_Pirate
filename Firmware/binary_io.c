@@ -253,7 +253,7 @@ void binBB(void) {
         AD1CON1bits.ADON = 0;         // turn ADC OFF
       } else if (inByte == 0b10110) { // binary frequency count access
         unsigned long l;
-        l = bpBinFreq();
+        l = bp_measure_frequency();
         UART1TX((l >> (8 * 3)));
         UART1TX((l >> (8 * 2)));
         UART1TX((l >> (8 * 1)));

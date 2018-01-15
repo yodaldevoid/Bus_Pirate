@@ -547,13 +547,13 @@ end:
                     //measureSupplyVoltages();
                     break;
                 case 'f': //bpWline("-frequency count on AUX");
-                    bpFreq();
+                    bp_frequency_counter_setup();
                     break;
                 case 'g':
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
-                        bpPWM();
+                        bp_pwm_setup();
                     }
                     break;
                 case 'c': //bpWline("-aux pin assigment");
@@ -775,7 +775,7 @@ bpv4reset:
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
-                        bpServo();
+                        bp_servo_setup();
                     }
                     break;
                 case '<': command_error = true;
