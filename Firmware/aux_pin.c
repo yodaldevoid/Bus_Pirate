@@ -58,7 +58,14 @@ typedef enum {
  */
 static uint32_t poll_frequency_counter_value(void);
 
-unsigned long bpPeriod_count(unsigned int n);
+/**
+ * @brief Gets the average frequency for the given samples count.
+ *
+ * @param count[in] the number of samples to obtain.
+ *
+ * @return the average frequency value, in Hz.
+ */
+static uint32_t average_sample_frequency(const uint16_t count);
 
 /**
  * @brief AUX pins manager internal state variables container.
@@ -262,7 +269,6 @@ void bp_pwm_setup(void) {
   state.mode = AUX_MODE_PWM;
 }
 
-// frequency measurement
 void bp_frequency_counter_setup(void) {
   // frequency accuracy optimized by selecting measurement method, either
   //   counting frequency or measuring period, to maximize resolution.
@@ -311,7 +317,7 @@ void bp_frequency_counter_setup(void) {
     MSG_PWM_HZ_MARKER;
   } else if (f > 0) {
     BPMSG1245;
-    p = bpPeriod_count(f);
+    p = average_sample_frequency(f);
     // don't output fractions of frequency that are less then the frequency
     //   resolution provided by an increment of the period timer count.
     if (p > 400000) { // f <= 40 Hz
@@ -395,33 +401,100 @@ void bp_frequency_counter_setup(void) {
   T2CON = 0;
 }
 
-unsigned long bp_measure_frequency(void) {
-  // static unsigned int j,k;
-  unsigned long l;
+uint32_t bp_measure_frequency(void) {
+  uint32_t frequency;
 
-  // setup timer
-  T4CON = 0; // make sure the counters are off
-  T2CON = 0;
+  /*
+   * Setup timer 4
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER4 is not bound with TIMER5 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T4CON = 0x0000;
 
-  // timer 2 external
-  AUXPIN_DIR = 1;                 // aux input
-  RPINR3bits.T2CKR = AUXPIN_RPIN; // assign T2 clock input to aux input
+  /*
+   * Setup timer 2
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER2 is not bound with TIMER3 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T2CON = 0x0000;
 
-  T2CON = 0b111010; //(TCKPS1|TCKPS0|T32|TCS);
+  AUXPIN_DIR = INPUT;
 
-  l = poll_frequency_counter_value();
-  if (l > 0xff) {     // got count
-    l *= 256;         // adjust for prescaler...
-  } else {            // no count, maybe it's less than prescaler (256hz)
-    T2CON = 0b001010; //(TCKPS1|TCKPS0|T32|TCS); prescale to 0
-    l = poll_frequency_counter_value();
+  /* Set timer 2 clock input pin. */
+  RPINR3bits.T2CKR = AUXPIN_RPIN;
+
+  /*
+   * Finish timer 2 setup
+   *
+   * MSB
+   * 0-0------111-1-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   Internal clock.
+   * | |      ||+----- T32:   TIMER2 is bound with TIMER3 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:256 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T2CON = (ON << _T2CON_TCS_POSITION) | (ON << _T2CON_T32_POSITION) |
+          (ON << _T2CON_TCKPS0_POSITION) | (ON << _T2CON_TCKPS1_POSITION);
+
+  frequency = poll_frequency_counter_value();
+  if (frequency > 0xFF) {
+    /* Adjust for prescaler. */
+    frequency *= 256;
+  } else {
+    /* Use a less aggressive prescaler, set to 1:1. */
+    T2CONbits.TCKPS0 = OFF;
+    T2CONbits.TCKPS1 = OFF;
+    frequency = poll_frequency_counter_value();
   }
 
-  // return clock input to other pin
-  RPINR3bits.T2CKR = 0b11111; // assign T2 clock input to nothing
-  T4CON = 0;                  // make sure the counters are off
-  T2CON = 0;
-  return l;
+  /* Remove clock input pin assignment. */
+  RPINR3bits.T2CKR = 0b011111;
+
+  /*
+   * Stop timer 4
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER4 is not bound with TIMER5 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T4CON = 0x0000;
+
+  /*
+   * Stop timer 2
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER2 is not bound with TIMER3 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T2CON = 0x0000;
+
+  return frequency;
 }
 
 uint32_t poll_frequency_counter_value(void) {
@@ -433,12 +506,10 @@ uint32_t poll_frequency_counter_value(void) {
   PR2 = 0xFFFF;
 
   /* Clear timer #2 counter. */
-
   TMR3HLD = 0;
   TMR2 = 0;
 
   /* Clear timer #4 counter. */
-
   TMR5HLD = 0;
   TMR4 = 0;
 
@@ -446,7 +517,6 @@ uint32_t poll_frequency_counter_value(void) {
   T4CONbits.T32 = YES;
 
   /* Set 32-bits period register for timer #4 (0x00F42400, one second). */
-
   PR5 = 0x00F4;
   PR4 = 0x2400;
 
@@ -464,156 +534,276 @@ uint32_t poll_frequency_counter_value(void) {
   }
 
   /* Stop timers. */
-
   T2CONbits.TON = OFF;
   T4CONbits.TON = OFF;
 
   /* Timer #2 now contains the frequency value. */
-
   counter_low = TMR2;
   counter_high = TMR3HLD;
 
   return (counter_high << 16) + counter_low;
 }
 
-// bpPeriod_count function for frequency measurment uses input compare periphers
-// because BP v4 and v3 have different IC peripherals the function is
-// implemented through #if defs
 #if defined(BUSPIRATEV4)
-// BPv4 implementation of the bpPeriod_count function
-unsigned long bpPeriod_count(unsigned int n) {
-  static unsigned int i;
-  static unsigned long j, k, l, m, d, s;
+#define IC1ICBNE IC1CON1bits.ICBNE
+#define IC2ICBNE IC2CON1bits.ICBNE
+#else
+#define IC1ICBNE IC1CONbits.ICBNE
+#define IC2ICBNE IC2CONbits.ICBNE
+#endif /* BUSPIRATEV4 */
 
-  IFS0bits.IC2IF = 0; // clear input capture interrupt flag
-  IFS0bits.IC1IF = 0; // clear input capture interrupt flag
+uint32_t average_sample_frequency(const uint16_t count) {
+  uint32_t current_low, counter_low, current_high, counter_high, total_samples;
+  uint16_t index;
 
-  // configure IC1 to RP20 (AUX)
+  /* Clear input capture interrupts. */
+  IFS0bits.IC2IF = OFF;
+  IFS0bits.IC1IF = OFF;
+
+  /* Assign input capture pin. */
   RPINR7bits.IC2R = AUXPIN_RPIN;
   RPINR7bits.IC1R = AUXPIN_RPIN;
 
-  // timer 4 internal, measures interval
-  TMR5HLD = 0x00;
-  TMR4 = 0x00;
-  T4CON = 0b1000; //.T32=1, bit 3
-  // start timer4
-  T4CONbits.TON = 1;
+#if defined(BUSPIRATEV4)
 
-  // unimplemented: [15:14]=0b00,
-  // ICSIDL:        [13]=0b0, input capture module continues to operate in CPU
-  // idle mode
-  // ICTSEL[2:0]:   [12:10]=0b010=TMR4, 0b011=TMR5 (unimplemented for 16-bit
-  // capture)
-  // unimplemented: [9:8]=0b00
-  // ICTMR:         [7]=0b0=TMR3, 0b1=TMR2 (unimplemented for 32-bit capture)
-  // ICI[1:0]:      [6:5]=0b00, 1 capture per interrupt
-  // ICOV,ICBNE:    [4:3]=0b00, read-only buffer overflow and not empty
-  // ICM[2:0]:      [2:0]=0b011, capture every rising edge
-  IC2CON1 = 0x0C03; // fails with ICM 0 or 3 (0 always read from IC2BUF)
+  /* Setup timer 4 for interval measurement. */
+  TMR5HLD = 0x0000;
+  TMR4 = 0x0000;
 
-  IC1CON1 = 0x0803;
+  /*
+   * Start timer 4
+   *
+   * MSB
+   * 1-0------001-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER4 is bound with TIMER5 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer ON.
+   */
+  T4CON = (ON << _T4CON_TON_POSITION) | (ON << _T4CON_T32_POSITION);
 
-  // unimplemented: [15:9]=0b0000000
-  // IC32:          [8]=0b0
-  // ICTRIG:        [7]=0b0, synchronize with SYNCSEL specified source
-  // TRIGSTAT:      [6]=0b0, cleared by SW, holds timer in reset when low,
-  // trigger chosen by syncsel sets bit and releases timer from reset.
-  // unimplemented: [5]=0b0
-  // SYNCSEL[4:0]:  [4:0]=0b10100, selects trigger/synchronization source to be
-  // IC1.
+  /* Setup input capture 2. */
 
-  IC2CON2 = 0x0014;
+  /*
+   * IC2CON1
+   *
+   * MSB
+   * --0011---00--011
+   *   ||||   ||  |||
+   *   ||||   ||  +++-- ICM:    Simple capture mode, on every rising edge.
+   *   ||||   ++------- ICI:    Interrupt on every capture event.
+   *   |+++------------ ICTSEL: Use input capture timer 5.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle mode.
+   */
+  IC2CON1 = (0b011 << _IC2CON1_ICM_POSITION) | (0b00 << _IC2CON1_ICI_POSITION) |
+            (0b011 << _IC2CON1_ICTSEL_POSITION) |
+            (OFF << _IC2CON1_ICSIDL_POSITION);
 
-  IC1CON2 = 0x0014;
+  /*
+   * IC2CON2
+   *
+   * MSB
+   * -------000-10100
+   *        ||| |||||
+   *        ||| +++++-- SYNCSEL:  Use Input Capture 2 as trigger.
+   *        ||+-------- TRIGSTAT: Timer source has not been triggered.
+   *        |+--------- ICTRIG:   Synchronize input capture with SYNCSEL source.
+   *        +---------- IC32:     Do not cascade input capture units.
+   */
+  IC2CON2 = (0b10100 << _IC2CON2_SYNCSEL_POSITION) |
+            (OFF << _IC2CON2_TRIGSTAT_POSITION) |
+            (OFF << _IC2CON2_ICTRIG_POSITION) | (OFF << _IC2CON2_IC32_POSITION);
 
-  // read input capture bits n times
-  while (IC1CON1bits.ICBNE) // clear buffer
-    j = IC1BUF;
+  /* Setup input capture 1. */
 
-  while (IC2CON1bits.ICBNE) // clear buffer
-    k = IC2BUF;
+  /*
+   * IC1CON1
+   *
+   * --0010---00--011
+   *   ||||   ||  |||
+   *   ||||   ||  +++-- ICM:    Simple capture mode, on every rising edge.
+   *   ||||   ++------- ICI:    Interrupt on every capture event.
+   *   |+++------------ ICTSEL: Use input capture timer 4.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle mode.
+   */
+  IC1CON1 = (0b011 << _IC1CON1_ICM_POSITION) | (0b00 << _IC1CON1_ICI_POSITION) |
+            (0b010 << _IC1CON1_ICTSEL_POSITION) |
+            (OFF << _IC1CON1_ICSIDL_POSITION);
 
-  while (!IC1CON1bits.ICBNE)
-    ; // wait for ICBNE
+  /*
+   * IC1CON2
+   *
+   * MSB
+   * -------000-10100
+   *        ||| |||||
+   *        ||| +++++-- SYNCSEL:  Use Input Capture 2 as trigger.
+   *        ||+-------- TRIGSTAT: Timer source has not been triggered.
+   *        |+--------- ICTRIG:   Synchronize input capture with SYNCSEL source.
+   *        +---------- IC32:     Do not cascade input capture units.
+   */
+  IC1CON2 = (0b10100 << _IC1CON2_SYNCSEL_POSITION) |
+            (OFF << _IC1CON2_TRIGSTAT_POSITION) |
+            (OFF << _IC1CON2_ICTRIG_POSITION) | (OFF << _IC1CON2_IC32_POSITION);
 
-  k = IC1BUF;
-  m = IC2BUF;
-  for (i = s = 0; i < n; i++) {
-    while (!IC1CON1bits.ICBNE)
-      ; // wait for ICBNE
-    j = IC1BUF;
-    l = IC2BUF;
-    d = ((l - m) << 16) + (j - k);
-    s = s + d;
-    m = l;
-    k = j;
+#else
+
+  /* Setup timer 2 for interval measurement. */
+  TMR3HLD = 0x0000;
+  TMR2 = 0x0000;
+
+  /* Start timer 2. */
+
+  /*
+   * T2CON
+   *
+   * MSB
+   * 1-0------001-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER2 is bound with TIMER3 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer ON.
+   */
+  T2CON = (ON << _T2CON_TON_POSITION) | (ON << _T2CON_T32_POSITION);
+
+  /* Setup Input Capture 2. */
+
+  /*
+   * IC2CON
+   *
+   * MSB
+   * --0-----000--011
+   *   |     |||  |||
+   *   |     |||  +++-- ICM:    Capture every rising edge.
+   *   |     |++------- ICI:    Interrupt on every capture event.
+   *   |     +--------- ICTMR:  TMR3 contents are captured on event.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle.
+   */
+  IC2CON = (0b011 << _IC2CON_ICM_POSITION) | (0b00 << _IC2CON_ICI_POSITION) |
+           (OFF << _IC2CON_ICTMR_POSITION) | (OFF << _IC2CON_ICSIDL_POSITION);
+
+  /* Setup Input Capture 1. */
+
+  /*
+   * IC1CON
+   *
+   * MSB
+   * --0-----100--011
+   *   |     |||  |||
+   *   |     |||  +++-- ICM:    Capture every rising edge.
+   *   |     |++------- ICI:    Interrupt on every capture event.
+   *   |     +--------- ICTMR:  TMR2 contents are captured on event.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle.
+   */
+  IC1CON = (0b011 << _IC2CON_ICM_POSITION) | (0b00 << _IC2CON_ICI_POSITION) |
+           (ON << _IC2CON_ICTMR_POSITION) | (OFF << _IC2CON_ICSIDL_POSITION);
+
+#endif /* BUSPIRATEV4 */
+
+  /* Flush IC1. */
+  while (IC1ICBNE == ON) {
+    current_low = IC1BUF;
   }
 
-  // turn off input capture modules, reset control to POR state
-  IC1CON1 = 0;
-  IC1CON2 = 0;
-  T4CONbits.TON = 0;
-
-  return s / n;
-}
-#elif defined(BUSPIRATEV3)
-// BPv3(v2) implementation of the bpPeriod_count function
-unsigned long bpPeriod_count(unsigned int n) {
-  static unsigned int i;
-  static unsigned long j, k, l, m, d, s;
-
-  IFS0bits.IC2IF = 0; // clear input capture interrupt flag
-  IFS0bits.IC1IF = 0; // clear input capture interrupt flag
-
-  // configure IC1 to RP20 (AUX)
-  RPINR7bits.IC2R = AUXPIN_RPIN;
-  RPINR7bits.IC1R = AUXPIN_RPIN;
-
-  // timer 4 internal, measures interval
-  TMR3HLD = 0x00;
-  TMR2 = 0x00;
-  T2CON = 0b1000; //.T32=1, bit 3
-  // start timer4
-  T2CONbits.TON = 1;
-
-  // bit7 determins tmr2/3,
-  // bits 0:2 determine IC mode, 3 is Simple capture mode, capture on every
-  // rising edge
-  IC2CON = 0x0003; // bit7 i 0 - connected to tmr3
-
-  IC1CON = 0x0083; // bit7 is 1 - connected to tmr2,
-
-  // read input capture bits n times
-  while (IC1CONbits.ICBNE) // clear buffer
-    j = IC1BUF;
-
-  while (IC2CONbits.ICBNE) // clear buffer
-    k = IC2BUF;
-
-  while (!IC1CONbits.ICBNE)
-    ; // wait for ICBNE
-
-  k = IC1BUF;
-  m = IC2BUF;
-  for (i = s = 0; i < n; i++) {
-    while (!IC1CONbits.ICBNE)
-      ; // wait for ICBNE
-    j = IC1BUF;
-    l = IC2BUF;
-    d = ((l - m) << 16) + (j - k);
-    s = s + d;
-    m = l;
-    k = j;
+  /* Flush IC2. */
+  while (IC2ICBNE == ON) {
+    counter_low = IC2BUF;
   }
 
-  // turn off input capture modules, reset control to POR state
-  IC1CON = 0;
-  IC1CON = 0;
-  T2CONbits.TON = 0;
+  while (IC1ICBNE == OFF) {
+  }
 
-  return s / n;
+  counter_low = IC1BUF;
+  counter_high = IC2BUF;
+  total_samples = 0;
+
+  for (index = 0; index < count; index++) {
+    /* Wait for signal. */
+    while (IC1ICBNE == OFF) {
+    }
+
+    current_low = IC1BUF;
+    current_high = IC2BUF;
+    total_samples +=
+        ((current_high - counter_high) << 16) + (current_low - counter_low);
+    counter_high = current_high;
+    counter_low = current_low;
+  }
+
+#if defined(BUSPIRATEV4)
+
+  /* Stop input capture units. */
+
+  /*
+   * IC1CON1
+   *
+   * --0000---00--000
+   *   ||||   ||  |||
+   *   ||||   ||  +++-- ICM:    Input capture module turned off.
+   *   ||||   ++------- ICI:    Interrupt on every capture event.
+   *   |+++------------ ICTSEL: Use input capture timer 3.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle mode.
+   */
+  IC1CON1 = 0x0000;
+
+  /*
+   * IC2CON1
+   *
+   * --0000---00--000
+   *   ||||   ||  |||
+   *   ||||   ||  +++-- ICM:    Input capture module turned off.
+   *   ||||   ++------- ICI:    Interrupt on every capture event.
+   *   |+++------------ ICTSEL: Use input capture timer 3.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle mode.
+   */
+  IC2CON1 = 0x0000;
+
+  /* Stop timer 4. */
+  T4CONbits.TON = OFF;
+
+#else
+
+  /* Stop Input Capture 1. */
+
+  /*
+   * IC1CON
+   *
+   * MSB
+   * --0-----000--000
+   *   |     |||  |||
+   *   |     |||  +++-- ICM:    Capture module turned off.
+   *   |     |++------- ICI:    Interrupt on every capture event.
+   *   |     +--------- ICTMR:  TMR3 contents are captured on event.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle.
+   */
+  IC1CON = 0x0000;
+
+  /* Stop Input Capture 2. */
+
+  /*
+   * IC2CON
+   *
+   * MSB
+   * --0-----000--000
+   *   |     |||  |||
+   *   |     |||  +++-- ICM:    Capture module turned off.
+   *   |     |++------- ICI:    Interrupt on every capture event.
+   *   |     +--------- ICTMR:  TMR3 contents are captured on event.
+   *   +--------------- ICSIDL: Input capture continues on CPU idle.
+   */
+  IC2CON = 0x0000;
+
+  /* Stop timer 2. */
+
+  T2CONbits.TON = OFF;
+
+#endif /* BUSPIRATEV4 */
+
+  return total_samples / count;
 }
-#endif
 
 void bp_aux_pin_set_high_impedance(void) {
 #ifdef BUSPIRATEV3
@@ -648,7 +838,6 @@ void bp_aux_pin_set_high_impedance(void) {
   BPMSG1039;
 }
 
-/* Leaves the selected AUX pin HIGH. */
 void bp_aux_pin_set_high(void) {
 #ifdef BUSPIRATEV3
   if (mode_configuration.alternate_aux == 0) {
@@ -688,7 +877,6 @@ void bp_aux_pin_set_high(void) {
   BPMSG1040;
 }
 
-/* Leaves the selected AUX pin LOW. */
 void bp_aux_pin_set_low(void) {
 #ifdef BUSPIRATEV3
   if (mode_configuration.alternate_aux == 0) {
@@ -728,7 +916,6 @@ void bp_aux_pin_set_low(void) {
   BPMSG1041;
 }
 
-/* Leaves the selected AUX pin into INPUT/HiZ mode. */
 bool bp_aux_pin_read(void) {
 #ifdef BUSPIRATEV3
   if (mode_configuration.alternate_aux == 0) {
@@ -834,18 +1021,3 @@ servoset:
     goto servoset;
   }
 }
-
-/*1. Set the PWM period by writing to the selected
-Timer Period register (PRy).
-2. Set the PWM duty cycle by writing to the OCxRS
-register.
-3. Write the OCxR register with the initial duty cycle.
-4. Enable interrupts, if required, for the timer and
-output compare modules. The output compare
-interrupt is required for PWM Fault pin utilization.
-5. Configure the output compare module for one of
-two PWM Operation modes by writing to the
-Output Compare Mode bits, OCM<2:0>
-(OCxCON<2:0>).
-6. Set the TMRy prescale value and enable the time
-base by setting TON (TxCON<15>) = 1.*/
