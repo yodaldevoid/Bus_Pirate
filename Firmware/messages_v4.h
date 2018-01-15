@@ -1,38 +1,6 @@
 #ifndef BP_MESSAGES_V4_H
 #define BP_MESSAGES_V4_H
 
-void BPMSG1004_str(void);
-#define BPMSG1004 bp_message_write_line(__builtin_tbladdress(BPMSG1004_str))
-void BPMSG1005_str(void);
-#define BPMSG1005 bp_message_write_buffer(__builtin_tbladdress(BPMSG1005_str))
-void BPMSG1006_str(void);
-#define BPMSG1006 bp_message_write_line(__builtin_tbladdress(BPMSG1006_str))
-void BPMSG1007_str(void);
-#define BPMSG1007 bp_message_write_line(__builtin_tbladdress(BPMSG1007_str))
-void BPMSG1008_str(void);
-#define BPMSG1008 bp_message_write_buffer(__builtin_tbladdress(BPMSG1008_str))
-void BPMSG1009_str(void);
-#define BPMSG1009 bp_message_write_line(__builtin_tbladdress(BPMSG1009_str))
-void BPMSG1010_str(void);
-#define BPMSG1010 bp_message_write_line(__builtin_tbladdress(BPMSG1010_str))
-void BPMSG1011_str(void);
-#define BPMSG1011 bp_message_write_line(__builtin_tbladdress(BPMSG1011_str))
-void BPMSG1012_str(void);
-#define BPMSG1012 bp_message_write_line(__builtin_tbladdress(BPMSG1012_str))
-void BPMSG1013_str(void);
-#define BPMSG1013 bp_message_write_buffer(__builtin_tbladdress(BPMSG1013_str))
-void BPMSG1014_str(void);
-#define BPMSG1014 bp_message_write_line(__builtin_tbladdress(BPMSG1014_str))
-void BPMSG1015_str(void);
-#define BPMSG1015 bp_message_write_line(__builtin_tbladdress(BPMSG1015_str))
-void BPMSG1017_str(void);
-#define BPMSG1017 bp_message_write_buffer(__builtin_tbladdress(BPMSG1017_str))
-void BPMSG1019_str(void);
-#define BPMSG1019 bp_message_write_buffer(__builtin_tbladdress(BPMSG1019_str))
-void BPMSG1020_str(void);
-#define BPMSG1020 bp_message_write_buffer(__builtin_tbladdress(BPMSG1020_str))
-void BPMSG1021_str(void);
-#define BPMSG1021 bp_message_write_buffer(__builtin_tbladdress(BPMSG1021_str))
 void BPMSG1022_str(void);
 #define BPMSG1022 bp_message_write_buffer(__builtin_tbladdress(BPMSG1022_str))
 void BPMSG1023_str(void);
@@ -339,8 +307,6 @@ void BPMSG1256_str(void);
 #define BPMSG1256 bp_message_write_line(__builtin_tbladdress(BPMSG1256_str))
 void BPMSG1257_str(void);
 #define BPMSG1257 bp_message_write_buffer(__builtin_tbladdress(BPMSG1257_str))
-void BPMSG1259_str(void);
-#define BPMSG1259 bp_message_write_line(__builtin_tbladdress(BPMSG1259_str))
 void BPMSG1262_str(void);
 #define BPMSG1262 bp_message_write_line(__builtin_tbladdress(BPMSG1262_str))
 void BPMSG1263_str(void);
@@ -425,12 +391,46 @@ void HLP1021_str(void);
 #define HLP1021 bp_message_write_line(__builtin_tbladdress(HLP1021_str))
 void HLP1022_str(void);
 #define HLP1022 bp_message_write_line(__builtin_tbladdress(HLP1022_str))
+void MSG_1WIRE_ADDRESS_MACRO_HEADER_str(void);
+#define MSG_1WIRE_ADDRESS_MACRO_HEADER bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_ADDRESS_MACRO_HEADER_str))
+void MSG_1WIRE_ALARM_MACRO_NAME_str(void);
+#define MSG_1WIRE_ALARM_MACRO_NAME bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_ALARM_MACRO_NAME_str))
+void MSG_1WIRE_BUS_RESET_str(void);
+#define MSG_1WIRE_BUS_RESET bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_BUS_RESET_str))
+void MSG_1WIRE_LOOKUP_ID_HEADER_str(void);
+#define MSG_1WIRE_LOOKUP_ID_HEADER bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_LOOKUP_ID_HEADER_str))
+void MSG_1WIRE_MACRO_LIST_str(void);
+#define MSG_1WIRE_MACRO_LIST bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_MACRO_LIST_str))
+void MSG_1WIRE_MACRO_MENU_HEADER_str(void);
+#define MSG_1WIRE_MACRO_MENU_HEADER bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_MACRO_MENU_HEADER_str))
+void MSG_1WIRE_MACRO_TABLE_HEADER_str(void);
+#define MSG_1WIRE_MACRO_TABLE_HEADER bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_MACRO_TABLE_HEADER_str))
+void MSG_1WIRE_MACRO_TABLE_TRAILER_str(void);
+#define MSG_1WIRE_MACRO_TABLE_TRAILER bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_MACRO_TABLE_TRAILER_str))
+void MSG_1WIRE_MATCH_ROM_MACRO_NAME_str(void);
+#define MSG_1WIRE_MATCH_ROM_MACRO_NAME bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_MATCH_ROM_MACRO_NAME_str))
 void MSG_1WIRE_MODE_IDENTIFIER_str(void);
 #define MSG_1WIRE_MODE_IDENTIFIER bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_MODE_IDENTIFIER_str))
 void MSG_1WIRE_NEXT_CLOCK_ALERT_str(void);
 #define MSG_1WIRE_NEXT_CLOCK_ALERT bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_NEXT_CLOCK_ALERT_str))
+void MSG_1WIRE_NO_DEVICE_str(void);
+#define MSG_1WIRE_NO_DEVICE bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_NO_DEVICE_str))
+void MSG_1WIRE_NO_DEVICE_DETECTED_str(void);
+#define MSG_1WIRE_NO_DEVICE_DETECTED bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_NO_DEVICE_DETECTED_str))
+void MSG_1WIRE_PINS_STATE_str(void);
+#define MSG_1WIRE_PINS_STATE bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_PINS_STATE_str))
+void MSG_1WIRE_READ_ROM_MACRO_NAME_str(void);
+#define MSG_1WIRE_READ_ROM_MACRO_NAME bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_READ_ROM_MACRO_NAME_str))
+void MSG_1WIRE_SEARCH_MACRO_NAME_str(void);
+#define MSG_1WIRE_SEARCH_MACRO_NAME bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_SEARCH_MACRO_NAME_str))
+void MSG_1WIRE_SHORT_OR_NO_PULLUP_str(void);
+#define MSG_1WIRE_SHORT_OR_NO_PULLUP bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_SHORT_OR_NO_PULLUP_str))
+void MSG_1WIRE_SKIP_ROM_MACRO_NAME_str(void);
+#define MSG_1WIRE_SKIP_ROM_MACRO_NAME bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_SKIP_ROM_MACRO_NAME_str))
 void MSG_1WIRE_SPEED_PROMPT_str(void);
 #define MSG_1WIRE_SPEED_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_SPEED_PROMPT_str))
+void MSG_1WIRE_WARNING_str(void);
+#define MSG_1WIRE_WARNING bp_message_write_buffer(__builtin_tbladdress(MSG_1WIRE_WARNING_str))
 void MSG_ACK_str(void);
 #define MSG_ACK bp_message_write_buffer(__builtin_tbladdress(MSG_ACK_str))
 void MSG_ANY_KEY_TO_EXIT_PROMPT_str(void);

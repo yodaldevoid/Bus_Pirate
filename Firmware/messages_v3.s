@@ -1,104 +1,8 @@
-	; BPMSG1004
-	.section .text.BPMSG1004, code
-	.global _BPMSG1004_str
-_BPMSG1004_str:
-	.pasciz "No device, try (ALARM) SEARCH macro first"
-
-	; BPMSG1005
-	.section .text.BPMSG1005, code
-	.global _BPMSG1005_str
-_BPMSG1005_str:
-	.pasciz "ADDRESS MACRO "
-
-	; BPMSG1006
-	.section .text.BPMSG1006, code
-	.global _BPMSG1006_str
-_BPMSG1006_str:
-	.pasciz " 0.Macro menu"
-
-	; BPMSG1007
-	.section .text.BPMSG1007, code
-	.global _BPMSG1007_str
-_BPMSG1007_str:
-	.pasciz "Macro     1WIRE address"
-
-	; BPMSG1008
-	.section .text.BPMSG1008, code
-	.global _BPMSG1008_str
-_BPMSG1008_str:
-	.pasciz "\r\n   *"
-
-	; BPMSG1009
-	.section .text.BPMSG1009, code
-	.global _BPMSG1009_str
-_BPMSG1009_str:
-	.pasciz "1WIRE ROM COMMAND MACROs:\r\n 51.READ ROM (0x33) *for single device bus\r\n 85.MATCH ROM (0x55) *followed by 64bit address\r\n 204.SKIP ROM (0xCC) *followed by command\r\n 236.ALARM SEARCH (0xEC)\r\n 240.SEARCH ROM (0xF0)"
-
-	; BPMSG1010
-	.section .text.BPMSG1010, code
-	.global _BPMSG1010_str
-_BPMSG1010_str:
-	.pasciz "ALARM SEARCH (0xEC)"
-
-	; BPMSG1011
-	.section .text.BPMSG1011, code
-	.global _BPMSG1011_str
-_BPMSG1011_str:
-	.pasciz "SEARCH (0xF0)"
-
-	; BPMSG1012
-	.section .text.BPMSG1012, code
-	.global _BPMSG1012_str
-_BPMSG1012_str:
-	.pasciz "Device IDs are available by MACRO, see (0)."
-
-	; BPMSG1013
-	.section .text.BPMSG1013, code
-	.global _BPMSG1013_str
-_BPMSG1013_str:
-	.pasciz "READ ROM (0x33): "
-
-	; BPMSG1014
-	.section .text.BPMSG1014, code
-	.global _BPMSG1014_str
-_BPMSG1014_str:
-	.pasciz "MATCH ROM (0x55)"
-
-	; BPMSG1015
-	.section .text.BPMSG1015, code
-	.global _BPMSG1015_str
-_BPMSG1015_str:
-	.pasciz "SKIP ROM (0xCC)"
-
-	; BPMSG1017
-	.section .text.BPMSG1017, code
-	.global _BPMSG1017_str
-_BPMSG1017_str:
-	.pasciz "BUS RESET "
-
-	; BPMSG1019
-	.section .text.BPMSG1019, code
-	.global _BPMSG1019_str
-_BPMSG1019_str:
-	.pasciz "Warning: "
-
-	; BPMSG1020
-	.section .text.BPMSG1020, code
-	.global _BPMSG1020_str
-_BPMSG1020_str:
-	.pasciz "*Short or no pull-up "
-
-	; BPMSG1021
-	.section .text.BPMSG1021, code
-	.global _BPMSG1021_str
-_BPMSG1021_str:
-	.pasciz "*No device detected "
-
 	; BPMSG1022
 	.section .text.BPMSG1022, code
 	.global _BPMSG1022_str
 _BPMSG1022_str:
-	.pasciz "DS18S20 High Pres Dig Therm"
+	.pasciz "DS18S20 High Prec Dig Therm"
 
 	; BPMSG1023
 	.section .text.BPMSG1023, code
@@ -110,13 +14,13 @@ _BPMSG1023_str:
 	.section .text.BPMSG1024, code
 	.global _BPMSG1024_str
 _BPMSG1024_str:
-	.pasciz "DS1822 Econ Dig Therm"
+	.pasciz "DS1822 Econo Dig Therm"
 
 	; BPMSG1025
 	.section .text.BPMSG1025, code
 	.global _BPMSG1025_str
 _BPMSG1025_str:
-	.pasciz "DS2404 Econram time Chip"
+	.pasciz "DS2404 EconoRAM time Chip"
 
 	; BPMSG1026
 	.section .text.BPMSG1026, code
@@ -940,12 +844,6 @@ _BPMSG1227_str:
 _BPMSG1228_str:
 	.pasciz "P\tP\tP\tI\tI\t"
 
-	; BPMSG1229
-	.section .text.BPMSG1229, code
-	.global _BPMSG1229_str
-_BPMSG1229_str:
-	.pasciz "-\tOWD\t-\t-"
-
 	; BPMSG1232
 	.section .text.BPMSG1232, code
 	.global _BPMSG1232_str
@@ -1174,6 +1072,60 @@ _HLP1021_str:
 _HLP1022_str:
 	.pasciz " w/W\tPSU (off/ON)\t\t<x>/<x= >/<0>\tUsermacro x/assign x/list all"
 
+	; MSG_1WIRE_ADDRESS_MACRO_HEADER
+	.section .text.MSG_1WIRE_ADDRESS_MACRO_HEADER, code
+	.global _MSG_1WIRE_ADDRESS_MACRO_HEADER_str
+_MSG_1WIRE_ADDRESS_MACRO_HEADER_str:
+	.pasciz "ADDRESS MACRO "
+
+	; MSG_1WIRE_ALARM_MACRO_NAME
+	.section .text.MSG_1WIRE_ALARM_MACRO_NAME, code
+	.global _MSG_1WIRE_ALARM_MACRO_NAME_str
+_MSG_1WIRE_ALARM_MACRO_NAME_str:
+	.pasciz "ALARM SEARCH (0xEC)"
+
+	; MSG_1WIRE_BUS_RESET
+	.section .text.MSG_1WIRE_BUS_RESET, code
+	.global _MSG_1WIRE_BUS_RESET_str
+_MSG_1WIRE_BUS_RESET_str:
+	.pasciz "BUS RESET "
+
+	; MSG_1WIRE_LOOKUP_ID_HEADER
+	.section .text.MSG_1WIRE_LOOKUP_ID_HEADER, code
+	.global _MSG_1WIRE_LOOKUP_ID_HEADER_str
+_MSG_1WIRE_LOOKUP_ID_HEADER_str:
+	.pasciz "\r\n   *"
+
+	; MSG_1WIRE_MACRO_LIST
+	.section .text.MSG_1WIRE_MACRO_LIST, code
+	.global _MSG_1WIRE_MACRO_LIST_str
+_MSG_1WIRE_MACRO_LIST_str:
+	.pasciz "1WIRE ROM COMMAND MACROs:\r\n 51.READ ROM (0x33) *for single device bus\r\n 85.MATCH ROM (0x55) *followed by 64bit address\r\n 204.SKIP ROM (0xCC) *followed by command\r\n 236.ALARM SEARCH (0xEC)\r\n 240.SEARCH ROM (0xF0)"
+
+	; MSG_1WIRE_MACRO_MENU_HEADER
+	.section .text.MSG_1WIRE_MACRO_MENU_HEADER, code
+	.global _MSG_1WIRE_MACRO_MENU_HEADER_str
+_MSG_1WIRE_MACRO_MENU_HEADER_str:
+	.pasciz " 0.Macro menu"
+
+	; MSG_1WIRE_MACRO_TABLE_HEADER
+	.section .text.MSG_1WIRE_MACRO_TABLE_HEADER, code
+	.global _MSG_1WIRE_MACRO_TABLE_HEADER_str
+_MSG_1WIRE_MACRO_TABLE_HEADER_str:
+	.pasciz "Macro     1WIRE address"
+
+	; MSG_1WIRE_MACRO_TABLE_TRAILER
+	.section .text.MSG_1WIRE_MACRO_TABLE_TRAILER, code
+	.global _MSG_1WIRE_MACRO_TABLE_TRAILER_str
+_MSG_1WIRE_MACRO_TABLE_TRAILER_str:
+	.pasciz "Device IDs are available by MACRO, see (0)."
+
+	; MSG_1WIRE_MATCH_ROM_MACRO_NAME
+	.section .text.MSG_1WIRE_MATCH_ROM_MACRO_NAME, code
+	.global _MSG_1WIRE_MATCH_ROM_MACRO_NAME_str
+_MSG_1WIRE_MATCH_ROM_MACRO_NAME_str:
+	.pasciz "MATCH ROM (0x55)"
+
 	; MSG_1WIRE_MODE_IDENTIFIER
 	.section .text.MSG_1WIRE_MODE_IDENTIFIER, code
 	.global _MSG_1WIRE_MODE_IDENTIFIER_str
@@ -1186,11 +1138,59 @@ _MSG_1WIRE_MODE_IDENTIFIER_str:
 _MSG_1WIRE_NEXT_CLOCK_ALERT_str:
 	.pasciz " *next clock (^) will use this value"
 
+	; MSG_1WIRE_NO_DEVICE
+	.section .text.MSG_1WIRE_NO_DEVICE, code
+	.global _MSG_1WIRE_NO_DEVICE_str
+_MSG_1WIRE_NO_DEVICE_str:
+	.pasciz "No device, try (ALARM) SEARCH macro first"
+
+	; MSG_1WIRE_NO_DEVICE_DETECTED
+	.section .text.MSG_1WIRE_NO_DEVICE_DETECTED, code
+	.global _MSG_1WIRE_NO_DEVICE_DETECTED_str
+_MSG_1WIRE_NO_DEVICE_DETECTED_str:
+	.pasciz "*No device detected "
+
+	; MSG_1WIRE_PINS_STATE
+	.section .text.MSG_1WIRE_PINS_STATE, code
+	.global _MSG_1WIRE_PINS_STATE_str
+_MSG_1WIRE_PINS_STATE_str:
+	.pasciz "-\tOWD\t-\t-"
+
+	; MSG_1WIRE_READ_ROM_MACRO_NAME
+	.section .text.MSG_1WIRE_READ_ROM_MACRO_NAME, code
+	.global _MSG_1WIRE_READ_ROM_MACRO_NAME_str
+_MSG_1WIRE_READ_ROM_MACRO_NAME_str:
+	.pasciz "READ ROM (0x33): "
+
+	; MSG_1WIRE_SEARCH_MACRO_NAME
+	.section .text.MSG_1WIRE_SEARCH_MACRO_NAME, code
+	.global _MSG_1WIRE_SEARCH_MACRO_NAME_str
+_MSG_1WIRE_SEARCH_MACRO_NAME_str:
+	.pasciz "SEARCH (0xF0)"
+
+	; MSG_1WIRE_SHORT_OR_NO_PULLUP
+	.section .text.MSG_1WIRE_SHORT_OR_NO_PULLUP, code
+	.global _MSG_1WIRE_SHORT_OR_NO_PULLUP_str
+_MSG_1WIRE_SHORT_OR_NO_PULLUP_str:
+	.pasciz "*Short or no pull-up "
+
+	; MSG_1WIRE_SKIP_ROM_MACRO_NAME
+	.section .text.MSG_1WIRE_SKIP_ROM_MACRO_NAME, code
+	.global _MSG_1WIRE_SKIP_ROM_MACRO_NAME_str
+_MSG_1WIRE_SKIP_ROM_MACRO_NAME_str:
+	.pasciz "SKIP ROM (0xCC)"
+
 	; MSG_1WIRE_SPEED_PROMPT
 	.section .text.MSG_1WIRE_SPEED_PROMPT, code
 	.global _MSG_1WIRE_SPEED_PROMPT_str
 _MSG_1WIRE_SPEED_PROMPT_str:
 	.pasciz "Set speed:\r\n 1. Standard (~16.3kbps) \r\n 2. Overdrive (~160kps)"
+
+	; MSG_1WIRE_WARNING
+	.section .text.MSG_1WIRE_WARNING, code
+	.global _MSG_1WIRE_WARNING_str
+_MSG_1WIRE_WARNING_str:
+	.pasciz "Warning: "
 
 	; MSG_ACK
 	.section .text.MSG_ACK, code

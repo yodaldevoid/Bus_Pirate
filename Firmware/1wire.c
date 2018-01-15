@@ -8,23 +8,43 @@
  * We claim no copyright on our code, but there may be different licenses for
  * some of the code in this file.
  *
- * To the extent possible under law, the Bus Pirate project has waived all
- * copyright and related or neighboring rights to Bus Pirate. This work is
- * published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate.  This work is published from
+ * United States.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE.
  */
 
-/*
- * @todo Clean up the search functions, with better documentation.
- * @todo Have an external table of device names and descriptions.
- * @todo Implement BP_1WIRE_PRINT_FAMILY_DESCRIPTION on/off changes.
- * @todo Rename string message identifiers to something more appropriate.
- * @todo Rig up a circuit to simulate 1-Wire devices for automated tests.
+/**
+ * @file 1wire.c
+ *
+ * @brief 1-Wire protocol handler implementation file.
+ *
+ * From https://en.wikipedia.org/wiki/1-Wire :
+ *
+ * 1-Wire is a device communications bus system designed by Dallas
+ * Semiconductor Corp. that provides low-speed data, signaling, and power over
+ * a single conductor.  1-Wire is similar in concept to I2C, but with lower
+ * data rates and longer range. It is typically used to communicate with small
+ * inexpensive devices such as digital thermometers and weather instruments. A
+ * network of 1-Wire devices with an associated master device is called a
+ * MicroLAN.  One distinctive feature of the bus is the possibility of using
+ * only two wires: data and ground.  To accomplish this, 1-Wire devices include
+ * an 800 pF capacitor to store charge, and to power the device during periods
+ * when the data line is active.
+ *
+ * @todo
+ * * Clean up the search functions, with better documentation.
+ * * Have an external table of device names and descriptions.
+ * * Expand the device table using the data from
+ * http://owfs.org/index.php?page=family-code-list
+ * * Implement BP_1WIRE_PRINT_FAMILY_DESCRIPTION on/off changes.
+ * * Rename string message identifiers to something more appropriate.
+ * * Rig up a circuit to simulate 1-Wire devices for automated tests.
  */
 
 #include "1wire.h"
@@ -42,7 +62,7 @@ extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 
 /**
- * The maximum size of the saved devices roster, in entries.
+ * @brief The maximum size of the saved devices roster, in entries.
  */
 #define MAXIMUM_DEVICES_ROSTER_SIZE 50
 
@@ -53,52 +73,387 @@ extern command_t last_command;
 #endif /* BP_1WIRE_DEVICE_DEV_ROSTER_SLOTS > MAXIMUM_DEVICES_ROSTER_SIZE */
 
 /**
- * Size of a 1-Wire ROM number identifier, in bytes.
+ * @brief Size of a 1-Wire ROM number identifier, in bytes.
  */
 #define ROM_BYTES_SIZE 8
 
 /**
- * Data line pin assignment.
+ * @brief Data line pin assignment.
  */
 #define ONEWIRE_DATA_LINE BP_MOSI
 
 /**
- * Data line pin direction assignment.
+ * @brief Data line pin direction assignment.
  */
 #define ONEWIRE_DATA_DIRECTION BP_MOSI_DIR
 
 /**
- * Identifier for the "Dump roster entries" macro entry.
+ * @brief Device ID for DS2404 EconoRAM Time Chip.
  */
-#define MACRO_ID_DUMP_ROSTER 0x00
+#define DS2404 0x04
 
 /**
- * Identifier for the "Read ROM" macro entry.
+ * @brief Device ID for DS18S20 High-Precision Digital Thermometer.
  */
-#define MACRO_ID_READ_ROM 0x33
+#define DS18S20 0x10
 
 /**
- * Identifier for the "Match ROM" macro entry.
+ * @brief Device ID for DS1822 Econo Digital Thermometer.
  */
-#define MACRO_ID_MATCH_ROM 0x55
+#define DS1822 0x22
 
 /**
- * Identifier for the "Skip ROM" macro entry.
+ * @brief Device ID for DS18B20 Programmable Resolution Digital Thermometer.
  */
-#define MACRO_ID_SKIP_ROM 0xCC
+#define DS18B20 0x28
 
 /**
- * Identifier for the "Search Alarm" macro entry.
+ * @brief Device ID for DS2431 1024-bit EEPROM.
  */
-#define MACRO_ID_ALARM_SEARCH 0xEC
+#define DS2431 0x2D
 
 /**
- * Identifier for the "Search ROM" macro entry.
+ * @brief Binary I/O 1-Wire Action command.
+ *
+ * This is for further actions dealing with simple operations like bus reset,
+ * and so on.
+ *
+ * Current form is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Set to `0b0000`.</td></tr>
+ * <tr><td>`3:0`</td><td>The action identifier:
+ * * `0b0000` : BINARY_IO_ONEWIRE_ACTION_EXIT.
+ * * `0b0001` : BINARY_IO_ONEWIRE_ACTION_VERSION_STRING.
+ * * `0b0010` : BINARY_IO_ONEWIRE_ACTION_BUS_RESET.
+ * * `0b0011` : Reserved.
+ * * `0b0100` : BINARY_IO_ONEWIRE_ACTION_READ_BYTE.
+ * * `0b0101` : Reserved.
+ * * `0b0110` : Reserved.
+ * * `0b0111` : Reserved.
+ * * `0b1000` : BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO.
+ * * `0b1001` : BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO.
+ * * `0b1010` : Reserved.
+ * * `0b1011` : Reserved.
+ * * `0b1100` : Reserved.
+ * * `0b1101` : Reserved.
+ * * `0b1110` : Reserved.
+ * * `0b1111` : Reserved.
+ * </td></tr></table>
+ *
+ * @see BINARY_IO_ONEWIRE_ACTION_EXIT
+ * @see BINARY_IO_ONEWIRE_ACTION_VERSION_STRING
+ * @see BINARY_IO_ONEWIRE_ACTION_BUS_RESET
+ * @see BINARY_IO_ONEWIRE_ACTION_READ_BYTE
+ * @see BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO
+ * @see BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO
  */
-#define MACRO_ID_SEARCH_ROM 0xF0
+#define BINARY_IO_ONEWIRE_COMMAND_ACTION 0x00
 
 /**
- * Sends and receives 1-bit values on/from the bus.
+ * @brief Binary I/O 1-Wire Bulk transfer command.
+ *
+ * Once this command is received by the board, it will read up to the needed
+ * amount of bytes from the serial port and write those same bytes to the 1-Wire
+ * bus - in the same order as they were received.  After every byte received on
+ * the serial port, the Bus Pirate board will output a `SUCCESS` value on the
+ * port, signaling that the incoming data has been processed.
+ *
+ * Current command format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Set to `0b0001`.</td></tr>
+ * <tr><td>`3:0`</td><td>How many bytes to send *minus one*.  The length value
+ * range is still from 0 to 15, although passing 0 will trigger a 1 byte
+ * transfer, and 15 will trigger a 16 bytes transfer instead.</td></tr></table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b0001xxxx` (where `xxxx` is length - 1).</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr>
+ * <tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>Data byte #0.</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr>
+ * <tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>Data byte #1.</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr>
+ * <tr><td colspan=4><center>...</center></td></tr>
+ * <tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>Last data byte.</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_BULK_TRANSFER 0x01
+
+/**
+ * @brief Binary I/O 1-Wire configuration command.
+ *
+ * Once this command is received by the board, it will configure the 1-Wire
+ * parameters to those provided. At present this simply controls whether the
+ * bus speed is Standard or Overdrive.
+ *
+ * Current command format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Set to `0b0010`.</td></tr>
+ * <tr><td>`3:2`</td><td>Reserved, set to `0b00`.</td></tr>
+ * <tr><td>`1:0`</td><td>The speed to be configured:
+ * * `0b00` : Standard.
+ * * `0b01` : Overdrive.
+ * * `0b10` : Reserved.
+ * * `0b11` : Reserved.</td><tr></table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b001000ss` (where `ss` is the requested speed).</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_CONFIGURE 0x02
+
+/**
+ * @brief Binary I/O 1-Wire Peripherals configuration command.
+ *
+ * This command will set up the board in a particular fashion to accommodate the
+ * needs of the device currently being manipulated.  Once this command is
+ * received by the board, it will respond with a SUCCESS value.
+ *
+ * Current format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Set to `0b0100`.</td></tr>
+ * <tr><td>`3`</td><td>Power ON/OFF.</td></tr>
+ * <tr><td>`2`</td><td>Pull-ups ON/OFF.</td></tr>
+ * <tr><td>`1`</td><td>AUX line LOW/HIGH.</td></tr>
+ * <tr><td>`0`</td><td>CS line LOW/HIGH.</td></tr></table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b0100abcd` (where `a`, `b`, `c`, and `d` are the peripheral
+ * configuration flags).</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS 0x04
+
+/**
+ * @brief Binary I/O 1-Wire Peripherals read command.
+ *
+ * Available only on Bus Pirate v4.  It currently manipulates the state of the
+ * pull-ups on the board.
+ *
+ * Current format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Set to `0b0101`.</td></tr>
+ * <tr><td>`3:2`</td><td>Reserved, set to `0b00`.</td></tr>
+ * <tr><td>`1:0`</td><td>Pull-up voltage:
+ * * `0b00` : Pull-ups OFF.
+ * * `0b01` : +3V3 pull-up ON.
+ * * `0b10` : +5V pull-up ON.
+ * * `0b11` : Pull-ups OFF.</td></tr></table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b010100xx` (where `xx` is the desired pull-up voltage).</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_COMMAND_READ_PERIPHERALS 0x05
+
+/**
+ * @brief Binary I/O 1-Wire Action command to exit 1-Wire mode.
+ *
+ * Current format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Command type, set to `0b0000` (ACTION).</td></tr>
+ * <tr><td>`3:0`</td><td>Action type, set to `0b0000` (EXIT).</td></tr></table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td><center>&rarr;</center></td><td>Bus Pirate</td>
+ * <td>`0b00000000`</td></tr>
+ * <tr><td>PC</td><td><center>&times;</center></td><td>Bus Pirate</td>
+ * <td>The Bus Pirate is now in interactive mode, no response is given.</td>
+ * </tr></table>
+ */
+#define BINARY_IO_ONEWIRE_ACTION_EXIT 0x00
+
+/**
+ * @brief Binary I/O 1-Wire Action command to print out the mode version string.
+ *
+ * Right now the 1-Wire mode command set is identified by the ASCII bytes `1`,
+ * `W`, `0`, `1` - standing for 1-Wire protocol version 1.
+ *
+ * Current format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Command type, set to `0b0000` (ACTION).</td></tr>
+ * <tr><td>`3:0`</td><td>Action type, set to `0b0001` (VERSION).</td></tr>
+ * </table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001`</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00110001` (ASCII `1`)<br>
+ * `0b00010111` (ASCII `W`)<br>
+ * `0b00110000` (ASCII `0`)<br>
+ * `0b00110001` (ASCII `1`).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_ACTION_VERSION_STRING 0x01
+
+/**
+ * @brief Binary I/O 1-Wire Action command to perform a 1-Wire bus reset.
+ *
+ * The board will respond with a SUCCESS value once the bus is reset.
+ *
+ * Current format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Command type, set to `0b0000` (ACTION).</td></tr>
+ * <tr><td>`3:0`</td><td>Action type, set to `0b0010` (BUS_RESET).</td></tr>
+ * </table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b00000010`</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_ACTION_BUS_RESET 0x02
+
+/**
+ * @brief Binary I/O 1-Wire Action command to read a byte from the bus.
+ *
+ * Current format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Command type, set to `0b0000` (ACTION).</td></tr>
+ * <tr><td>`3:0`</td><td>Action type, set to `0b0100` (READ).</td></tr>
+ * </table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b00000010`</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0bxxxxxxxx` (where `xxxxxxxx` is the byte read from the bus).</td></tr>
+ * </table>
+ */
+#define BINARY_IO_ONEWIRE_ACTION_READ_BYTE 0x04
+
+/**
+ * @brief Binary I/O 1-Wire Action command to invoke the "ROM search" macro.
+ *
+ * This action will perform a ROM search action, by enumerating all devices
+ * on the bus.  Once a device is found, its information is sent back to the
+ * serial port.  A sequence of eight (8) `0xFF` bytes indicates that the search
+ * has terminated.  Right after receiving the ROM search action command, the
+ * board will return a SUCCESS value indicating that it will start the devices
+ * scan.  The search algorithm is described in
+ * https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Command type, set to `0b0000` (ACTION).</td></tr>
+ * <tr><td>`3:0`</td><td>Action type, set to `0b1000` (ROM_SEARCH).</td></tr>
+ * </table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b00001000`</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>Device information bytes.</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>Device information end marker:<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO 0x08
+
+/**
+ * @brief Binary I/O 1-Wire Action command to invoke the "ALARM search" macro.
+ *
+ * This action will perform an ALARM search action, by enumerating all devices
+ * on the bus that are in ALARM state.  Once a device is found, its information
+ * is sent back to the serial port.  A sequence of eight (8) `0xFF` bytes
+ * indicates that the search has terminated.  Right after receiving the ROM
+ * search action command, the board will return a SUCCESS value indicating that
+ * it will start the devices scan.  The search algorithm is described in
+ * https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
+ *
+ * Current format is as follows:
+ *
+ * <table><tr><th>Bits</th><th>Meaning</th></tr>
+ * <tr><td>`7:4`</td><td>Command type, set to `0b0000` (ACTION).</td></tr>
+ * <tr><td>`3:0`</td><td>Action type, set to `0b1001` (ALARM_SEARCH).</td></tr>
+ * </table>
+ *
+ * Interaction flow is as follows:
+ *
+ * <table><tr><td>PC</td><td>&rarr;</td><td>Bus Pirate</td>
+ * <td>`0b00001001`</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>`0b00000001` (SUCCESS).</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>Device information bytes.</td></tr>
+ * <tr><td>PC</td><td>&larr;</td><td>Bus Pirate</td>
+ * <td>Device information end marker:<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`)<br>
+ * `0b11111111` (`0xFF`).</td></tr></table>
+ */
+#define BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO 0x09
+
+/**
+ * @brief 1-Wire protocol macro identifiers.
+ */
+typedef enum {
+  /** Identifier for the "Dump roster entries" macro entry. */
+  MACRO_DUMP_ROSTER = 0x00,
+
+  /** Identifier for the "Read ROM" macro entry. */
+  MACRO_READ_ROM = 0x33,
+
+  /** Identifier for the "Match ROM" macro entry. */
+  MACRO_MATCH_ROM = 0x55,
+
+  /** Identifier for the "Skip ROM" macro entry. */
+  MACRO_SKIP_ROM = 0xCC,
+
+  /** Identifier for the "Search Alarm" macro entry. */
+  MACRO_ALARM_SEARCH = 0xEC,
+
+  /** Identifier for the "Search ROM" macro entry. */
+  MACRO_SEARCH_ROM = 0xF0
+} onewire_macros_t;
+
+/**
+ * @brief Sends and receives 1-bit values on/from the bus.
  *
  * This function works both for sending and receiving of a 1-bit value on the
  * bus.  To get a bit value send a logical 1 (or HIGH), this will pulse the
@@ -112,7 +467,7 @@ extern command_t last_command;
 static bool onewire_internal_bit_io(bool bit_value);
 
 /**
- * Sends and receives 8-bits values on/from the bus.
+ * @brief Sends and receives 8-bits values on/from the bus.
  *
  * Like onewire_internal_bit_io, this function works for both sending and
  * receiving.  1-Wire time slots are the same for sending and receiving, so only
@@ -128,7 +483,7 @@ static bool onewire_internal_bit_io(bool bit_value);
 static uint8_t onewire_internal_byte_io(uint8_t byte_value);
 
 /**
- * Internal macro for triggering a byte bus write.
+ * @brief Internal macro for triggering a byte bus write.
  *
  * @param[in] value the value to write.
  */
@@ -138,14 +493,14 @@ static uint8_t onewire_internal_byte_io(uint8_t byte_value);
   } while (0)
 
 /**
- * Internal macro for triggering a byte bus read.
+ * @brief Internal macro for triggering a byte bus read.
  *
  * @return the byte read from the bus.
  */
 #define ONEWIRE_READ_BYTE() onewire_internal_byte_io(0xFF)
 
 /**
- * Internal macro for triggering a bit bus write.
+ * @brief Internal macro for triggering a bit bus write.
  *
  * @param[in] value the value to write.
  */
@@ -155,14 +510,14 @@ static uint8_t onewire_internal_byte_io(uint8_t byte_value);
   } while (0)
 
 /**
- * Internal macro for triggering a bit bus read.
+ * @brief Internal macro for triggering a bit bus read.
  *
  * @return the bit read from the bus.
  */
 #define ONEWIRE_READ_BIT() onewire_internal_bit_io(ON)
 
 /**
- * Possible results from 1-Wire bus reset.
+ * @brief Possible results from 1-Wire bus reset.
  */
 typedef enum {
 
@@ -178,7 +533,7 @@ typedef enum {
 } onewire_bus_reset_result_t;
 
 /**
- * 1-Wire protocol internal state variables container.
+ * @brief 1-Wire protocol internal state variables container.
  */
 typedef struct {
 
@@ -235,12 +590,12 @@ typedef struct {
 } __attribute__((packed)) onewire_state_t;
 
 /**
- * 1-Wire protocol state.
+ * @brief 1-Wire protocol state.
  */
-static onewire_state_t onewire_state = {.command_byte = MACRO_ID_SEARCH_ROM};
+static onewire_state_t onewire_state = {.command_byte = MACRO_SEARCH_ROM};
 
 /**
- * Performs a 1-Wire bus reset according to the protocol specifications.
+ * @brief Performs a 1-Wire bus reset according to the protocol specifications.
  *
  * @return an appropriate state from onewire_bus_reset_result_t describing
  * the operation result.
@@ -248,7 +603,7 @@ static onewire_state_t onewire_state = {.command_byte = MACRO_ID_SEARCH_ROM};
 static onewire_bus_reset_result_t perform_bus_reset(void);
 
 /**
- * 1-wire protocol precalculated CRC table.
+ * @brief 1-wire protocol precalculated CRC table.
  *
  * Taken from https://www.maximintegrated.com/en/app-notes/index.mvp/id/27
  */
@@ -277,7 +632,7 @@ static const uint8_t CRC_TABLE[] = {
     0xD7, 0x89, 0x6B, 0x35};
 
 /**
- * Updates the internal CRC8 variable with the given data value.
+ * @brief Updates the internal CRC8 variable with the given data value.
  *
  * @param[in] value the new byte to update the internal CRC8 variable with.
  * @return the updated internal CRC8 variable value.
@@ -285,13 +640,15 @@ static const uint8_t CRC_TABLE[] = {
 static uint8_t update_crc8(const uint8_t value);
 
 /**
+ * @brief Looks up the given model identifier.
+ *
  * Looks up the given model identifier and checks it against a list of known
  * devices, then prints the model information if a match is found.
  */
 static void lookup_device_model(const uint8_t model);
 
 /**
- * Attempts to find the first device on the 1-Wire bus.
+ * @brief Attempts to find the first device on the 1-Wire bus.
  *
  * The returned ROM number is saved inside onewire_state.rom_number if
  * successful.
@@ -301,7 +658,7 @@ static void lookup_device_model(const uint8_t model);
 static bool device_find_first(void);
 
 /**
- * Attempts to find the next device on the 1-Wire bus.
+ * @brief Attempts to find the next device on the 1-Wire bus.
  *
  * The returned ROM number is saved inside onewire_state.rom_number if
  * successful.
@@ -311,7 +668,7 @@ static bool device_find_first(void);
 static bool device_find_next(void);
 
 /**
- * Discovers the next device in the chain on a 1-Wire bus.
+ * @brief Discovers the next device in the chain on a 1-Wire bus.
  *
  * The returned ROM number is saved inside onewire_state.rom_number if
  * successful.
@@ -326,7 +683,7 @@ static bool perform_device_search(void);
 #ifdef BP_1WIRE_LOOKUP_FAMILY_ID
 
 /**
- * Prints the given ROM address information to the screen.
+ * @brief Prints the given ROM address information to the screen.
  *
  * @param[in] roster_id the index of the entry in the roster list.
  * @param[in] rom_address the ROM address bytes.
@@ -337,8 +694,8 @@ static void print_device_information(const size_t roster_id,
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
 
 /**
- * Sets the data line to the given state.
- * 
+ * @brief Sets the data line to the given state.
+ *
  * @param[in] state the state to set the data line to.
  */
 static inline void onewire_internal_set_data_state(const bool state);
@@ -404,7 +761,7 @@ void print_device_information(const size_t roster_id,
   }
 
 #ifdef BP_1WIRE_LOOKUP_FAMILY_ID
-  BPMSG1008;
+  MSG_1WIRE_LOOKUP_ID_HEADER;
   /* Print the device family identifier if known. */
   lookup_device_model(rom_address[0]);
 #endif /* BP_1WIRE_LOOKUP_FAMILY_ID */
@@ -426,7 +783,7 @@ void onewire_run_macro(const uint16_t macro) {
 
     if (macro_id >= onewire_state.used_roster_entries) {
       /* Alert the user if the device is not in the roster. */
-      BPMSG1004;
+      MSG_1WIRE_NO_DEVICE;
       return;
     }
 
@@ -435,7 +792,7 @@ void onewire_run_macro(const uint16_t macro) {
      * and send the ROM address of the device over the 1-Wire bus as well.
      */
 
-    BPMSG1005;
+    MSG_1WIRE_ADDRESS_MACRO_HEADER;
     bp_write_dec_byte(macro + 1);
     bp_write_string(": ");
     for (rom_index = 0; rom_index < ROM_BYTES_SIZE; rom_index++) {
@@ -452,11 +809,11 @@ void onewire_run_macro(const uint16_t macro) {
 
   switch (macro_id) {
 
-  case MACRO_ID_DUMP_ROSTER: {
+  case MACRO_DUMP_ROSTER: {
     size_t index;
 
-    BPMSG1006;
-    BPMSG1007;
+    MSG_1WIRE_MACRO_MENU_HEADER;
+    MSG_1WIRE_MACRO_TABLE_HEADER;
 
     /*
      * Print roster entries, or let the user know that a search needs to be
@@ -464,7 +821,7 @@ void onewire_run_macro(const uint16_t macro) {
      */
 
     if (onewire_state.used_roster_entries == 0) {
-      BPMSG1004;
+      MSG_1WIRE_NO_DEVICE;
     } else {
       for (index = 0; index < onewire_state.used_roster_entries; index++) {
         print_device_information(index + 1,
@@ -472,23 +829,23 @@ void onewire_run_macro(const uint16_t macro) {
       }
     }
 
-    BPMSG1009;
+    MSG_1WIRE_MACRO_LIST;
     break;
   }
 
-  case MACRO_ID_ALARM_SEARCH:
-  case MACRO_ID_SEARCH_ROM: {
+  case MACRO_ALARM_SEARCH:
+  case MACRO_SEARCH_ROM: {
     bool device_found;
     size_t index;
 
     onewire_state.command_byte = macro_id;
-    if (macro_id == MACRO_ID_ALARM_SEARCH) {
-      BPMSG1010;
+    if (macro_id == MACRO_ALARM_SEARCH) {
+      MSG_1WIRE_ALARM_MACRO_NAME;
     } else {
-      BPMSG1011;
+      MSG_1WIRE_SEARCH_MACRO_NAME;
     }
 
-    BPMSG1007;
+    MSG_1WIRE_MACRO_TABLE_HEADER;
 
     /* Find all devices on the bus. */
 
@@ -515,17 +872,17 @@ void onewire_run_macro(const uint16_t macro) {
       device_found = device_find_next();
     }
 
-    BPMSG1012;
+    MSG_1WIRE_MACRO_TABLE_TRAILER;
     break;
   }
 
-  case MACRO_ID_READ_ROM: {
+  case MACRO_READ_ROM: {
     uint8_t device_address[ROM_BYTES_SIZE];
     size_t index;
 
     onewire_reset();
-    BPMSG1013;
-    ONEWIRE_WRITE_BYTE(MACRO_ID_READ_ROM);
+    MSG_1WIRE_READ_ROM_MACRO_NAME;
+    ONEWIRE_WRITE_BYTE(MACRO_READ_ROM);
     for (index = 0; index < ROM_BYTES_SIZE; index++) {
       device_address[index] = ONEWIRE_READ_BYTE();
       bp_write_formatted_integer(device_address[index]);
@@ -536,16 +893,16 @@ void onewire_run_macro(const uint16_t macro) {
     break;
   }
 
-  case MACRO_ID_MATCH_ROM:
+  case MACRO_MATCH_ROM:
     onewire_reset();
-    BPMSG1014;
-    ONEWIRE_WRITE_BYTE(MACRO_ID_MATCH_ROM);
+    MSG_1WIRE_MATCH_ROM_MACRO_NAME;
+    ONEWIRE_WRITE_BYTE(MACRO_MATCH_ROM);
     break;
 
-  case MACRO_ID_SKIP_ROM:
+  case MACRO_SKIP_ROM:
     onewire_reset();
-    BPMSG1015;
-    ONEWIRE_WRITE_BYTE(MACRO_ID_SKIP_ROM);
+    MSG_1WIRE_SKIP_ROM_MACRO_NAME;
+    ONEWIRE_WRITE_BYTE(MACRO_SKIP_ROM);
     break;
 
   default:
@@ -554,30 +911,24 @@ void onewire_run_macro(const uint16_t macro) {
   }
 }
 
-void onewire_pins_state(void) {
-#ifdef BUSPIRATEV4
-  BPMSG1259;
-#else
-  BPMSG1229;
-#endif /* BUSPIRATEV4 */
-}
+void onewire_pins_state(void) { MSG_1WIRE_PINS_STATE; }
 
 void onewire_reset(void) {
   onewire_bus_reset_result_t reset_result;
 
   reset_result = perform_bus_reset();
-  BPMSG1017;
+  MSG_1WIRE_BUS_RESET;
 
   if (reset_result == ONEWIRE_BUS_RESET_OK) {
     BPMSG1185;
     return;
   }
 
-  BPMSG1019;
+  MSG_1WIRE_WARNING;
   if (reset_result == ONEWIRE_BUS_RESET_SHORT) {
-    BPMSG1020;
+    MSG_1WIRE_SHORT_OR_NO_PULLUP;
   } else {
-    BPMSG1021;
+    MSG_1WIRE_NO_DEVICE_DETECTED;
   }
 
   bpBR;
@@ -641,17 +992,6 @@ onewire_bus_reset_result_t perform_bus_reset(void) {
 }
 
 #ifdef BP_1WIRE_LOOKUP_FAMILY_ID
-
-/*
- * TODO: Expand this table from the data at
- * http://owfs.org/index.php?page=family-code-list
- */
-
-#define DS2404 0x04
-#define DS18S20 0x10
-#define DS1822 0x22
-#define DS18B20 0x28
-#define DS2431 0x2D
 
 void lookup_device_model(const uint8_t model) {
   switch (model) {
@@ -846,258 +1186,6 @@ uint8_t update_crc8(const uint8_t value) {
   return onewire_state.crc8;
 }
 
-/**
- * Binary I/O 1-Wire Action command.
- *
- * This is for further actions dealing with simple operations like bus reset,
- * and so on.
- *
- * Current form is as follows:
- *
- * MSB
- * 0000xxxx
- *     ||||
- *     ++++--> The action index, see below.
- *
- * @see BINARY_IO_ONEWIRE_ACTION_EXIT
- * @see BINARY_IO_ONEWIRE_ACTION_VERSION_STRING
- * @see BINARY_IO_ONEWIRE_ACTION_BUS_RESET
- * @see BINARY_IO_ONEWIRE_ACTION_READ_BYTE
- * @see BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO
- * @see BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO
- */
-#define BINARY_IO_ONEWIRE_COMMAND_ACTION 0x00
-
-/**
- * Binary I/O 1-Wire Bulk transfer command.
- *
- * Once this command is received by the board, it will read up to the needed
- * amount of bytes from the serial port and write those same bytes to the 1-Wire
- * bus - in the same order as they were received.  After every byte received on
- * the serial port, the Bus Pirate board will output a SUCCESS value on the
- * port, signaling that the incoming data has been processed.
- *
- * Current command format is as follows:
- *
- * MSB
- * 0001xxxx
- *     ||||
- *     ++++--> How many bytes to send minus 1.  This means that passing 0 will
- *             trigger a 1 byte transfer, and passing 15 will trigger a 16 bytes
- *             transfer.
- *
- * Interaction flow is as follows:
- *
- * PC          -> 0b0001xxxx
- * Bus Pirate  <- 0b00000001 (SUCCESS)
- * PC          -> Byte #0
- * Bus Pirate  <- 0b00000001 (SUCCESS)
- * PC          -> Byte #1
- * Bus Pirate  <- 0b00000001 (SUCCESS)
- * ...
- */
-#define BINARY_IO_ONEWIRE_COMMAND_BULK_TRANSFER 0x01
-
-/**
- * Binary I/O 1-Wire configuration command.
- *
- * Once this command is received by the board, it will configure the 1-Wire
- * parameters to those provided. At present this simply controls whether the
- * bus speed is Standard or Overdrive.
- *
- * Current command format is as follows:
- *
- * MSB
- * 0010xxss
- *     ||||
- *     ||++--> The speed to be configured.
- *     ||      00 = Standard
- *     ||      01 = Overdrive
- *     ||      1x = Reserved
- *     ++----> Ignored. Should be set to 0 to allow for future use.
- *
- * Interaction flow is as follows:
- *
- * PC         -> 0b001000ss
- * Bus Pirate <- 0b00000001 (SUCCESS)
- */
-#define BINARY_IO_ONEWIRE_COMMAND_CONFIGURE 0x02
-
-/**
- * Binary I/O 1-Wire Peripherals configuration command.
- *
- * This command will set up the board in a particular fashion to accommodate the
- * needs of the device currently being manipulated.  Once this command is
- * received by the board, it will respond with a SUCCESS value.
- *
- * Current format is as follows:
- *
- * MSB
- * 0100xxxx
- *     ||||
- *     |||+--> The state of the CS line.
- *     ||+---> The state of the AUX line.
- *     |+----> The state of pull-ups.
- *     +-----> The power on/off flag.
- *
- * Interaction flow is as follows:
- *
- * PC         -> 0b0100xxxx
- * Bus Pirate <- 0b00000001 (SUCCESS)
- */
-#define BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS 0x04
-
-/**
- * Binary I/O 1-Wire Peripherals read command.
- *
- * Available only on Bus Pirate v4.  It currently manipulates the state of the
- * pull-ups on the board.
- *
- * Current format is as follows:
- *
- * MSB
- * 010100xx
- *       ||
- *       |+--> Flag for +3.3v pull-up - set to 1 to turn on.
- *       +---> Flag for +5v pull-up - set to 1 to turn on.
- *
- * Setting both +3.3v and +5v pull-ups on at the same time is equivalent to
- * turning both +3.3v and +5v pull-ups off.
- */
-#define BINARY_IO_ONEWIRE_COMMAND_READ_PERIPHERALS 0x05
-
-/**
- * Binary I/O 1-Wire Action command to exit 1-Wire mode.
- *
- * Current format is as follows:
- *
- * MSB
- * 00000000
- * ||||||||
- * ||||++++--> Exit 1-Wire mode action.
- * ++++------> Action command.
- */
-#define BINARY_IO_ONEWIRE_ACTION_EXIT 0x00
-
-/**
- * Binary I/O 1-Wire Action command to print out the mode version string to the
- * serial port.
- *
- * Right now the 1-Wire mode command set is identified by the bytes '1', 'W',
- * '0', '1'.
- *
- * Current format is as follows:
- *
- * MSB
- * 00000001
- * ||||||||
- * ||||++++--> Print mode version string action.
- * ++++------> Action command.
- *
- * Interaction flow is as follows:
- *
- * PC         -> 0b00000001
- * Bus Pirate <- 0b00110001 0b00010111 0b00110000 0b00110001 ('1W01')
- */
-#define BINARY_IO_ONEWIRE_ACTION_VERSION_STRING 0x01
-
-/**
- * Binary I/O 1-Wire Action command to perform a 1-Wire bus reset.
- *
- * The board will respond with a SUCCESS value once the bus is reset.
- *
- * Current format is as follows:
- *
- * MSB
- * 00000010
- * ||||||||
- * ||||++++--> Bus reset action.
- * ++++------> Action command.
- *
- * Interaction flow is as follows:
- *
- * PC         -> 0b00000010
- * Bus Pirate <- 0b00000001 (SUCCESS)
- */
-#define BINARY_IO_ONEWIRE_ACTION_BUS_RESET 0x02
-
-/**
- * Binary I/O 1-Wire Action command to read a byte from the bus.
- *
- * Current format is as follows:
- *
- * MSB
- * 00000100
- * ||||||||
- * ||||++++--> Read byte action.
- * ++++------> Action command.
- *
- * Interaction flow is as follows:
- *
- * PC         -> 0b00000100
- * Bus Pirate <- 0bxxxxxxxx (Byte read from the bus)
- */
-#define BINARY_IO_ONEWIRE_ACTION_READ_BYTE 0x04
-
-/**
- * Binary I/O 1-Wire Action command to invoke the "ROM search" macro.
- *
- * This action will perform a ROM search action, by enumerating all devices
- * on the bus.  Once a device is found, its information is sent back to the
- * serial port.  A sequence of eight (8) 0xFF bytes indicates that the search
- * has terminated.  Right after receiving the ROM search action command, the
- * board will return a SUCCESS value indicating that it will start the devices
- * scan.  The search algorithm is described in
- * https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
- *
- * Current format is as follows:
- *
- * MSB
- * 00001000
- * ||||||||
- * ||||++++--> ROM search action.
- * ++++------> Action command.
- *
- * Interaction flow is as follows:
- *
- * PC         -> 0b00001000
- * Bus Pirate <- 0b00000001 (SUCCESS)
- * Bus Pirate <- 0bxxxxxxxx 0bxxxxxxxx ... (Device information)
- * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
- * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
- */
-#define BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO 0x08
-
-/**
- * Binary I/O 1-Wire Action command to invoke the "ALARM search" macro.
- *
- * This action will perform an ALARM search action, by enumerating all devices
- * on the bus that are in ALARM state.  Once a device is found, its information
- * is sent back to the
- * serial port.  A sequence of eight (8) 0xFF bytes indicates that the search
- * has terminated.  Right after receiving the ROM search action command, the
- * board will return a SUCCESS value indicating that it will start the devices
- * scan.  The search algorithm is described in
- * https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
- *
- * Current format is as follows:
- *
- * MSB
- * 00001001
- * ||||||||
- * ||||++++--> ALARM search action.
- * ++++------> Action command.
- *
- * Interaction flow is as follows:
- *
- * PC         -> 0b00001001
- * Bus Pirate <- 0b00000001 (SUCCESS)
- * Bus Pirate <- 0bxxxxxxxx 0bxxxxxxxx ... (Device information)
- * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
- * Bus Pirate <- 0b11111111 0b11111111 0b11111111 0b11111111
- */
-#define BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO 0x09
-
 void binary_io_enter_1wire_mode(void) {
   uint8_t input_byte;
   uint8_t command;
@@ -1119,7 +1207,6 @@ void binary_io_enter_1wire_mode(void) {
   MSG_1WIRE_MODE_IDENTIFIER;
 
   for (;;) {
-
     input_byte = UART1RX();
     command = input_byte >> 4;
 
@@ -1151,8 +1238,8 @@ void binary_io_enter_1wire_mode(void) {
 
         onewire_state.command_byte =
             (input_byte == BINARY_IO_ONEWIRE_ACTION_ALARM_SEARCH_MACRO)
-                ? MACRO_ID_ALARM_SEARCH
-                : MACRO_ID_SEARCH_ROM;
+                ? MACRO_ALARM_SEARCH
+                : MACRO_SEARCH_ROM;
 
         /* Find all devices. */
 
