@@ -26,13 +26,8 @@
 #include "base.h"
 #include "proc_menu.h"
 
-// TRISDbits.TRISD5
 #define AUXPIN_DIR BP_AUX0_DIR
-
-// 20
 #define AUXPIN_RPIN BP_AUX_RPIN
-
-// RPOR10bits.RP20R
 #define AUXPIN_RPOUT BP_AUX_RPOUT
 
 extern mode_configuration_t mode_configuration;
@@ -66,6 +61,11 @@ static uint32_t poll_frequency_counter_value(void);
  * @return the average frequency value, in Hz.
  */
 static uint32_t average_sample_frequency(const uint16_t count);
+
+/**
+ * @brief Stops the two timers used in the PWM/frequency counting process.
+ */
+static inline void stop_timers(void);
 
 /**
  * @brief AUX pins manager internal state variables container.
@@ -165,10 +165,36 @@ void bp_update_pwm(const uint16_t frequency, const uint16_t duty_cycle) {
   state.pwm_frequency = frequency;
   state.pwm_duty_cycle = duty_cycle;
 
-  /* Shut timers down. */
-  T2CON = 0;
-  T4CON = 0;
-  OC5CON = 0;
+  stop_timers();
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1
+   *
+   * MSB
+   * --0000--0--00000
+   *   ||||  |  |||||
+   *   ||||  |  ||+++-- OCM:      Output compare is disabled.
+   *   ||||  |  |+----- TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------ OCFLT0:   No PWM fault condition.
+   *   ||||  +--------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------ OCTSEL:   Output compare with Timer 2.
+   *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#else
+  /*
+   * OC5CON
+   *
+   * MSB
+   * --0--------00000
+   *   |        |||||
+   *   |        ||+++-- OCM:    Output compare is disabled.
+   *   |        |+----- OCTSEL: Output compare with Timer 2.
+   *   |        +------ OCFLT:  No PWM fault condition.
+   *   +--------------- OCSIDL: Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#endif /* BUSPIRATEV4 */
 
   /* Detach the AUX pin from the PWM generator if no PWM signal is needed. */
   if (frequency == 0) {
@@ -188,81 +214,163 @@ void bp_update_pwm(const uint16_t frequency, const uint16_t duty_cycle) {
   /* Setup the PWM generator. */
   OC5R = cycle;
   OC5RS = cycle;
-  OC5CON = 0x06;
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1
+   *
+   * MSB
+   * --0000--0--00110
+   *   ||||  |  |||||
+   *   ||||  |  ||+++-- OCM:      Edge-aligned PWM mode.
+   *   ||||  |  |+----- TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------ OCFLT0:   No PWM fault condition.
+   *   ||||  +--------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------ OCTSEL:   Output compare with Timer 2.
+   *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON =
+      (0b110 << _OC5CON1_OCM_POSITION) | (OFF << _OC5CON1_TRIGMODE_POSITION) |
+      (OFF << _OC5CON1_OCFLT0_POSITION) | (OFF << _OC5CON1_ENFLT0_POSITION) |
+      (OFF << _OC5CON1_OCTSEL_POSITION) | (OFF << _OC5CON1_OCSIDL_POSITION);
+#else
+  /*
+   * OC5CON
+   *
+   * MSB
+   * --0--------00110
+   *   |        |||||
+   *   |        ||+++-- OCM:    Edge-aligned PWM mode.
+   *   |        |+----- OCTSEL: Output compare with Timer 2.
+   *   |        +------ OCFLT:  No PWM fault condition.
+   *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = (0b110 << _OC5CON_OCM_POSITION) | (OFF << _OC5CON_OCTSEL_POSITION) |
+           (OFF << _OC5CON_OCFLT_POSITION) | (OFF << _OC5CON_OCSIDL_POSITION);
+#endif /* BUSPIRATEV4 */
   T2CONbits.TON = ON;
   state.mode = AUX_MODE_PWM;
 }
 
-// setup the PWM/frequency generator
 void bp_pwm_setup(void) {
-  unsigned int PWM_period, PWM_dutycycle, PWM_freq, PWM_div;
-  int done;
-  float PWM_pd;
+  uint16_t pwm_period;
+  uint16_t pwm_duty_cycle;
+  uint16_t pwm_frequency;
+  uint16_t pwm_divisor;
+  float pwm_period_float;
+  bool valid_arguments;
 
-  // cleanup timers
-  T2CON = 0; // clear settings
-  T4CON = 0;
-  OC5CON = 0;
+  stop_timers();
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1
+   *
+   * MSB
+   * --0000--0--00000
+   *   ||||  |  |||||
+   *   ||||  |  ||+++-- OCM:      Output compare is disabled.
+   *   ||||  |  |+----- TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------ OCFLT0:   No PWM fault condition.
+   *   ||||  +--------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------ OCTSEL:   Output compare with Timer 2.
+   *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#else
+  /*
+   * OC5CON
+   *
+   * MSB
+   * --0--------00000
+   *   |        |||||
+   *   |        ||+++-- OCM:    Output compare is disabled.
+   *   |        |+----- OCTSEL: Output compare with Timer 2.
+   *   |        +------ OCFLT:  No PWM fault condition.
+   *   +--------------- OCSIDL: Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#endif /* BUSPIRATEV4 */
 
-  if (state.mode == AUX_MODE_PWM) { // PWM is on, stop it
-    AUXPIN_RPOUT = 0;               // remove output from AUX pin
-    // bpWline(OUMSG_AUX_PWM_OFF);
+  /* Stop PWM mode if it is engaged. */
+  if (state.mode == AUX_MODE_PWM) {
+    /* Detach AUX pin from output source. */
+    AUXPIN_RPOUT = 0;
     BPMSG1028;
     state.mode = AUX_MODE_IO;
 
     if (cmdbuf[((cmdstart + 1) & CMDLENMSK)] == 0x00) {
-      // return if no arguments to function
+      /* No arguments, quit. */
       return;
     }
   }
 
-  done = 0;
-
+  /* Get parameters. */
   cmdstart = (cmdstart + 1) & CMDLENMSK;
-
-  // get any compound commandline variables
   consumewhitechars();
-  PWM_freq = getint();
+  pwm_frequency = getint();
   consumewhitechars();
-  PWM_pd = getint();
+  pwm_period_float = getint();
 
-  // sanity check values
-  if ((PWM_freq > 0) && (PWM_freq < 4000))
-    done++;
-  if ((PWM_pd > 0) && (PWM_pd < 100))
-    done++;
+  valid_arguments = ((pwm_frequency > 0) && (pwm_frequency < 4000) &&
+                     ((pwm_period_float > 0) && (pwm_period_float < 100)));
 
-  // calculate frequency:
-  // no command line variables, prompt for PWM frequency
-  if (done != 2) {
+  if (!valid_arguments) {
     command_error = false;
     BPMSG1029;
     BPMSG1030;
-    PWM_freq = getnumber(50, 1, 4000, 0);
+    pwm_frequency = getnumber(50, 1, 4000, 0);
   }
 
-  // choose proper multiplier for whole range
-  PWM_div = setup_prescaler_divisor(PWM_freq);
-  PWM_period = (PWM_div / PWM_freq) - 1;
+  pwm_divisor = setup_prescaler_divisor(pwm_frequency);
+  pwm_period = (pwm_divisor / pwm_frequency) - 1;
 
-  // if no commandline vairable, prompt for duty cycle
-  if (done != 2) {
+  if (!valid_arguments) {
     BPMSG1033;
-    PWM_pd = getnumber(50, 0, 99, 0);
+    pwm_period_float = getnumber(50, 0, 99, 0);
   }
 
-  PWM_pd /= 100;
-  PWM_dutycycle = PWM_period * PWM_pd;
-  // bpWdec(PWM_dutycycle);
+  pwm_period_float /= 100;
+  pwm_duty_cycle = pwm_period * pwm_period_float;
 
-  // assign pin with PPS
+  /* Assign output source to AUX pin. */
   AUXPIN_RPOUT = OC5_IO;
-  // should be fine on bpv4
 
-  OC5R = PWM_dutycycle;
-  OC5RS = PWM_dutycycle;
-  OC5CON = 0x6;
-  PR2 = PWM_period;
+  OC5R = pwm_duty_cycle;
+  OC5RS = pwm_duty_cycle;
+
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1
+   *
+   * MSB
+   * --0000--0--00110
+   *   ||||  |  |||||
+   *   ||||  |  ||+++-- OCM:      Edge-aligned PWM mode.
+   *   ||||  |  |+----- TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------ OCFLT0:   No PWM fault condition.
+   *   ||||  +--------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------ OCTSEL:   Output compare with Timer 2.
+   *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON =
+      (0b110 << _OC5CON1_OCM_POSITION) | (OFF << _OC5CON1_TRIGMODE_POSITION) |
+      (OFF << _OC5CON1_OCFLT0_POSITION) | (OFF << _OC5CON1_ENFLT0_POSITION) |
+      (OFF << _OC5CON1_OCTSEL_POSITION) | (OFF << _OC5CON1_OCSIDL_POSITION);
+#else
+  /*
+   * OC5CON
+   *
+   * MSB
+   * --0--------00110
+   *   |        |||||
+   *   |        ||+++-- OCM:    Edge-aligned PWM mode.
+   *   |        |+----- OCTSEL: Output compare with Timer 2.
+   *   |        +------ OCFLT:  No PWM fault condition.
+   *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = (0b110 << _OC5CON_OCM_POSITION) | (OFF << _OC5CON_OCTSEL_POSITION) |
+           (OFF << _OC5CON_OCFLT_POSITION) | (OFF << _OC5CON_OCSIDL_POSITION);
+#endif /* BUSPIRATEV4 */
+  PR2 = pwm_period;
   T2CONbits.TON = ON;
 
   BPMSG1034;
@@ -276,26 +384,34 @@ void bp_frequency_counter_setup(void) {
   unsigned long long f, p;
 
   if (state.mode == AUX_MODE_PWM) {
-    // bpWline(OUMSG_AUX_FREQ_PWM);
     BPMSG1037;
     return;
   }
 
-  // bpWstring(OUMSG_AUX_FREQCOUNT);
   BPMSG1038;
-  // setup timer
-  T4CON = 0; // make sure the counters are off
-  T2CON = 0;
+  stop_timers();
 
-  // timer 2 external
-  AUXPIN_DIR = 1; // aux input
+  /* Connect Timer2 clock to AUX. */
+  AUXPIN_DIR = INPUT;
+  RPINR3bits.T2CKR = AUXPIN_RPIN;
 
-  RPINR3bits.T2CKR = AUXPIN_RPIN; // assign T2 clock input to aux input
-  // should be good on bpv4
+  /*
+   * T2CON
+   *
+   * MSB
+   * 0-0------111-1-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   Internal clock.
+   * | |      ||+----- T32:   TIMER2 is bound with TIMER3 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:256 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T2CON = (ON << _T2CON_TCS_POSITION) | (ON << _T2CON_T32_POSITION) |
+          (ON << _T2CON_TCKPS0_POSITION) | (ON << _T2CON_TCKPS1_POSITION);
 
-  T2CON = 0b111010; //(TCKPS1|TCKPS0|T32|TCS); // prescale to 256
-
-  f = poll_frequency_counter_value(); // all measurements within 26bits (<67MHz)
+  /* Can measure up to 67MHz (26 bits). */
+  f = poll_frequency_counter_value();
 
   // counter only seems to be good til around 6.7MHz,
   // use 4.2MHz (nearest power of 2 without exceeding 6.7MHz) for reliable
@@ -305,7 +421,10 @@ void bp_frequency_counter_setup(void) {
   } else {          // get a more accurate reading without prescaler
     // bpWline("Autorange");
     BPMSG1245;
-    T2CON = 0b001010; //(TCKPS1|TCKPS0|T32|TCS); prescale to 0
+
+    /* Use a less aggressive prescaler, set to 1:1. */
+    T2CONbits.TCKPS0 = OFF;
+    T2CONbits.TCKPS1 = OFF;
     f = poll_frequency_counter_value();
   }
   // at 4000Hz 1 bit resolution of frequency measurement = 1 bit resolution of
@@ -397,48 +516,22 @@ void bp_frequency_counter_setup(void) {
 
   // return clock input to other pin
   RPINR3bits.T2CKR = 0b11111; // assign T2 clock input to nothing
-  T4CON = 0;                  // make sure the counters are off
-  T2CON = 0;
+  stop_timers();
 }
 
 uint32_t bp_measure_frequency(void) {
   uint32_t frequency;
 
-  /*
-   * Setup timer 4
-   *
-   * MSB
-   * 0-0------000-0-
-   * | |      ||| |
-   * | |      ||| +--- TCS:   External clock from pin.
-   * | |      ||+----- T32:   TIMER4 is not bound with TIMER5 for 32 bit mode.
-   * | |      ++------ TCKPS: 1:1 Prescaler.
-   * | +-------------- TSIDL: Continue module operation in idle mode.
-   * +---------------- TON:   Timer OFF.
-   */
-  T4CON = 0x0000;
-
-  /*
-   * Setup timer 2
-   *
-   * MSB
-   * 0-0------000-0-
-   * | |      ||| |
-   * | |      ||| +--- TCS:   External clock from pin.
-   * | |      ||+----- T32:   TIMER2 is not bound with TIMER3 for 32 bit mode.
-   * | |      ++------ TCKPS: 1:1 Prescaler.
-   * | +-------------- TSIDL: Continue module operation in idle mode.
-   * +---------------- TON:   Timer OFF.
-   */
-  T2CON = 0x0000;
-
+  stop_timers();
   AUXPIN_DIR = INPUT;
 
   /* Set timer 2 clock input pin. */
   RPINR3bits.T2CKR = AUXPIN_RPIN;
 
+  /* Finish timer 2 setup. */
+
   /*
-   * Finish timer 2 setup
+   * T2CON
    *
    * MSB
    * 0-0------111-1-
@@ -466,33 +559,7 @@ uint32_t bp_measure_frequency(void) {
   /* Remove clock input pin assignment. */
   RPINR3bits.T2CKR = 0b011111;
 
-  /*
-   * Stop timer 4
-   *
-   * MSB
-   * 0-0------000-0-
-   * | |      ||| |
-   * | |      ||| +--- TCS:   External clock from pin.
-   * | |      ||+----- T32:   TIMER4 is not bound with TIMER5 for 32 bit mode.
-   * | |      ++------ TCKPS: 1:1 Prescaler.
-   * | +-------------- TSIDL: Continue module operation in idle mode.
-   * +---------------- TON:   Timer OFF.
-   */
-  T4CON = 0x0000;
-
-  /*
-   * Stop timer 2
-   *
-   * MSB
-   * 0-0------000-0-
-   * | |      ||| |
-   * | |      ||| +--- TCS:   External clock from pin.
-   * | |      ||+----- T32:   TIMER2 is not bound with TIMER3 for 32 bit mode.
-   * | |      ++------ TCKPS: 1:1 Prescaler.
-   * | +-------------- TSIDL: Continue module operation in idle mode.
-   * +---------------- TON:   Timer OFF.
-   */
-  T2CON = 0x0000;
+  stop_timers();
 
   return frequency;
 }
@@ -570,8 +637,10 @@ uint32_t average_sample_frequency(const uint16_t count) {
   TMR5HLD = 0x0000;
   TMR4 = 0x0000;
 
+  /* Start timer 4. */
+
   /*
-   * Start timer 4
+   * T4CON
    *
    * MSB
    * 1-0------001-0-
@@ -797,7 +866,6 @@ uint32_t average_sample_frequency(const uint16_t count) {
   IC2CON = 0x0000;
 
   /* Stop timer 2. */
-
   T2CONbits.TON = OFF;
 
 #endif /* BUSPIRATEV4 */
@@ -930,7 +998,7 @@ bool bp_aux_pin_read(void) {
   Nop();
   return BP_CS;
 #else
-  switch (mode_configuration.alternate_aux & 0b00000011) {
+  switch (MASKBOTTOM8(mode_configuration.alternate_aux, 2)) {
   case 0:
     BP_AUX0_DIR = INPUT;
     Nop();
@@ -963,61 +1031,154 @@ bool bp_aux_pin_read(void) {
 }
 
 void bp_servo_setup(void) {
-  unsigned int PWM_period, PWM_dutycycle;
-  unsigned char entryloop = 0;
-  float PWM_pd;
+  uint16_t period;
+  uint16_t duty_cycle;
+  bool keep_asking;
+  float pwm_period;
 
-  // Clear timers
-  T2CON = 0; // clear settings
-  T4CON = 0;
-  OC5CON = 0;
+  stop_timers();
 
-  if (state.mode == AUX_MODE_PWM) { // PWM is on, stop it
-    if (cmdbuf[((cmdstart + 1) & CMDLENMSK)] ==
-        0x00) {         // no extra data, stop servo
-      AUXPIN_RPOUT = 0; // remove output from AUX pin
-      BPMSG1028;
-      state.mode = AUX_MODE_IO;
-      return; // return if no arguments to function
-    }
+  /* Reset output comparator. */
+
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1
+   *
+   * MSB
+   * --0000--0--00000
+   *   ||||  |  |||||
+   *   ||||  |  ||+++-- OCM:      Output compare is disabled.
+   *   ||||  |  |+----- TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------ OCFLT0:   No PWM fault condition.
+   *   ||||  +--------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------ OCTSEL:   Output compare with Timer 2.
+   *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#else
+  /*
+   * OC5CON
+   *
+   * MSB
+   * --0--------00000
+   *   |        |||||
+   *   |        ||+++-- OCM:    Output compare is disabled.
+   *   |        |+----- OCTSEL: Output compare with Timer 2.
+   *   |        +------ OCFLT:  No PWM fault condition.
+   *   +--------------- OCSIDL: Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#endif /* BUSPIRATEV4 */
+
+  if ((state.mode == AUX_MODE_PWM) &&
+      (cmdbuf[((cmdstart + 1) & CMDLENMSK)] == 0x00)) {
+    AUXPIN_RPOUT = 0;
+    BPMSG1028;
+    state.mode = AUX_MODE_IO;
+    return;
   }
+
+  keep_asking = false;
 
   cmdstart = (cmdstart + 1) & CMDLENMSK;
-
-  // Get servo position from command line or prompt for value
   consumewhitechars();
-  PWM_pd = getint();
-  if (command_error || (PWM_pd > 180)) {
+  pwm_period = getint();
+  if (command_error || (pwm_period > 180)) {
     command_error = false;
     BPMSG1254;
-    PWM_pd = getnumber(90, 0, 180, 0);
-    entryloop = 1;
+    pwm_period = getnumber(90, 0, 180, 0);
+    keep_asking = true;
   }
 
-// Setup multiplier for 50 Hz
-servoset:
-  T2CONbits.TCKPS1 = 1;
-  T2CONbits.TCKPS0 = 1;
-  PWM_period = 1250;
-  PWM_pd /= 3500;
-  PWM_dutycycle = (PWM_period * PWM_pd) + 62;
+  do {
+    T2CONbits.TCKPS1 = ON;
+    T2CONbits.TCKPS0 = ON;
+    period = 1250;
+    pwm_period /= 3500;
+    duty_cycle = (period * pwm_period) + 62;
+    AUXPIN_RPOUT = OC5_IO;
+    OC5R = duty_cycle;
+    OC5RS = duty_cycle;
 
-  // assign pin with PPS
-  AUXPIN_RPOUT = OC5_IO;
-  OC5R = PWM_dutycycle;
-  OC5RS = PWM_dutycycle;
-  OC5CON = 0x6;
-  PR2 = PWM_period;
-  T2CONbits.TON = ON;
-  BPMSG1255;
-  state.mode = AUX_MODE_PWM;
+#if defined(BUSPIRATEV4)
+    /*
+     * OC5CON1
+     *
+     * MSB
+     * --0000--0--00110
+     *   ||||  |  |||||
+     *   ||||  |  ||+++-- OCM:      Edge-aligned PWM mode.
+     *   ||||  |  |+----- TRIGMODE: TRIGSTAT is only cleared by software.
+     *   ||||  |  +------ OCFLT0:   No PWM fault condition.
+     *   ||||  +--------- ENFLT0:   Fault 0 input disabled.
+     *   |+++------------ OCTSEL:   Output compare with Timer 2.
+     *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+     */
+    OC5CON =
+        (0b110 << _OC5CON1_OCM_POSITION) | (OFF << _OC5CON1_TRIGMODE_POSITION) |
+        (OFF << _OC5CON1_OCFLT0_POSITION) | (OFF << _OC5CON1_ENFLT0_POSITION) |
+        (OFF << _OC5CON1_OCTSEL_POSITION) | (OFF << _OC5CON1_OCSIDL_POSITION);
+#else
+    /*
+     * OC5CON
+     *
+     * MSB
+     * --0--------00110
+     *   |        |||||
+     *   |        ||+++-- OCM:    Edge-aligned PWM mode.
+     *   |        |+----- OCTSEL: Output compare with Timer 2.
+     *   |        +------ OCFLT:  No PWM fault condition.
+     *   +--------------- OCSIDL:   Output Compare continues in CPU idle mode.
+     */
+    OC5CON = (0b110 << _OC5CON_OCM_POSITION) |
+             (OFF << _OC5CON_OCTSEL_POSITION) |
+             (OFF << _OC5CON_OCFLT_POSITION) | (OFF << _OC5CON_OCSIDL_POSITION);
+#endif /* BUSPIRATEV4 */
 
-  if (entryloop == 1) {
-    PWM_pd = getnumber(-1, 0, 180, 1);
-    if (PWM_pd < 0) {
-      bpBR;
-      return;
+    PR2 = period;
+
+    /* Start timer 2. */
+    T2CONbits.TON = ON;
+    BPMSG1255;
+    state.mode = AUX_MODE_PWM;
+
+    if (keep_asking) {
+      pwm_period = getnumber(-1, 0, 180, 1);
+      if (pwm_period < 0) {
+        bpBR;
+        return;
+      }
     }
-    goto servoset;
-  }
+  } while (keep_asking == true);
+}
+
+void stop_timers(void) {
+
+  /*
+   * T4CON
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER4 is not bound with TIMER5 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T4CON = 0x0000;
+
+  /*
+   * T2CON
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +--- TCS:   External clock from pin.
+   * | |      ||+----- T32:   TIMER2 is not bound with TIMER3 for 32 bit mode.
+   * | |      ++------ TCKPS: 1:1 Prescaler.
+   * | +-------------- TSIDL: Continue module operation in idle mode.
+   * +---------------- TON:   Timer OFF.
+   */
+  T2CON = 0x0000;
 }
