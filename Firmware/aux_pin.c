@@ -370,6 +370,7 @@ void bp_pwm_setup(void) {
   OC5CON = (0b110 << _OC5CON_OCM_POSITION) | (OFF << _OC5CON_OCTSEL_POSITION) |
            (OFF << _OC5CON_OCFLT_POSITION) | (OFF << _OC5CON_OCSIDL_POSITION);
 #endif /* BUSPIRATEV4 */
+
   PR2 = pwm_period;
   T2CONbits.TON = ON;
 
@@ -378,10 +379,8 @@ void bp_pwm_setup(void) {
 }
 
 void bp_frequency_counter_setup(void) {
-  // frequency accuracy optimized by selecting measurement method, either
-  //   counting frequency or measuring period, to maximize resolution.
-  // Note: long long int division routine used by C30 is not open-coded  */
-  unsigned long long f, p;
+  uint64_t frequency;
+  uint64_t period;
 
   if (state.mode == AUX_MODE_PWM) {
     BPMSG1037;
@@ -411,111 +410,106 @@ void bp_frequency_counter_setup(void) {
           (ON << _T2CON_TCKPS0_POSITION) | (ON << _T2CON_TCKPS1_POSITION);
 
   /* Can measure up to 67MHz (26 bits). */
-  f = poll_frequency_counter_value();
+  frequency = poll_frequency_counter_value();
 
-  // counter only seems to be good til around 6.7MHz,
-  // use 4.2MHz (nearest power of 2 without exceeding 6.7MHz) for reliable
-  // reading
-  if (f > 0x3fff) { // if >4.2MHz prescaler required
-    f *= 256;       // adjust for prescaler
-  } else {          // get a more accurate reading without prescaler
-    // bpWline("Autorange");
-    BPMSG1245;
-
+  if (frequency > 0x3FFF) {
+    /* Adjust for prescaler. */
+    frequency *= 256;
+  } else {
     /* Use a less aggressive prescaler, set to 1:1. */
+    BPMSG1245;
     T2CONbits.TCKPS0 = OFF;
     T2CONbits.TCKPS1 = OFF;
-    f = poll_frequency_counter_value();
-  }
-  // at 4000Hz 1 bit resolution of frequency measurement = 1 bit resolution of
-  // period measurement
-  if (f >
-      3999) { // when < 4 KHz  counting edges is inferior to measuring period(s)
-    bp_write_dec_dword_friendly(
-        f); // this function uses comma's to seperate thousands.
-    MSG_PWM_HZ_MARKER;
-  } else if (f > 0) {
-    BPMSG1245;
-    p = average_sample_frequency(f);
-    // don't output fractions of frequency that are less then the frequency
-    //   resolution provided by an increment of the period timer count.
-    if (p > 400000) { // f <= 40 Hz
-      // 4e5 < p <= 1,264,911 (625us tics)
-      // 12.61911 < f <= 40 Hz
-      // output resolution of 1e-5
-      f = 16e11 / p;
-      bp_write_dec_dword_friendly(f / 100000);
-      UART1TX('.');
-      f = f % 100000;
-      if (f < 10000)
-        UART1TX('0');
-      if (f < 1000)
-        UART1TX('0');
-      if (f < 100)
-        UART1TX('0');
-      if (f < 10)
-        UART1TX('0');
-      bp_write_dec_dword(f);
-      // at p=126,491.1 frequency resolution is .001
-    } else if (p > 126491) { // f <= 126.4911
-      // 126,491 < p <= 4e5  (625us tics)
-      // 40 < f <= 126.4911 Hz
-      // output resolution of .0001
-      f = 16e10 / p;
-      bp_write_dec_dword_friendly(f / 10000);
-      UART1TX('.');
-      f = f % 10000;
-      if (f < 1000)
-        UART1TX('0');
-      if (f < 100)
-        UART1TX('0');
-      if (f < 10)
-        UART1TX('0');
-      bp_write_dec_word(f);
-      // at p=40,000 frequency resolution is .01
-    } else if (p > 40000) { // f <= 400 Hz
-      // 4e4 < p <= 126,491 (625us tics)
-      // 126.4911 < f <= 400 Hz
-      // output resolution of .001
-      f = 16e9 / p;
-      bp_write_dec_dword_friendly(f / 1000);
-      UART1TX('.');
-      f = f % 1000; // frequency resolution < 1e-2
-      if (f < 100)
-        UART1TX('0');
-      if (f < 10)
-        UART1TX('0');
-      bp_write_dec_word(f);
-      // at p=12,649.11 frequency resolution is .1
-    } else if (p > 12649) { // f <= 1264.911
-      // 12,649 < p <= 4e4  (625us tics)
-      // 400 < f < 1,264.911 Hz
-      // output resolution of .01
-      f = 16e8 / p;
-      bp_write_dec_dword_friendly(f / 100);
-      UART1TX('.');
-      f = f % 100; // frequency resolution < 1e-1
-      if (f < 10)
-        UART1TX('0');
-      bp_write_dec_byte(f);
-      // at p=4,000 frequency resolution is 1
-    } else { // 4,000 < p <= 12,649 (625us tics)
-      // 1,264.911 < f < 4,000 Hz
-      // output resolution of .1
-      f = 16e7 / p;
-      bp_write_dec_dword_friendly(f / 10);
-      UART1TX('.');
-      f = f % 10; // frequency resolution < 1
-      bp_write_dec_byte(f);
-    }
-    MSG_PWM_HZ_MARKER;
-    // END of IF(f>0)
-  } else {
-    MSG_PWM_FREQUENCY_TOO_LOW;
+    frequency = poll_frequency_counter_value();
   }
 
-  // return clock input to other pin
-  RPINR3bits.T2CKR = 0b11111; // assign T2 clock input to nothing
+  if (frequency > 3999) {
+    bp_write_dec_dword_friendly(frequency);
+    MSG_PWM_HZ_MARKER;
+  } else {
+    if (frequency > 0) {
+      BPMSG1245;
+      period = average_sample_frequency(frequency);
+      if (period > 400000) {
+        frequency = 16e11 / period;
+        bp_write_dec_dword_friendly(frequency / 100000);
+        UART1TX('.');
+        frequency = frequency % 100000;
+        if (frequency < 10000) {
+          UART1TX('0');
+        }
+        if (frequency < 1000) {
+          UART1TX('0');
+        }
+        if (frequency < 100) {
+          UART1TX('0');
+        }
+        if (frequency < 10) {
+          UART1TX('0');
+        }
+        bp_write_dec_dword(frequency);
+        goto write_marker;
+      }
+
+      if (period > 126491) {
+        frequency = 16e10 / period;
+        bp_write_dec_dword_friendly(frequency / 10000);
+        UART1TX('.');
+        frequency = frequency % 10000;
+        if (frequency < 1000) {
+          UART1TX('0');
+        }
+        if (frequency < 100) {
+          UART1TX('0');
+        }
+        if (frequency < 10) {
+          UART1TX('0');
+        }
+        bp_write_dec_word(frequency);
+        goto write_marker;
+      }
+
+      if (period > 40000) {
+        frequency = 16e9 / period;
+        bp_write_dec_dword_friendly(frequency / 1000);
+        UART1TX('.');
+        frequency = frequency % 1000;
+        if (frequency < 100) {
+          UART1TX('0');
+        }
+        if (frequency < 10) {
+          UART1TX('0');
+        }
+        bp_write_dec_word(frequency);
+        goto write_marker;
+      }
+
+      if (period > 12649) {
+        frequency = 16e8 / period;
+        bp_write_dec_dword_friendly(frequency / 100);
+        UART1TX('.');
+        frequency = frequency % 100;
+        if (frequency < 10) {
+          UART1TX('0');
+        }
+        bp_write_dec_byte(frequency);
+        goto write_marker;
+      }
+
+      frequency = 16e7 / period;
+      bp_write_dec_dword_friendly(frequency / 10);
+      UART1TX('.');
+      bp_write_dec_byte(frequency % 10);
+
+    write_marker:
+      MSG_PWM_HZ_MARKER;
+    } else {
+      MSG_PWM_FREQUENCY_TOO_LOW;
+    }
+  }
+
+  /* Detach Timer2 Clock signal from the AUX pin. */
+  RPINR3bits.T2CKR = 0b11111;
   stop_timers();
 }
 
