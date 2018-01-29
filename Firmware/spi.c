@@ -542,7 +542,7 @@ restart:
 
     /* Detect a CS line state change. */
     if ((last_cs_line_state == LOW) && (SPICS == HIGH)) {
-      user_serial_ringbuffer_enqueue(']');
+      user_serial_ringbuffer_append(']');
       last_cs_line_state = HIGH;
     }
 
@@ -553,25 +553,25 @@ restart:
       data = SPI1BUF;
 
       if (last_cs_line_state == HIGH) {
-        user_serial_ringbuffer_enqueue('[');
+        user_serial_ringbuffer_append('[');
         last_cs_line_state = LOW;
       }
 
       if (terminal_mode) {
         bp_write_hex_byte_to_ringbuffer(data);
       } else {
-        user_serial_ringbuffer_enqueue('\\');
-        user_serial_ringbuffer_enqueue(data);
+        user_serial_ringbuffer_append('\\');
+        user_serial_ringbuffer_append(data);
       }
 
       data = SPI2BUF;
 
       if (terminal_mode) {
-        user_serial_ringbuffer_enqueue('(');
+        user_serial_ringbuffer_append('(');
         bp_write_hex_byte_to_ringbuffer(data);
-        user_serial_ringbuffer_enqueue(')');
+        user_serial_ringbuffer_append(')');
       } else {
-        user_serial_ringbuffer_enqueue(data);
+        user_serial_ringbuffer_append(data);
       }
     }
 

@@ -235,14 +235,11 @@ void bp_adc_probe(void) {
 void bp_adc_continuous_probe(void) {
   unsigned int measurement;
 
-  // bpWline(OUMSG_PS_ADCC);
-  BPMSG1042;
+  MSG_ADC_VOLTMETER_MODE;
   MSG_ANY_KEY_TO_EXIT_PROMPT;
-  // bpWstring(OUMSG_PS_ADC_VOLT_PROBE);
-  BPMSG1044;
+  MSG_ADC_VOLTAGE_PROBE_HEADER;
   bp_write_voltage(0);
-  // bpWstring(OUMSG_PS_ADC_VOLTS);
-  BPMSG1045;
+  MSG_VOLTAGE_UNIT;
 
   /* Perform ADC probes until a character is sent to the serial port. */
   while (!user_serial_ready_to_read()) {
@@ -260,13 +257,11 @@ void bp_adc_continuous_probe(void) {
 
     /* Print new measurement. */
     bp_write_voltage(measurement);
-
-    BPMSG1045;
+    MSG_VOLTAGE_UNIT;
   }
 
   /* Flush the incoming serial buffer. */
   user_serial_read_byte();
-
   bpBR;
 }
 
@@ -374,10 +369,8 @@ void bp_write_line(const char *string) {
 }
 
 void bp_write_bin_byte(const uint8_t value) {
-  uint8_t mask;
+  uint8_t mask = 0x80;
   size_t index;
-
-  mask = 0x80;
 
   MSG_BINARY_NUMBER_PREFIX;
 
@@ -478,10 +471,10 @@ void bp_write_hex_byte(const uint8_t value) {
 }
 
 void bp_write_hex_byte_to_ringbuffer(const uint8_t value) {
-  user_serial_ringbuffer_enqueue(HEX_PREFIX[0]);
-  user_serial_ringbuffer_enqueue(HEX_PREFIX[1]);
-  user_serial_ringbuffer_enqueue(HEX_ASCII_TABLE[(value >> 4) & 0x0F]);
-  user_serial_ringbuffer_enqueue(HEX_ASCII_TABLE[value & 0x0F]);
+  user_serial_ringbuffer_append(HEX_PREFIX[0]);
+  user_serial_ringbuffer_append(HEX_PREFIX[1]);
+  user_serial_ringbuffer_append(HEX_ASCII_TABLE[(value >> 4) & 0x0F]);
+  user_serial_ringbuffer_append(HEX_ASCII_TABLE[value & 0x0F]);
 }
 
 void bp_write_hex_word(const uint16_t value) {
@@ -500,8 +493,9 @@ void bp_write_voltage(const uint16_t adc) {
    * centivolts = volts * 100
    *
    * approximation is (adc * 165) / 256.  After simplification, the ratio can
-   * be written as (adc * 29) / 45, making the final calculation fit inside an
-   * unsigned 16 bits integer.  The measurement error is less than 1mV.
+   * be written as (adc * 29) / 45, making the final calculation result fit
+   * inside an unsigned 16 bits integer.  The measurement error is less than
+   * 1mV.
    */
   const uint16_t centivolts = (adc * 29) / 45;
 
@@ -515,8 +509,6 @@ void bp_write_voltage(const uint16_t adc) {
   }
   bp_write_dec_byte(value);
 }
-
-// Read the lower 16 bits from programming flash memory
 
 uint16_t bp_read_from_flash(const uint16_t page, const uint16_t address) {
   const uint16_t old_page = TBLPAG;
@@ -554,12 +546,45 @@ void user_serial_initialise(void) {
   if (bus_pirate_configuration.terminal_speed != 9) {
     U1BRG = UART_BRG_SPEED[bus_pirate_configuration.terminal_speed];
   }
-  U1MODE = 0;
-  U1MODEbits.BRGH = 1;
-  U1STA = 0;
-  U1MODEbits.UARTEN = 1;
-  U1STAbits.UTXEN = 1;
-  IFS0bits.U1RXIF = 0;
+
+  /*
+   * U1STA - UART1 STATUS AND CONTROL REGISTER
+   *
+   * MSB
+   * 000-01xx 000xxx0x
+   * ||| ||  |||   |
+   * ||| ||  |||   +-- OERR:    Overflow flag cleared.
+   * ||| ||  ||+------ ADDEN:   Address detect mode disabled.
+   * ||| ||  ++------- URXISEL: Interrupt on any incoming character.
+   * ||| |+----------- UTXEN:   Enable transmission.
+   * ||| +------------ UTXBRK:  Sync break transmission disabled.
+   * +|+-------------- UTXISEL: Interrupt on each outgoing character.
+   *  +--------------- UTXINV:  Idle state high (IrDA is disabled).
+   */
+  U1STA = 0x0400;
+
+  /*
+   * U1MODE - UART1 MODE REGISTER
+   *
+   * MSB
+   * 1-000-0000001000
+   * | ||| ||||||||||
+   * | ||| |||||||||+-- STSEL:  One stop bit.
+   * | ||| |||||||++--- PDSEL:  8-bit data, no parity.
+   * | ||| ||||||+----- BRGH:   4x baud clock, high-speed mode.
+   * | ||| |||||+------ RXINV:  Idle state high.
+   * | ||| ||||+------- ABAUD:  Baud rate measurement disabled.
+   * | ||| |||+-------- LPBACK: Loopback mode disabled.
+   * | ||| ||+--------- WAKE:   No wake-up enabled.
+   * | ||| ++---------- UEN:    CTS and RTS are controlled via PORT latches.
+   * | ||+------------- RTSMD:  RTS pin in flow control mode.
+   * | |+-------------- IREN:   IrDA encoder and decoder disabled.
+   * | +--------------- USIDL:  Continue module operation in idle mode.
+   * +----------------- UARTEN: UART1 enabled.
+   */
+  U1MODE = 0x8008;
+
+  IFS0bits.U1RXIF = NO;
 }
 bool user_serial_transmit_done(void) { return U1STAbits.TRMT; }
 
@@ -572,49 +597,67 @@ void user_serial_ringbuffer_setup(void) {
 }
 
 void user_serial_ringbuffer_process(void) {
-  unsigned int i;
-  if (U1STAbits.UTXBF == 0) { // check first for free slot
+  uint16_t index;
 
-    i = user_serial_ringbuffer_read + 1;
-    if (i == BP_TERMINAL_BUFFER_SIZE)
-      i = 0; // check for wrap
-    if (i == user_serial_ringbuffer_write)
-      return; // buffer empty,
-    user_serial_ringbuffer_read = i;
-    U1TXREG =
-        bus_pirate_configuration
-            .terminal_input[user_serial_ringbuffer_read]; // move a byte to UART
+  /* No free slots? */
+  if (U1STAbits.UTXBF == YES) {
+    return;
   }
+  index = user_serial_ringbuffer_read + 1;
+
+  /* Wrap around if needed. */
+  if (index == BP_TERMINAL_BUFFER_SIZE) {
+    index = 0;
+  }
+
+  /* Nothing to do. */
+  if (index == user_serial_ringbuffer_write) {
+    return;
+  }
+
+  /* Send character to port. */
+  user_serial_ringbuffer_read = index;
+  U1TXREG =
+      bus_pirate_configuration.terminal_input[user_serial_ringbuffer_read];
 }
 
 void user_serial_ringbuffer_flush(void) {
-  unsigned int i;
+  uint16_t index;
 
   for (;;) {
-    i = user_serial_ringbuffer_read + 1;
-    if (i == BP_TERMINAL_BUFFER_SIZE)
-      i = 0; // check for wrap
-    if (i == user_serial_ringbuffer_write)
-      return; // buffer empty,
+    index = user_serial_ringbuffer_read + 1;
 
-    if (U1STAbits.UTXBF == 0) { // free slot, move a byte to UART
-      user_serial_ringbuffer_read = i;
+    /* Wrap around if needed. */
+    if (index == BP_TERMINAL_BUFFER_SIZE) {
+      index = 0;
+    }
+
+    /* Nothing to do. */
+    if (index == user_serial_ringbuffer_write) {
+      return;
+    }
+
+    /* Send character. */
+    if (U1STAbits.UTXBF == NO) {
+      user_serial_ringbuffer_read = index;
       U1TXREG =
           bus_pirate_configuration.terminal_input[user_serial_ringbuffer_read];
     }
   }
 }
 
-void user_serial_ringbuffer_enqueue(const char character) {
+void user_serial_ringbuffer_append(const char character) {
   if (user_serial_ringbuffer_write == user_serial_ringbuffer_read) {
-    BP_LEDMODE = 0; // drop byte, buffer full LED off
-    bus_pirate_configuration.overflow = 1;
-  } else {
-    bus_pirate_configuration.terminal_input[user_serial_ringbuffer_write] =
-        character;
-    user_serial_ringbuffer_write++;
-    if (user_serial_ringbuffer_write == BP_TERMINAL_BUFFER_SIZE)
-      user_serial_ringbuffer_write = 0; // check for wrap
+    BP_LEDMODE = LOW;
+    bus_pirate_configuration.overflow = YES;
+    return;
+  }
+
+  bus_pirate_configuration.terminal_input[user_serial_ringbuffer_write] =
+      character;
+  user_serial_ringbuffer_write++;
+  if (user_serial_ringbuffer_write == BP_TERMINAL_BUFFER_SIZE) {
+    user_serial_ringbuffer_write = 0;
   }
 }
 
@@ -677,31 +720,26 @@ void user_serial_process_transmission_interrupt() {
   U1TXREG = UART1TXBuf[UART1TXSent];
 }
 
-// UART1 ISRs
-
 void __attribute__((interrupt, no_auto_psv)) _U1RXInterrupt(void) {
   UART1RXBuf[UART1RXRecvd] = U1RXREG;
   UART1RXRecvd++;
 
   if (UART1RXRecvd == UART1RXToRecv) {
-    // disable UART1 RX interrupt
-    IEC0bits.U1RXIE = 0;
+    IEC0bits.U1RXIE = NO;
   }
 
-  IFS0bits.U1RXIF = 0;
+  IFS0bits.U1RXIF = OFF;
 }
 
 void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
   UART1TXSent++;
   if (UART1TXSent == UART1TXAvailable) {
-    // if everything is sent  disale interrupts
-    IEC0bits.U1TXIE = 0;
+    IEC0bits.U1TXIE = NO;
   } else {
-    // feed next byte
     U1TXREG = UART1TXBuf[UART1TXSent];
   }
 
-  IFS0bits.U1TXIF = 0;
+  IFS0bits.U1TXIF = OFF;
 }
 
 #endif /* BUSPIRATEV3 */
@@ -718,7 +756,7 @@ void user_serial_transmit_character(const char character) {
   putc_cdc(character);
 }
 
-void user_serial_ringbuffer_enqueue(const char character) {
+void user_serial_ringbuffer_append(const char character) {
   user_serial_transmit_character(character);
 }
 

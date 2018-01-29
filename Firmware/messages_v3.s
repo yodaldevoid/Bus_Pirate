@@ -94,24 +94,6 @@ _BPMSG1040_str:
 _BPMSG1041_str:
 	.pasciz "AUX LOW"
 
-	; BPMSG1042
-	.section .text.BPMSG1042, code
-	.global _BPMSG1042_str
-_BPMSG1042_str:
-	.pasciz "VOLTMETER MODE"
-
-	; BPMSG1044
-	.section .text.BPMSG1044, code
-	.global _BPMSG1044_str
-_BPMSG1044_str:
-	.pasciz "VOLTAGE PROBE: "
-
-	; BPMSG1045
-	.section .text.BPMSG1045, code
-	.global _BPMSG1045_str
-_BPMSG1045_str:
-	.pasciz "V"
-
 	; BPMSG1047
 	.section .text.BPMSG1047, code
 	.global _BPMSG1047_str
@@ -1186,6 +1168,18 @@ _MSG_1WIRE_SPEED_PROMPT_str:
 _MSG_ACK_str:
 	.pasciz "ACK"
 
+	; MSG_ADC_VOLTAGE_PROBE_HEADER
+	.section .text.MSG_ADC_VOLTAGE_PROBE_HEADER, code
+	.global _MSG_ADC_VOLTAGE_PROBE_HEADER_str
+_MSG_ADC_VOLTAGE_PROBE_HEADER_str:
+	.pasciz "VOLTAGE PROBE: "
+
+	; MSG_ADC_VOLTMETER_MODE
+	.section .text.MSG_ADC_VOLTMETER_MODE, code
+	.global _MSG_ADC_VOLTMETER_MODE_str
+_MSG_ADC_VOLTMETER_MODE_str:
+	.pasciz "VOLTMETER MODE"
+
 	; MSG_ANY_KEY_TO_EXIT_PROMPT
 	.section .text.MSG_ANY_KEY_TO_EXIT_PROMPT, code
 	.global _MSG_ANY_KEY_TO_EXIT_PROMPT_str
@@ -1665,6 +1659,12 @@ _MSG_UART_RESET_TO_EXIT_str:
 	.global _MSG_UNKNOWN_MACRO_ERROR_str
 _MSG_UNKNOWN_MACRO_ERROR_str:
 	.pasciz "Unknown macro, try ? or (0) for help"
+
+	; MSG_VOLTAGE_UNIT
+	.section .text.MSG_VOLTAGE_UNIT, code
+	.global _MSG_VOLTAGE_UNIT_str
+_MSG_VOLTAGE_UNIT_str:
+	.pasciz "V"
 
 	; MSG_VREG_TOO_LOW
 	.section .text.MSG_VREG_TOO_LOW, code

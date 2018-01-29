@@ -857,12 +857,12 @@ void i2c_sniffer(bool interactive_mode) {
           bp_write_hex_byte_to_ringbuffer(data_value);
         } else {
           /* Report data via binary I/O. */
-          user_serial_ringbuffer_enqueue(I2C_SNIFFER_ESCAPE);
-          user_serial_ringbuffer_enqueue(data_value);
+          user_serial_ringbuffer_append(I2C_SNIFFER_ESCAPE);
+          user_serial_ringbuffer_append(data_value);
         }
 
         /* SDA high is NACK, SDA low is ACK. */
-        user_serial_ringbuffer_enqueue(new_sda ? I2C_SNIFFER_NACK : I2C_SNIFFER_ACK);
+        user_serial_ringbuffer_append(new_sda ? I2C_SNIFFER_NACK : I2C_SNIFFER_ACK);
 
         /* Ready for next byte. */
         data_bits = 0;
@@ -875,14 +875,14 @@ void i2c_sniffer(bool interactive_mode) {
           collect_data = true;
           data_bits = 0;
 
-          user_serial_ringbuffer_enqueue(I2C_SNIFFER_START);
+          user_serial_ringbuffer_append(I2C_SNIFFER_START);
         } else {
           /* Stop condition. */
           if (!old_sda && new_sda) {
             collect_data = false;
             data_bits = 0;
 
-            user_serial_ringbuffer_enqueue(I2C_SNIFFER_STOP);
+            user_serial_ringbuffer_append(I2C_SNIFFER_STOP);
           }
         }
       }

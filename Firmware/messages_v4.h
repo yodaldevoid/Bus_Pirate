@@ -33,12 +33,6 @@ void BPMSG1040_str(void);
 #define BPMSG1040 bp_message_write_line(__builtin_tbladdress(BPMSG1040_str))
 void BPMSG1041_str(void);
 #define BPMSG1041 bp_message_write_line(__builtin_tbladdress(BPMSG1041_str))
-void BPMSG1042_str(void);
-#define BPMSG1042 bp_message_write_line(__builtin_tbladdress(BPMSG1042_str))
-void BPMSG1044_str(void);
-#define BPMSG1044 bp_message_write_buffer(__builtin_tbladdress(BPMSG1044_str))
-void BPMSG1045_str(void);
-#define BPMSG1045 bp_message_write_buffer(__builtin_tbladdress(BPMSG1045_str))
 void BPMSG1047_str(void);
 #define BPMSG1047 bp_message_write_buffer(__builtin_tbladdress(BPMSG1047_str))
 void BPMSG1048_str(void);
@@ -429,6 +423,10 @@ void MSG_1WIRE_SPEED_PROMPT_str(void);
 #define MSG_1WIRE_SPEED_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_1WIRE_SPEED_PROMPT_str))
 void MSG_ACK_str(void);
 #define MSG_ACK bp_message_write_buffer(__builtin_tbladdress(MSG_ACK_str))
+void MSG_ADC_VOLTAGE_PROBE_HEADER_str(void);
+#define MSG_ADC_VOLTAGE_PROBE_HEADER bp_message_write_buffer(__builtin_tbladdress(MSG_ADC_VOLTAGE_PROBE_HEADER_str))
+void MSG_ADC_VOLTMETER_MODE_str(void);
+#define MSG_ADC_VOLTMETER_MODE bp_message_write_line(__builtin_tbladdress(MSG_ADC_VOLTMETER_MODE_str))
 void MSG_ANY_KEY_TO_EXIT_PROMPT_str(void);
 #define MSG_ANY_KEY_TO_EXIT_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_ANY_KEY_TO_EXIT_PROMPT_str))
 void MSG_BASE_CONVERTER_EQUAL_SIGN_str(void);
@@ -585,6 +583,8 @@ void MSG_UNKNOWN_MACRO_ERROR_str(void);
 #define MSG_UNKNOWN_MACRO_ERROR bp_message_write_line(__builtin_tbladdress(MSG_UNKNOWN_MACRO_ERROR_str))
 void MSG_USING_ONBOARD_I2C_EEPROM_str(void);
 #define MSG_USING_ONBOARD_I2C_EEPROM bp_message_write_line(__builtin_tbladdress(MSG_USING_ONBOARD_I2C_EEPROM_str))
+void MSG_VOLTAGE_UNIT_str(void);
+#define MSG_VOLTAGE_UNIT bp_message_write_buffer(__builtin_tbladdress(MSG_VOLTAGE_UNIT_str))
 void MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT_str(void);
 #define MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT bp_message_write_line(__builtin_tbladdress(MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT_str))
 void MSG_VPU_3V3_MARKER_str(void);

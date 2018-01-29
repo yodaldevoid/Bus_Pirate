@@ -740,12 +740,10 @@ bpv4reset:
                         //modeConfig.vregEN=0;
                     }
                     break;
-                case 'd': //bpWline("-read ADC");	//do an adc reading
-                    //bpWstring(OUMSG_PS_ADC_VOLT_PROBE);
-                    BPMSG1044;
+                case 'd':
+                    MSG_ADC_VOLTAGE_PROBE_HEADER;
                     bp_adc_probe();
-                    //bpWline(OUMSG_PS_ADC_VOLTS);`
-                    BPMSG1045;
+                    MSG_VOLTAGE_UNIT;
                     bpBR;
                     break;
                 case 'D': //bpWline("-DVM mode");	//dumb voltmeter mode
@@ -1680,7 +1678,7 @@ void print_pins_information(void) {
     bp_write_voltage(bp_read_adc(BP_ADC_3V3));
 #endif /* BP_VERSION2_SUPPORT && (BP_VERSION2_SUPPORT == 1) */
 #endif /* BUSPIRATEV4 */
-    BPMSG1045;
+    MSG_VOLTAGE_UNIT;
     user_serial_transmit_character('\t');
 
 #ifdef BUSPIRATEV4
@@ -1688,7 +1686,7 @@ void print_pins_information(void) {
 #else
     bp_write_voltage(bp_read_adc(BP_ADC_5V0));
 #endif /* BUSPIRATEV4 */
-    BPMSG1045;
+    MSG_VOLTAGE_UNIT;
     user_serial_transmit_character('\t');
 
 #ifdef BUSPIRATEV4
@@ -1700,7 +1698,7 @@ void print_pins_information(void) {
     bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
 #endif /* BP_VERSION2_SUPPORT && (BP_VERSION2_SUPPORT == 1) */
 #endif /* BUSPIRATEV4 */
-    BPMSG1045;
+    MSG_VOLTAGE_UNIT;
     user_serial_transmit_character('\t');
 
 #ifdef BUSPIRATEV4
@@ -1708,7 +1706,7 @@ void print_pins_information(void) {
 #else
     bp_write_voltage(bp_read_adc(BP_ADC_VPU));
 #endif /* BUSPIRATEV4 */
-    BPMSG1045;
+    MSG_VOLTAGE_UNIT;
     user_serial_transmit_character('\t');
     
     ADCOFF();

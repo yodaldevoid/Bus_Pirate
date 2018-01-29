@@ -163,6 +163,9 @@ typedef struct {
    */
   uint8_t write_with_read : 1;
 
+  /**
+   * Reserved bit, keep it set to zero.
+   */
   uint8_t reserved : 1;
 
   uint8_t speed;
@@ -170,9 +173,9 @@ typedef struct {
 } __attribute__((packed)) mode_configuration_t;
 
 typedef struct {
-  unsigned int num;
-  unsigned int repeat;
-  unsigned char cmd;
+  uint16_t num;
+  uint16_t repeat;
+  uint8_t cmd;
 } __attribute__((packed)) command_t;
 
 /**
@@ -375,17 +378,15 @@ void bp_write_hex_byte_to_ringbuffer(const uint8_t value);
  */
 #define bpSP user_serial_transmit_character(' ')
 
-//
-//
-// Base user terminal UART functions
-//
-//
+#if defined(BP_JTAG_OPENOCD_SUPPORT)
+
 #define UART_NORMAL_SPEED 34
 #define UART_FAST_SPEED 3
 
+#endif /* BP_JTAG_OPENOCD_SUPPORT */
+
 #if defined(BUSPIRATEV3)
 
-/* interrupt transfer related stuff */
 extern uint8_t *UART1RXBuf;
 extern unsigned int UART1RXToRecv;
 extern unsigned int UART1RXRecvd;
@@ -407,14 +408,14 @@ void user_serial_initialise(void);
 
 /**
  * @brief Checks whether the transmission queue is empty or not.
- * 
+ *
  * @return YES if the transmission queue is empty, NO otherwise.
  */
 inline bool user_serial_transmit_done(void);
 
 /**
  * @brief Checks whether the reception queue is full or not.
- * 
+ *
  * @return YES if the reception queue is not full, NO otherwise.
  */
 inline bool user_serial_ready_to_read(void);
@@ -426,7 +427,7 @@ inline void user_serial_clear_overflow(void);
 
 /**
  * @brief Returns the user-facing serial port overflow error flag.
- * 
+ *
  * @return YES if an overflow error was detected, NO otherwise.
  */
 inline bool user_serial_check_overflow(void);
@@ -459,6 +460,12 @@ uint8_t user_serial_read_byte(void);
  */
 void user_serial_process_transmission_interrupt(void);
 
+/**
+ * @brief Writes the given character to the user-facing serial port, blocking
+ * until the transmission completes.
+ *
+ * @param[in] character the character to write.
+ */
 void user_serial_transmit_character(const char character);
 
 /**
@@ -471,9 +478,27 @@ void user_serial_transmit_character(const char character);
  * @{
  */
 
+/**
+ * @brief Sets up the user-facing serial port ringbuffer.
+ */
 void user_serial_ringbuffer_setup(void);
+
+/**
+ * @brief Flushes the user-facing serial port ringbuffer.
+ */
 void user_serial_ringbuffer_flush(void);
-void user_serial_ringbuffer_enqueue(const char character);
+
+/**
+ * @brief Appends the given character to the user-facing serial port ringbuffer,
+ * blocking until there is enough space.
+ *
+ * @param[in] character the character to append.
+ */
+void user_serial_ringbuffer_append(const char character);
+
+/**
+ * @brief Transmits the first available character from the ringbuffer.
+ */
 void user_serial_ringbuffer_process(void);
 
 /**
