@@ -24,7 +24,6 @@
 #ifdef BP_ENABLE_SUMP_SUPPORT
 
 #include "base.h"
-#include "base_io.h"
 #include "core.h"
 #include "uart.h"
 

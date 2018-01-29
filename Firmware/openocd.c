@@ -7,7 +7,6 @@
 #endif /* BUSPIRATEV4 */
 
 #include "base.h"
-#include "base_io.h"
 #include "core.h"
 #include "binary_io.h"
 

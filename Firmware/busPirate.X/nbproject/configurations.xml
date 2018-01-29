@@ -38,7 +38,6 @@
       <itemPath>../core.h</itemPath>
       <itemPath>../uart2.h</itemPath>
       <itemPath>../aux_pin.h</itemPath>
-      <itemPath>../base_io.h</itemPath>
       <itemPath>../raw_common.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
@@ -92,7 +91,6 @@
       <itemPath>../core.c</itemPath>
       <itemPath>../uart2.c</itemPath>
       <itemPath>../aux_pin.c</itemPath>
-      <itemPath>../base_io.c</itemPath>
       <itemPath>../raw_common.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
