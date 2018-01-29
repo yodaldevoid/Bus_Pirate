@@ -122,7 +122,7 @@ this will misbehave when polling is turned off in OpenOCD
 		// read the byte
 		inByte=U1RXREG; 
 */
-		inByte=UART1RX();
+		inByte=user_serial_read_byte();
 
 		switch(inByte){
 			case CMD_UNKNOWN:
@@ -150,33 +150,33 @@ this will misbehave when polling is turned off in OpenOCD
 				binOpenOCDAnswer(buf, 10);
 				break;
 			case CMD_PORT_MODE:
-				inByte=UART1RX();
+				inByte=user_serial_read_byte();
 				binOpenOCDPinMode(inByte);
 				break;
 			case CMD_FEATURE:
-				inByte=UART1RX();
-				inByte2=UART1RX();
+				inByte=user_serial_read_byte();
+				inByte2=user_serial_read_byte();
 				binOpenOCDHandleFeature(inByte, inByte2);
 				break;
 			case CMD_JTAG_SPEED:
-				inByte=UART1RX();
-				inByte2=UART1RX();
+				inByte=user_serial_read_byte();
+				inByte2=user_serial_read_byte();
 				OpenOCDJtagDelay = (inByte << 8) | inByte2;
 				break;
 			case CMD_UART_SPEED:
-				inByte=UART1RX();
+				inByte=user_serial_read_byte();
 				i = inByte;
 				if (inByte == SERIAL_FAST) {
-					UART1Speed(UART_FAST_SPEED);
+					user_serial_set_baud_rate(UART_FAST_SPEED);
 				} else {
-					UART1Speed(UART_NORMAL_SPEED);
+					user_serial_set_baud_rate(UART_NORMAL_SPEED);
 				}
 
-				inByte=UART1RX();
-				inByte2=UART1RX();
+				inByte=user_serial_read_byte();
+				inByte2=user_serial_read_byte();
 				if ((inByte != 0xAA) || (inByte2 != 0x55)) {
 					i = SERIAL_NORMAL;
-					UART1Speed(UART_NORMAL_SPEED);
+					user_serial_set_baud_rate(UART_NORMAL_SPEED);
 				}
 
 				buf[0] = CMD_UART_SPEED;
@@ -184,8 +184,8 @@ this will misbehave when polling is turned off in OpenOCD
 				binOpenOCDAnswer(buf, 2);
 				break;
 			case CMD_TAP_SHIFT:
-				inByte=UART1RX();
-				inByte2=UART1RX();
+				inByte=user_serial_read_byte();
+				inByte2=user_serial_read_byte();
 
 				IFS0bits.U1RXIF = 0; // reset the RX flag
 
@@ -276,7 +276,7 @@ static void binOpenOCDPinMode(unsigned char mode) {
 static void binOpenOCDAnswer(unsigned char *buf, unsigned int len) {
 	unsigned int i;
 	for (i=0; i < len; i++ ){
-		UART1TX(buf[i]);
+		user_serial_transmit_character(buf[i]);
 	}
 }
 

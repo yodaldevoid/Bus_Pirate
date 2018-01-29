@@ -157,7 +157,7 @@ void serviceuser(void) {
                 temp = 0;
                 while (user_macros[user_macro][temp]) {
                     cmdbuf[cmdend] = user_macros[user_macro][temp];
-                    UART1TX(user_macros[user_macro][temp]);
+                    user_serial_transmit_character(user_macros[user_macro][temp]);
                     cmdend++;
                     temp++;
                     cmdend &= CMDLENMSK;
@@ -165,7 +165,7 @@ void serviceuser(void) {
                 user_macro = 0;
             }
 
-            while (!UART1RXRdy()) // as long as there is no user input poll periodicservice
+            while (!user_serial_ready_to_read()) // as long as there is no user input poll periodicservice
             {
                 if (mode_configuration.periodicService == 1) {
                     if (enabled_protocols[bus_pirate_configuration.bus_mode].periodic_update()) // did we print something?
@@ -174,7 +174,7 @@ void serviceuser(void) {
                         bp_write_string(">");
                         if (cmdstart != cmdend) {
                             for (temp = cmdstart; temp != cmdend; temp++) {
-                                UART1TX(cmdbuf[temp]);
+                                user_serial_transmit_character(cmdbuf[temp]);
                                 temp &= CMDLENMSK;
                             }
                         }
@@ -188,11 +188,11 @@ void serviceuser(void) {
 #endif /* BUSPIRATEV4 */
             }
 
-            if (CheckCommsError()) { //check for user terminal buffer overflow error
-                ClearCommsError();
+            if (user_serial_check_overflow()) { //check for user terminal buffer overflow error
+                user_serial_clear_overflow();
                 continue; //resume getting more user input
             } else {
-                c = UART1RX(); //no error, process byte
+                c = user_serial_read_byte(); //no error, process byte
             }
 
             switch (c) {
@@ -213,9 +213,9 @@ void serviceuser(void) {
                             for (temp = tmpcmdend; temp != cmdend; temp = (temp + 1) & CMDLENMSK) {
                                 cmdbuf[temp] = cmdbuf[temp + 1];
                                 if (cmdbuf[temp]) // not NULL
-                                    UART1TX(cmdbuf[temp]);
+                                    user_serial_transmit_character(cmdbuf[temp]);
                                 else
-                                    UART1TX(0x20);
+                                    user_serial_transmit_character(0x20);
                                 repeat++;
                             }
                             cmdend = (cmdend - 1) & CMDLENMSK; // end pointer moves left one
@@ -224,7 +224,7 @@ void serviceuser(void) {
                             bp_write_string("D"); // cursor position
                         }
                     } else {
-                        UART1TX(BELL); // beep, at begining
+                        user_serial_transmit_character(BELL); // beep, at begining
                     }
                     break;
                 case 0x04: // delete (^D)
@@ -235,9 +235,9 @@ void serviceuser(void) {
                         for (temp = tmpcmdend; temp != cmdend; temp = (temp + 1) & CMDLENMSK) {
                             cmdbuf[temp] = cmdbuf[temp + 1];
                             if (cmdbuf[temp]) // not NULL
-                                UART1TX(cmdbuf[temp]);
+                                user_serial_transmit_character(cmdbuf[temp]);
                             else
-                                UART1TX(0x20);
+                                user_serial_transmit_character(0x20);
                             repeat++;
                         }
                         cmdend = (cmdend - 1) & CMDLENMSK; // end pointer moves left one
@@ -245,14 +245,14 @@ void serviceuser(void) {
                         bp_write_dec_byte(repeat); // to original
                         bp_write_string("D"); // cursor position
                     } else {
-                        UART1TX(BELL); // beep, at end
+                        user_serial_transmit_character(BELL); // beep, at end
                     }
                     break;
                 case 0x1B: // escape
-                    c = UART1RX(); // get next char
+                    c = user_serial_read_byte(); // get next char
                     if (c == '[') // got CSI
                     {
-                        c = UART1RX(); // get next char
+                        c = user_serial_read_byte(); // get next char
                         switch (c) {
                             case 'D': // left arrow
                                 goto left;
@@ -267,11 +267,11 @@ void serviceuser(void) {
                                 goto down;
                                 break;
                             case '1': // VT100+ home key (example use in PuTTY)
-                                c = UART1RX();
+                                c = user_serial_read_byte();
                                 if (c == '~') goto home;
                                 break;
                             case '4': // VT100+ end key (example use in PuTTY)
-                                c = UART1RX();
+                                c = user_serial_read_byte();
                                 if (c == '~') goto end;
                                 break;
                         }
@@ -291,7 +291,7 @@ left:
                             tmpcmdend = (tmpcmdend - 1) & CMDLENMSK;
                             bp_write_string("\x1B[D"); // move left
                         } else {
-                            UART1TX(BELL); // beep, at begining
+                            user_serial_transmit_character(BELL); // beep, at begining
                         }
                     }
                     break;
@@ -302,7 +302,7 @@ right:
                         tmpcmdend = (tmpcmdend + 1) & CMDLENMSK;
                         bp_write_string("\x1B[C"); // move right
                     } else {
-                        UART1TX(BELL); // beep, at end
+                        user_serial_transmit_character(BELL); // beep, at end
                     }
                     break;
 up:
@@ -338,7 +338,7 @@ up:
 #endif /* BP_ENABLE_BASIC_SUPPORT */
                                 bp_write_string(">");
                                 for (repeat = temp2; repeat != temp; repeat = (repeat + 1) & CMDLENMSK) {
-                                    UART1TX(cmdbuf[repeat]);
+                                    user_serial_transmit_character(cmdbuf[repeat]);
                                     cmdbuf[cmdend] = cmdbuf[repeat];
                                     cmdend = (cmdend + 1) & CMDLENMSK;
                                 }
@@ -348,7 +348,7 @@ up:
                             }
                         }
                     }
-                    if (temp == cmdend) UART1TX(BELL); // beep, top
+                    if (temp == cmdend) user_serial_transmit_character(BELL); // beep, top
                     break;
 down:
                 case 0x0E: // ^N (down arrow)
@@ -383,7 +383,7 @@ down:
 #endif /* BP_ENABLE_BASIC_SUPPORT */
                                 bp_write_string(">");
                                 for (repeat = temp2; repeat != temp; repeat = (repeat + 1) & CMDLENMSK) {
-                                    UART1TX(cmdbuf[repeat]);
+                                    user_serial_transmit_character(cmdbuf[repeat]);
                                     cmdbuf[cmdend] = cmdbuf[repeat];
                                     cmdend = (cmdend + 1) & CMDLENMSK;
                                 }
@@ -410,7 +410,7 @@ down:
                             cmdbuf[cmdend] = 0x00;
                             tmpcmdend = cmdend; // resync
                             histcnt = 0;
-                        } else UART1TX(BELL); // beep, top
+                        } else user_serial_transmit_character(BELL); // beep, top
                     }
                     break;
 home:
@@ -422,7 +422,7 @@ home:
                         bp_write_string("D"); // of command line
                         tmpcmdend = cmdstart;
                     } else {
-                        UART1TX(BELL); // beep, at start
+                        user_serial_transmit_character(BELL); // beep, at start
                     }
                     break;
 end:
@@ -434,7 +434,7 @@ end:
                         bp_write_string("C"); // of command line
                         tmpcmdend = cmdend;
                     } else {
-                        UART1TX(BELL); // beep, at end
+                        user_serial_transmit_character(BELL); // beep, at end
                     }
                     break;
                 case 0x0A: // Does any terminal only send a CR?
@@ -461,7 +461,7 @@ end:
                     if ((((cmdend + 1) & CMDLENMSK) != cmdstart) && (c >= 0x20) && (c < 0x7F)) { // no overflow and printable
                         if (cmdend == tmpcmdend) // adding to the end
                         {
-                            UART1TX(c); // echo back
+                            user_serial_transmit_character(c); // echo back
                             cmdbuf[cmdend] = c; // store char
                             cmdend = (cmdend + 1) & CMDLENMSK;
                             cmdbuf[cmdend] = 0x00; // add end marker
@@ -477,18 +477,18 @@ end:
                                 cmdbuf[temp + 1] = cmdbuf[temp];
                                 if (cmdbuf[temp]) // not NULL
                                 {
-                                    UART1TX(cmdbuf[temp]);
+                                    user_serial_transmit_character(cmdbuf[temp]);
                                     bp_write_string("\x1B[2D"); // left 2
                                 }
                                 temp = (temp - 1) & CMDLENMSK;
                             }
-                            UART1TX(c); // echo back
+                            user_serial_transmit_character(c); // echo back
                             cmdbuf[tmpcmdend] = c; // store char
                             tmpcmdend = (tmpcmdend + 1) & CMDLENMSK;
                             cmdend = (cmdend + 1) & CMDLENMSK;
                         }
                     } else {
-                        UART1TX(BELL); // beep, overflow or non printable
+                        user_serial_transmit_character(BELL); // beep, overflow or non printable
                     } //default:
             } //switch(c)
         } //while(!cmd)
@@ -663,7 +663,7 @@ bpv4reset:
                     print_version_info();
 #else
                     BPMSG1093;
-                    WAITTXEmpty(); //wait until TX finishes
+                    user_serial_wait_transmission_done(); //wait until TX finishes
                     asm volatile ("RESET");
 #endif /* BUSPIRATEV4 */
                     break;
@@ -674,7 +674,7 @@ bpv4reset:
                         BPMSG1094;
                         bp_delay_ms(100);
                         bp_reset_board_state(); // turn off nasty things, cleanup first needed?
-                        WAITTXEmpty(); //wait until TX finishes
+                        user_serial_wait_transmission_done(); //wait until TX finishes
                         asm volatile ("RESET");
                     }
                     break;
@@ -850,10 +850,10 @@ bpv4reset:
 
                     if (!command_error) {
                         BPMSG1101;
-                        UART1TX(0x22);
+                        user_serial_transmit_character(0x22);
                         while (cmdbuf[((++cmdstart) & CMDLENMSK)] != 0x22) {
                             cmdstart &= CMDLENMSK;
-                            UART1TX(cmdbuf[cmdstart]);
+                            user_serial_transmit_character(cmdbuf[cmdstart]);
                             sendw = cmdbuf[cmdstart];
                             if (mode_configuration.lsbEN == 1) //adjust bitorder
                             {
@@ -862,7 +862,7 @@ bpv4reset:
                             enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
                         }
                         cmdstart &= CMDLENMSK;
-                        UART1TX(0x22);
+                        user_serial_transmit_character(0x22);
                         bpBR;
                     }
                     break;
@@ -903,7 +903,7 @@ bpv4reset:
                     while (--repeat) {
                         bp_write_formatted_integer(sendw);
                         if (((mode_configuration.int16 == 0) && (mode_configuration.numbits != 8)) || ((mode_configuration.int16 == 1) && (mode_configuration.numbits != 16))) {
-                            UART1TX(';');
+                            user_serial_transmit_character(';');
                             bp_write_dec_byte(mode_configuration.numbits);
                         }
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
@@ -946,7 +946,7 @@ bpv4reset:
                         }
                         bp_write_formatted_integer(received);
                         if (((mode_configuration.int16 == 0) && (mode_configuration.numbits != 8)) || ((mode_configuration.int16 == 1) && (mode_configuration.numbits != 16))) {
-                            UART1TX(';');
+                            user_serial_transmit_character(';');
                             bp_write_dec_byte(mode_configuration.numbits);
                         }
                         bpSP;
@@ -1225,7 +1225,7 @@ int cmdhistory(void) {
             bp_write_string(". ");
             k = 1;
             while (cmdbuf[((j + k) & CMDLENMSK)]) {
-                UART1TX(cmdbuf[((j + k) & CMDLENMSK)]); // print it
+                user_serial_transmit_character(cmdbuf[((j + k) & CMDLENMSK)]); // print it
                 k++;
             }
             historypos[i] = (j + 1) & CMDLENMSK;
@@ -1290,7 +1290,7 @@ again: // need to do it proper with whiles and ifs..
     bp_write_string(")>");
 
     while (!stop) {
-        c = UART1RX();
+        c = user_serial_read_byte();
         switch (c) {
             case 0x08: if (i) {
                     i--;
@@ -1300,7 +1300,7 @@ again: // need to do it proper with whiles and ifs..
                         neg = 0;
                         bp_write_string("\x08 \x08");
                     } else {
-                        UART1TX(BELL);
+                        user_serial_transmit_character(BELL);
                     }
                 }
                 break;
@@ -1309,10 +1309,10 @@ again: // need to do it proper with whiles and ifs..
                 break;
             case '-': if (!i) // enable negative numbers
                 {
-                    UART1TX('-');
+                    user_serial_transmit_character('-');
                     neg = 1;
                 } else {
-                    UART1TX(BELL);
+                    user_serial_transmit_character(BELL);
                 }
                 break;
             case 'x': if (x) return -1; // user wants to quit :( only if we enable it :D
@@ -1320,16 +1320,16 @@ again: // need to do it proper with whiles and ifs..
                 {
                     if (i > 3) // 0-9999 should be enough??
                     {
-                        UART1TX(BELL);
+                        user_serial_transmit_character(BELL);
                         i = 4;
                     } else {
-                        UART1TX(c);
+                        user_serial_transmit_character(c);
                         buf[i] = c; // store user input
                         i++;
                     }
                 } else // ignore input :)
                 {
-                    UART1TX(BELL);
+                    user_serial_transmit_character(BELL);
                 }
 
         }
@@ -1392,7 +1392,7 @@ again: // need to do it proper with whiles and ifs..
     bp_write_string(")>");
 
     while (!stop) {
-        c = UART1RX();
+        c = user_serial_read_byte();
         switch (c) {
             case 0x08: if (i) {
                     i--;
@@ -1402,7 +1402,7 @@ again: // need to do it proper with whiles and ifs..
                         neg = 0;
                         bp_write_string("\x08 \x08");
                     } else {
-                        UART1TX(BELL);
+                        user_serial_transmit_character(BELL);
                     }
                 }
                 break;
@@ -1411,10 +1411,10 @@ again: // need to do it proper with whiles and ifs..
                 break;
             case '-': if (!i) // enable negative numbers
                 {
-                    UART1TX('-');
+                    user_serial_transmit_character('-');
                     neg = 1;
                 } else {
-                    UART1TX(BELL);
+                    user_serial_transmit_character(BELL);
                 }
                 break;
             case 'x': if (x) return -1; // user wants to quit :( only if we enable it :D
@@ -1422,16 +1422,16 @@ again: // need to do it proper with whiles and ifs..
                 {
                     if (i > 9) // 0-9999 should be enough??
                     {
-                        UART1TX(BELL);
+                        user_serial_transmit_character(BELL);
                         i = 10;
                     } else {
-                        UART1TX(c);
+                        user_serial_transmit_character(c);
                         buf[i] = c; // store user input
                         i++;
                     }
                 } else // ignore input :)
                 {
-                    UART1TX(BELL);
+                    user_serial_transmit_character(BELL);
                 }
 
         }
@@ -1473,8 +1473,8 @@ void print_version_info(void) {
 
 #ifdef BUSPIRATEV3 //we can tell if it's v3a or v3b, show it here
     bp_write_string(BP_VERSION_STRING);
-    UART1TX('.');
-    UART1TX(bus_pirate_configuration.hardware_version);
+    user_serial_transmit_character('.');
+    user_serial_transmit_character(bus_pirate_configuration.hardware_version);
     if (bus_pirate_configuration.device_type == 0x44F) {
         //sandbox electronics clone with 44pin PIC24FJ64GA004
         MSG_CHIP_IDENTIFIER_CLONE;
@@ -1486,19 +1486,19 @@ void print_version_info(void) {
 
     bp_write_string(BP_FIRMWARE_STRING);
 
-    UART1TX('[');
+    user_serial_transmit_character('[');
     for (i = 0; i < ENABLED_PROTOCOLS_COUNT; i++) {
         if (i) bpSP;
         bp_write_string(enabled_protocols[i].name);
     }
-    UART1TX(']');
+    user_serial_transmit_character(']');
 
 #ifndef BUSPIRATEV4
     //bpWstring(" Bootloader v");
     BPMSG1126;
-    i = bpReadFlash(0x0000, BL_ADDR_VER);
+    i = bp_read_from_flash(0x0000, BL_ADDR_VER);
     bp_write_dec_byte(i >> 8);
-    UART1TX('.');
+    user_serial_transmit_character('.');
     bp_write_dec_byte(i);
 #endif /* !BUSPIRATEV4 */
     bpBR;
@@ -1562,14 +1562,14 @@ void print_version_info(void) {
 void statusInfo(void) {
 #ifdef BUSPIRATEV4
     MSG_CFG0_FIELD;
-    bp_write_hex_word(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_0));
+    bp_write_hex_word(bp_read_from_flash(CFG_ADDR_UPPER, CFG_ADDR_0));
     bpSP;
 #endif /* BUSPIRATEV4 */
 
     BPMSG1136;
-    bp_write_hex_word(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_1));
+    bp_write_hex_word(bp_read_from_flash(CFG_ADDR_UPPER, CFG_ADDR_1));
     BPMSG1137;
-    bp_write_hex_word(bpReadFlash(CFG_ADDR_UPPER, CFG_ADDR_2));
+    bp_write_hex_word(bp_read_from_flash(CFG_ADDR_UPPER, CFG_ADDR_2));
     bpBR;
 
     BPMSG1119;
@@ -1579,14 +1579,14 @@ void statusInfo(void) {
     //vreg status (was modeConfig.vregEN)
     if (BP_VREGEN == 1) BPMSG1096;
     else BPMSG1097; //bpWmessage(MSG_VREG_ON); else bpWmessage(MSG_VREG_OFF);
-    UART1TX(',');
+    user_serial_transmit_character(',');
     bpSP;
 
     //pullups available, enabled?
     //was modeConfig.pullupEN
     if (BP_PULLUP == 1) BPMSG1091;
     else BPMSG1089; //bpWmessage(MSG_OPT_PULLUP_ON); else bpWmessage(MSG_OPT_PULLUP_OFF);
-    UART1TX(',');
+    user_serial_transmit_character(',');
     bpSP;
 
 #ifdef BUSPIRATEV4
@@ -1605,7 +1605,7 @@ void statusInfo(void) {
     //bitorder toggle available, enabled
     if (mode_configuration.lsbEN == 0) BPMSG1123;
     else BPMSG1124; //bpWmessage(MSG_OPT_BITORDER_LSB); else bpWmessage(MSG_OPT_BITORDER_MSB);
-    UART1TX(',');
+    user_serial_transmit_character(',');
     bpSP;
 
     // show partial writes
@@ -1681,7 +1681,7 @@ void print_pins_information(void) {
 #endif /* BP_VERSION2_SUPPORT && (BP_VERSION2_SUPPORT == 1) */
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
-    UART1TX('\t');
+    user_serial_transmit_character('\t');
 
 #ifdef BUSPIRATEV4
     bp_write_voltage(bp_read_adc(BP_ADC_3V3));
@@ -1689,7 +1689,7 @@ void print_pins_information(void) {
     bp_write_voltage(bp_read_adc(BP_ADC_5V0));
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
-    UART1TX('\t');
+    user_serial_transmit_character('\t');
 
 #ifdef BUSPIRATEV4
     bp_write_voltage(bp_read_adc(BP_ADC_VPU));
@@ -1701,7 +1701,7 @@ void print_pins_information(void) {
 #endif /* BP_VERSION2_SUPPORT && (BP_VERSION2_SUPPORT == 1) */
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
-    UART1TX('\t');
+    user_serial_transmit_character('\t');
 
 #ifdef BUSPIRATEV4
     bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
@@ -1709,7 +1709,7 @@ void print_pins_information(void) {
     bp_write_voltage(bp_read_adc(BP_ADC_VPU));
 #endif /* BUSPIRATEV4 */
     BPMSG1045;
-    UART1TX('\t');
+    user_serial_transmit_character('\t');
     
     ADCOFF();
     
@@ -1797,23 +1797,23 @@ void set_baud_rate(void) {
     //bpWmessage(MSG_OPT_TERMBAUD_ADJUST); //show 'adjust and press space dialog'
     BPMSG1134;
     BPMSG1251;
-    WAITTXEmpty(); //wait for TX to finish or reinit flushes part of prompt string from buffer
+    user_serial_wait_transmission_done(); //wait for TX to finish or reinit flushes part of prompt string from buffer
 
     if (bus_pirate_configuration.terminal_speed == 9) {
-        UART1Speed(brg);
+        user_serial_set_baud_rate(brg);
     }
-    InitializeUART1();
+    user_serial_initialise();
     
     //wait for space to prove valid baud rate switch
     for (;;) {
-        if (UART1RX() == ' ') {
+        if (user_serial_read_byte() == ' ') {
             break;
         }
     }
 }
 
 void echo_state(const uint16_t value) {
-    UART1TX(value ? '1' : '0');
+    user_serial_transmit_character(value ? '1' : '0');
 }
 
 #ifdef BUSPIRATEV4

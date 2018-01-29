@@ -78,7 +78,7 @@ void jtag(void){
         jtag_settings.delayed_bit = false;
 
         while(1){
-        cmd=UART1RX();
+        cmd=user_serial_read_byte();
         switch(cmd){
                 //bpWline("JTAG READY");
                 case 1://jtag reset
@@ -114,12 +114,12 @@ void jtag(void){
                         jtagLeaveState(); //clean up from previous state
                         jtagSetState(SHIFTDR);
                         //bpWline("JTAG CHAIN REPORT:");
-                        UART1TX(i*4); //how many bytes are we returning
+                        user_serial_transmit_character(i*4); //how many bytes are we returning
                         for(c=0;c<i;c++){
-                                UART1TX(jtagReadByte());
-                                UART1TX(jtagReadByte());
-                                UART1TX(jtagReadByte());
-                                UART1TX(jtagReadByte());
+                                user_serial_transmit_character(jtagReadByte());
+                                user_serial_transmit_character(jtagReadByte());
+                                user_serial_transmit_character(jtagReadByte());
+                                user_serial_transmit_character(jtagReadByte());
                         }
                         jtagLeaveState(); //clean up from previous state
                         break;
@@ -147,7 +147,7 @@ void jtag(void){
                         /* Insert new errors here */
                         #define XSVF_ERROR_LAST         7
                         i=xsvfExecute();
-                        UART1TX(i);
+                        user_serial_transmit_character(i);
                         break;
 #endif /* BP_JTAG_XSVF_SUPPORT */
                 default:

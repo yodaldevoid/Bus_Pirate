@@ -176,8 +176,8 @@ void smps_adc(void) {
 
   /* Writes the last reading to the serial port. */
 
-  UART1TX(smps_state.voltage_reading >> 8);
-  UART1TX(smps_state.voltage_reading);
+  user_serial_transmit_character(smps_state.voltage_reading >> 8);
+  user_serial_transmit_character(smps_state.voltage_reading);
 }
 
 void __attribute__((interrupt, no_auto_psv)) _ADC1Interrupt() {

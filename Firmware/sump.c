@@ -443,10 +443,10 @@ void enter_sump_mode(void) {
   for (;;) {
 
     /* Wait for a command byte to be available on the bus. */
-    if (UART1RXRdy()) {
+    if (user_serial_ready_to_read()) {
 
       /* Process the command byte. */
-      if (sump_handle_command_byte(UART1RX())) {
+      if (sump_handle_command_byte(user_serial_read_byte())) {
 
         /* A SUMP_RESET command was received, abort. */
         return;
@@ -715,7 +715,7 @@ bool sump_acquire_samples(void) {
 
     /* Write captured samples out. */
     for (offset = samples_to_acquire; offset > 0; offset--) {
-      UART1TX(bus_pirate_configuration.terminal_input[offset - 1]);
+      user_serial_transmit_character(bus_pirate_configuration.terminal_input[offset - 1]);
     }
 
     /* Reset the analyzer state. */

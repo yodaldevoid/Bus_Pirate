@@ -240,7 +240,7 @@ void engage_spi_cs(bool write_with_read) {
   mode_configuration.write_with_read = write_with_read;
   SPICS = !spi_state.cs_line_state;
   if (spi_state.cs_line_state) {
-    UART1TX('/');
+    user_serial_transmit_character('/');
   }
   MSG_SPI_CS_ENABLED;
 }
@@ -252,7 +252,7 @@ inline void spi_start(void) { engage_spi_cs(OFF); }
 void spi_stop(void) {
   SPICS = spi_state.cs_line_state;
   if (spi_state.cs_line_state) {
-    UART1TX('/');
+    user_serial_transmit_character('/');
   }
   MSG_SPI_CS_DISABLED;
 }
@@ -526,7 +526,7 @@ restart:
 
   last_cs_line_state = HIGH;
 
-  UARTbufSetup();
+  user_serial_ringbuffer_setup();
   spi_disable_interface();
   spi_slave_enable();
 
@@ -542,7 +542,7 @@ restart:
 
     /* Detect a CS line state change. */
     if ((last_cs_line_state == LOW) && (SPICS == HIGH)) {
-      UARTbuf(']');
+      user_serial_ringbuffer_enqueue(']');
       last_cs_line_state = HIGH;
     }
 
@@ -553,25 +553,25 @@ restart:
       data = SPI1BUF;
 
       if (last_cs_line_state == HIGH) {
-        UARTbuf('[');
+        user_serial_ringbuffer_enqueue('[');
         last_cs_line_state = LOW;
       }
 
       if (terminal_mode) {
         bp_write_hex_byte_to_ringbuffer(data);
       } else {
-        UARTbuf('\\');
-        UARTbuf(data);
+        user_serial_ringbuffer_enqueue('\\');
+        user_serial_ringbuffer_enqueue(data);
       }
 
       data = SPI2BUF;
 
       if (terminal_mode) {
-        UARTbuf('(');
+        user_serial_ringbuffer_enqueue('(');
         bp_write_hex_byte_to_ringbuffer(data);
-        UARTbuf(')');
+        user_serial_ringbuffer_enqueue(')');
       } else {
-        UARTbuf(data);
+        user_serial_ringbuffer_enqueue(data);
       }
     }
 
@@ -581,7 +581,7 @@ restart:
 
       /* Was the overflow coming from the serial port? */
       if (bus_pirate_configuration.overflow == NO) {
-        UARTbufFlush();
+        user_serial_ringbuffer_flush();
       }
 
       /*
@@ -613,10 +613,10 @@ restart:
       break;
     }
 
-    UARTbufService();
+    user_serial_ringbuffer_process();
 
-    if (UART1RXRdy()) {
-      UART1RX();
+    if (user_serial_ready_to_read()) {
+      user_serial_read_byte();
 
       if (terminal_mode) {
         bpBR;
@@ -787,7 +787,7 @@ void spi_enter_binary_io(void) {
   MSG_SPI_MODE_IDENTIFIER;
 
   for (;;) {
-    input_byte = UART1RX();
+    input_byte = user_serial_read_byte();
     command = input_byte >> 4;
 
     switch (command) {
@@ -828,10 +828,10 @@ void spi_enter_binary_io(void) {
         uint16_t offset;
 
         /* How many bytes to send to the bus. */
-        bytes_to_write = (UART1RX() << 8) | UART1RX();
+        bytes_to_write = (user_serial_read_byte() << 8) | user_serial_read_byte();
 
         /* How many bytes to read from the bus. */
-        bytes_to_read = (UART1RX() << 8) | UART1RX();
+        bytes_to_read = (user_serial_read_byte() << 8) | user_serial_read_byte();
 
         /* Make sure data fits in the internal buffer. */
         if ((bytes_to_write > BP_TERMINAL_BUFFER_SIZE) ||
@@ -842,7 +842,7 @@ void spi_enter_binary_io(void) {
 
         /* Read data buffer from the serial port. */
         for (offset = 0; offset < bytes_to_write; offset++) {
-          bus_pirate_configuration.terminal_input[offset] = UART1RX();
+          bus_pirate_configuration.terminal_input[offset] = user_serial_read_byte();
         }
 
         /* Update the CS line if needed. */
@@ -874,7 +874,7 @@ void spi_enter_binary_io(void) {
 
         /* Output read data to the serial port. */
         for (offset = 0; offset < bytes_to_read; offset++) {
-          UART1TX(bus_pirate_configuration.terminal_input[offset]);
+          user_serial_transmit_character(bus_pirate_configuration.terminal_input[offset]);
         }
 
         break;
@@ -902,7 +902,7 @@ void spi_enter_binary_io(void) {
       bytes_to_read = (input_byte & 0x0F) + 1;
       REPORT_IO_SUCCESS();
       for (count = 0; count < bytes_to_read; count++) {
-        UART1TX(spi_write_byte(UART1RX()));
+        user_serial_transmit_character(spi_write_byte(user_serial_read_byte()));
       }
       break;
     }
@@ -915,7 +915,7 @@ void spi_enter_binary_io(void) {
 #ifdef BUSPIRATEV4
 
     case SPI_COMMAND_SET_PULLUPS:
-      UART1TX(bp_binary_io_pullup_control(input_byte));
+      user_serial_transmit_character(bp_binary_io_pullup_control(input_byte));
       break;
 
 #endif /* BUSPIRATEV4 */
@@ -968,7 +968,7 @@ void handle_extended_avr_command(void) {
   /* Acknowledge extended command. */
   REPORT_IO_SUCCESS();
 
-  command = UART1RX();
+  command = user_serial_read_byte();
   switch (command) {
   case BINARY_IO_SPI_AVR_COMMAND_NOOP:
     REPORT_IO_SUCCESS();
@@ -976,20 +976,20 @@ void handle_extended_avr_command(void) {
 
   case BINARY_IO_SPI_AVR_COMMAND_VERSION:
     REPORT_IO_SUCCESS();
-    UART1TX(HI8(BINARY_IO_SPI_AVR_SUPPORT_VERSION));
-    UART1TX(LO8(BINARY_IO_SPI_AVR_SUPPORT_VERSION));
+    user_serial_transmit_character(HI8(BINARY_IO_SPI_AVR_SUPPORT_VERSION));
+    user_serial_transmit_character(LO8(BINARY_IO_SPI_AVR_SUPPORT_VERSION));
     break;
 
   case BINARY_IO_SPI_AVR_COMMAND_BULK_READ: {
     uint32_t address;
     uint32_t length;
 
-    address = (uint32_t)((((uint32_t)UART1RX()) << 24) |
-                         (((uint32_t)UART1RX()) << 16) |
-                         (((uint32_t)UART1RX()) << 8) | UART1RX());
-    length = (uint32_t)((((uint32_t)UART1RX()) << 24) |
-                        (((uint32_t)UART1RX()) << 16) |
-                        (((uint32_t)UART1RX()) << 8) | UART1RX());
+    address = (uint32_t)((((uint32_t)user_serial_read_byte()) << 24) |
+                         (((uint32_t)user_serial_read_byte()) << 16) |
+                         (((uint32_t)user_serial_read_byte()) << 8) | user_serial_read_byte());
+    length = (uint32_t)((((uint32_t)user_serial_read_byte()) << 24) |
+                        (((uint32_t)user_serial_read_byte()) << 16) |
+                        (((uint32_t)user_serial_read_byte()) << 8) | user_serial_read_byte());
 
     /* @todo: avoid (address + length) integer overflow. */
 
@@ -1005,7 +1005,7 @@ void handle_extended_avr_command(void) {
       spi_write_byte(AVR_FETCH_LOW_BYTE_COMMAND);
       spi_write_byte((address >> 8) & 0xFF);
       spi_write_byte(address & 0xFF);
-      UART1TX(spi_write_byte(0x00));
+      user_serial_transmit_character(spi_write_byte(0x00));
       length--;
 
       if (length > 0) {
@@ -1013,7 +1013,7 @@ void handle_extended_avr_command(void) {
         spi_write_byte(AVR_FETCH_HIGH_BYTE_COMMAND);
         spi_write_byte((address >> 8) & 0xFF);
         spi_write_byte(address & 0xFF);
-        UART1TX(spi_write_byte(0x00));
+        user_serial_transmit_character(spi_write_byte(0x00));
         length--;
       }
 

@@ -131,7 +131,7 @@ void setup_raw3wire(const bool write_with_read, const bool cs_line_state) {
   mode_configuration.write_with_read = write_with_read;
   bitbang_set_cs(!cs_line_state);
   if (cs_line_state) {
-    UART1TX('/');
+    user_serial_transmit_character('/');
   }
 }
 

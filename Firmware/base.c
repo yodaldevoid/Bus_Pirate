@@ -4,25 +4,37 @@
  *
  * Written and maintained by the Bus Pirate project.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate.  This work is published from
+ * United States.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
+ */
+
+/**
+ * @file base.c
+ *
+ * @brief Base functions implementation file.
  */
 
 #include "base.h"
 #include "core.h"
 
+/**
+ * @brief Prefix string for hexadecimal values in human-readable form.
+ */
 static const uint8_t HEX_PREFIX[] = {'0', 'x'};
 
-static const unsigned char HEXASCII[] = {'0', '1', '2', '3', '4', '5',
-                                         '6', '7', '8', '9', 'A', 'B',
-                                         'C', 'D', 'E', 'F'};
+/**
+ * @brief Look-up table for hexadecimal to ASCII transformations.
+ */
+static const unsigned char HEX_ASCII_TABLE[] = {'0', '1', '2', '3', '4', '5',
+                                                '6', '7', '8', '9', 'A', 'B',
+                                                'C', 'D', 'E', 'F'};
 
 #if defined(BUSPIRATEV4)
 extern BYTE cdc_In_len;
@@ -33,7 +45,6 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 
 #ifdef BUSPIRATEV3
-// Internal FRC OSC = 8MHz
 #pragma config FNOSC = FRCPLL
 #pragma config OSCIOFNC = ON
 #pragma config POSCMOD = NONE
@@ -65,11 +76,11 @@ extern mode_configuration_t mode_configuration;
 #ifdef BUSPIRATEV4
 
 /**
- * Precomputed table with the reversed bit representation of all possible
+ * @brief Precomputed table with the reversed bit representation of all possible
  * 8-bits integers.
  *
- * On v4 flash space is not a concern, so we can speed things up a bit without
- * worrying too much about it.
+ * On v4 boards flash space is not a concern, so we can speed things up a bit
+ * without worrying too much about it.
  */
 static const uint8_t REVERSED_BITS_TABLE[] = {
     0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0,
@@ -99,16 +110,28 @@ static const uint8_t REVERSED_BITS_TABLE[] = {
 #endif /* BUSPIRATEV4 */
 
 /**
- * Clear configuration on mode change.
+ * @brief Clear configuration on mode change.
  */
 static void clear_mode_configuration(void);
 
+/**
+ * @brief Prints the given value to the serial port as a decimal number.
+ *
+ * @warning the denominator *must* be equal to 10^digits.
+ *
+ * @param[in] value the value to print.
+ * @param[in] denominator the divisor to use when printing the value.
+ * @param[in] digits how many digits to print.
+ */
+static void print_decimal(const uint32_t value, const uint32_t denominator,
+                          const uint8_t digits);
+
 void clear_mode_configuration(void) {
-  mode_configuration.high_impedance = 0;
+  mode_configuration.high_impedance = OFF;
   mode_configuration.speed = 0;
-  mode_configuration.periodicService = 0;
+  mode_configuration.periodicService = OFF;
   mode_configuration.alternate_aux = 0;
-  mode_configuration.lsbEN = 0;
+  mode_configuration.lsbEN = OFF;
 }
 
 void bp_reset_board_state(void) {
@@ -127,25 +150,59 @@ void bp_reset_board_state(void) {
   eeprom_initialize();
 #endif /* BUSPIRATEv4 */
 
-  BP_AUX_RPOUT = 0; // remove output from AUX pin (PWM/servo modes)
+  /* Detach source from the currently-set AUX pin. */
+  BP_AUX_RPOUT = OFF;
 
   bus_pirate_configuration.bus_mode = BP_HIZ;
   clear_mode_configuration();
   BP_PULLUP_OFF();
   BP_VREG_OFF();
-  // setup voltage monitoring on ADC. see hardwarevx.h!
   BP_ADC_PINSETUP();
 
-  // configure the ADC
-  AD1CON1bits.SSRC = 0b111; // SSRC<3:0> = 111 implies internal
-                            // counter ends sampling and starts
-                            // converting.
-  AD1CSSL = 0;
-  AD1CON3 = 0x1F02; // Sample time = 31Tad, Tad = 2 Tcy
-  AD1CON2 = 0;
+  /* Configure the ADC. */
+
+  /* Enable automatic sample conversion. */
+  AD1CON1bits.SSRC = 0b111;
+
+  /*
+   * AD1CSSL : A/D INPUT SCAN SELECT REGISTER
+   *
+   * MSB
+   * 0--0000000000000
+   * |  |||||||||||||
+   * |  +++++++++++++-- CSSL{12:0}: Omit A/D input pins from scan.
+   * +----------------- CSSL15:     Band gap voltage reference not scanned.
+   */
+  AD1CSSL = 0x0000;
+
+  /*
+   * AD1CON3 : A/D CONTROL REGISTER 3
+   *
+   * MSB
+   * 0--1111100000010
+   * |  |||||||||||||
+   * |  |||||++++++++-- ADCS: A/D conversion clock is 3 * Tcy.
+   * |  +++++---------- SAMC: Sample time is 31 * Tad (Tad = 3 * Tcy).
+   * +----------------- ADRC: Clock is derived from system clock.
+   */
+  AD1CON3 = 0x1F02;
+
+  /*
+   * AD1CON2 : A/D CONTROL REGISTER 2
+   *
+   * MSB
+   * 000--0--x-000000
+   * |||  |    ||||||
+   * |||  |    |||||+-- ALTS:  Use MUX A input settings.
+   * |||  |    ||||+--- BUFM:  Buffer is one single 16-bits word.
+   * |||  |    ++++---- SMPI:  Interrupt on each sample conversion completion.
+   * |||  +------------ CSCNA: Do not scan inputs.
+   * +++--------------- VCFG:  VR+ is AVdd and VR- is AVss.
+   */
+  AD1CON2 = 0x0000;
 }
 
-unsigned int bp_read_adc(unsigned int channel) {
+uint16_t bp_read_adc(const uint16_t channel) {
 
   /* Set channel. */
   AD1CHS = channel;
@@ -188,7 +245,7 @@ void bp_adc_continuous_probe(void) {
   BPMSG1045;
 
   /* Perform ADC probes until a character is sent to the serial port. */
-  while (!UART1RXRdy()) {
+  while (!user_serial_ready_to_read()) {
     /* Turn the ADC on. */
     AD1CON1bits.ADON = ON;
 
@@ -208,15 +265,17 @@ void bp_adc_continuous_probe(void) {
   }
 
   /* Flush the incoming serial buffer. */
-  UART1RX();
+  user_serial_read_byte();
 
   bpBR;
 }
 
-void bp_write_formatted_integer(unsigned int value) {
-  if (mode_configuration.numbits < 16) {
-    value &= 0x7FFF >> ((16 - mode_configuration.numbits) - 1);
-  }
+void bp_write_formatted_integer(const uint16_t value) {
+  uint16_t integer;
+
+  integer = (mode_configuration.numbits < 16)
+                ? MASKBOTTOM16(value, mode_configuration.numbits)
+                : value;
 
   switch (bus_pirate_configuration.display_mode) {
   case HEX:
@@ -245,9 +304,9 @@ void bp_write_formatted_integer(unsigned int value) {
 
   case RAW:
     if (mode_configuration.int16) {
-      UART1TX(value >> 8);
+      user_serial_transmit_character(value >> 8);
     }
-    UART1TX(value & 0xFF);
+    user_serial_transmit_character(value & 0xFF);
     break;
   }
 }
@@ -292,208 +351,188 @@ uint16_t bp_reverse_integer(const uint16_t value, const uint8_t bits) {
 #endif /* BUSPIRATEV4 */
 }
 
-void bp_write_buffer(const uint8_t *buffer, size_t length) {
+void bp_write_buffer(const uint8_t *buffer, const size_t length) {
   size_t offset;
 
   for (offset = 0; offset < length; offset++) {
-    UART1TX(buffer[offset]);
+    user_serial_transmit_character(buffer[offset]);
   }
 }
 
 void bp_write_string(const char *string) {
   char character;
   while ((character = *string++)) {
-    UART1TX(character);
+    user_serial_transmit_character(character);
   }
 }
 
 void bp_write_line(const char *string) {
   bp_write_string(string);
 
-  UART1TX(0x0D);
-  UART1TX(0x0A);
+  user_serial_transmit_character(0x0D);
+  user_serial_transmit_character(0x0A);
 }
 
-void bp_write_bin_byte(uint8_t value) {
+void bp_write_bin_byte(const uint8_t value) {
   uint8_t mask;
   size_t index;
- 
+
   mask = 0x80;
 
   MSG_BINARY_NUMBER_PREFIX;
 
   for (index = 0; index < 8; index++) {
-    UART1TX((value & mask) ? '1' : '0');
+    user_serial_transmit_character((value & mask) ? '1' : '0');
     mask >>= 1;
   }
 }
 
-void bp_write_dec_dword(uint32_t l) {
-  unsigned long c, m;
-  unsigned char j, k = 0;
-
-  c = 100000000;
-  for (j = 0; j < 8; j++) {
-    m = l / c;
-    if (k || m) {
-      UART1TX(m + '0');
-      l = l - (m * c);
-      k = 1;
-    }
-    c /= 10;
-  }
-  UART1TX(l + '0');
-}
-
-// userfriendly printing of looooonng ints
-
-void bp_write_dec_dword_friendly(unsigned long l) {
+void bp_write_dec_dword_friendly(const uint32_t value) {
   unsigned long int temp;
   int mld, mil;
+  uint32_t number;
 
+  number = value;
   mld = 0;
   mil = 0;
   temp = 0;
 
-  if (l >= 1000000) {
-    temp = l / 1000000;
+  if (number >= 1000000) {
+    temp = number / 1000000;
     bp_write_dec_word(temp);
-    UART1TX(',');
-    l %= 1000000;
-    if (l < 1000)
+    user_serial_transmit_character(',');
+    number %= 1000000;
+    if (number < 1000)
       bp_write_string("000,");
     mld = 1;
     mil = 1;
   }
-  if (l >= 1000) {
-    temp = l / 1000;
+  if (number >= 1000) {
+    temp = number / 1000;
     if (temp >= 100) {
       bp_write_dec_word(temp);
     } else if (mld) {
       if (temp >= 10) {
-        UART1TX('0'); // 1 leading zero
+        user_serial_transmit_character('0'); // 1 leading zero
       } else {
         bp_write_string("00");
       }
       bp_write_dec_word(temp);
     } else
       bp_write_dec_word(temp);
-    UART1TX(',');
-    l %= 1000;
+    user_serial_transmit_character(',');
+    number %= 1000;
     mil = 1;
   }
-  if (l >= 100) {
-    bp_write_dec_word(l);
+  if (number >= 100) {
+    bp_write_dec_word(number);
   } else if (mil) {
-    if (l >= 10) {
-      UART1TX('0'); // 1 leading zero
+    if (number >= 10) {
+      user_serial_transmit_character('0'); // 1 leading zero
     } else {
       bp_write_string("00");
     }
-    bp_write_dec_word(l);
+    bp_write_dec_word(number);
   } else
-    bp_write_dec_word(l);
+    bp_write_dec_word(number);
 }
 
-// output an 16bit/integer decimal value to the user terminal
+void print_decimal(const uint32_t value, const uint32_t denominator,
+                   const uint8_t digits) {
+  uint32_t number;
+  uint32_t divisor;
+  uint32_t current;
+  uint8_t digit;
+  bool first;
 
-void bp_write_dec_word(unsigned int i) {
-  unsigned int c, m;
-  unsigned char j, k = 0;
+  first = false;
+  number = value;
+  divisor = denominator;
 
-  c = 10000;
-  for (j = 0; j < 4; j++) {
-    m = i / c;
-    if (k || m) {
-      UART1TX(m + '0');
-      i = i - (m * c);
-      k = 1;
+  for (digit = 0; digit < digits; digit++) {
+    current = number / divisor;
+    if (first || (current > 0)) {
+      user_serial_transmit_character(current + '0');
+      number -= (number * divisor);
+      first = true;
     }
-    c /= 10;
+
+    divisor /= 10;
   }
-  UART1TX(i + '0');
+
+  user_serial_transmit_character(number + '0');
 }
 
-// output an 8bit/byte decimal value to the user terminal
+void bp_write_dec_dword(const uint32_t value) {
+  print_decimal(value, 10000000, 8);
+}
 
-void bp_write_dec_byte(unsigned char c) {
-  unsigned char d, j, m, k = 0;
+void bp_write_dec_word(const uint16_t value) { print_decimal(value, 10000, 5); }
 
-  d = 100;
-  for (j = 0; j < 2; j++) {
-    m = c / d;
-    if (k || m) {
-      UART1TX(m + '0');
-      c = c - (m * d);
-      k = 1;
-    }
-    d /= 10;
+void bp_write_dec_byte(const uint8_t value) { print_decimal(value, 100, 3); }
+
+void bp_write_hex_byte(const uint8_t value) {
+  MSG_HEXADECIMAL_NUMBER_PREFIX;
+  user_serial_transmit_character(HEX_ASCII_TABLE[(value >> 4) & 0x0F]);
+  user_serial_transmit_character(HEX_ASCII_TABLE[value & 0x0F]);
+}
+
+void bp_write_hex_byte_to_ringbuffer(const uint8_t value) {
+  user_serial_ringbuffer_enqueue(HEX_PREFIX[0]);
+  user_serial_ringbuffer_enqueue(HEX_PREFIX[1]);
+  user_serial_ringbuffer_enqueue(HEX_ASCII_TABLE[(value >> 4) & 0x0F]);
+  user_serial_ringbuffer_enqueue(HEX_ASCII_TABLE[value & 0x0F]);
+}
+
+void bp_write_hex_word(const uint16_t value) {
+  MSG_HEXADECIMAL_NUMBER_PREFIX;
+  user_serial_transmit_character(HEX_ASCII_TABLE[(value >> 12) & 0x0F]);
+  user_serial_transmit_character(HEX_ASCII_TABLE[(value >> 8) & 0x0F]);
+  user_serial_transmit_character(HEX_ASCII_TABLE[(value >> 4) & 0x0F]);
+  user_serial_transmit_character(HEX_ASCII_TABLE[value & 0x0F]);
+}
+
+void bp_write_voltage(const uint16_t adc) {
+  /*
+   * Input voltage is divided by two and compared to 3.3v.  With:
+   *
+   * volts      = adc / 1024 * 3.3v * 2
+   * centivolts = volts * 100
+   *
+   * approximation is (adc * 165) / 256.  After simplification, the ratio can
+   * be written as (adc * 29) / 45, making the final calculation fit inside an
+   * unsigned 16 bits integer.  The measurement error is less than 1mV.
+   */
+  const uint16_t centivolts = (adc * 29) / 45;
+
+  uint8_t value;
+
+  bp_write_dec_byte(centivolts / 100);
+  user_serial_transmit_character('.');
+  value = centivolts % 100;
+  if (value < 10) {
+    user_serial_transmit_character('0');
   }
-  UART1TX(c + '0');
-}
-
-void bp_write_hex_byte(uint8_t value) {
-  MSG_HEXADECIMAL_NUMBER_PREFIX;
-  UART1TX(HEXASCII[(value >> 4) & 0x0F]);
-  UART1TX(HEXASCII[value & 0x0F]);
-}
-
-void bp_write_hex_byte_to_ringbuffer(uint8_t value) {
-  UARTbuf(HEX_PREFIX[0]);
-  UARTbuf(HEX_PREFIX[1]);
-  UARTbuf(HEXASCII[(value >> 4) & 0x0F]);
-  UARTbuf(HEXASCII[value & 0x0F]);
-}
-
-// output a 16bit hex value to the user terminal
-
-void bp_write_hex_word(uint16_t value) {
-  MSG_HEXADECIMAL_NUMBER_PREFIX;
-  UART1TX(HEXASCII[(value >> 12) & 0x0F]);
-  UART1TX(HEXASCII[(value >> 8) & 0x0F]);
-  UART1TX(HEXASCII[(value >> 4) & 0x0F]);
-  UART1TX(HEXASCII[value & 0x0F]);
-}
-
-// print an ADC measurement in decimal form
-
-void bp_write_voltage(const unsigned int adc) {
-  unsigned char c;
-
-  // input voltage is divided by two and compared to 3.3V
-  // volt      = adc / 1024 * 3.3V * 2
-  // centivolt = adc / 1024 * 3.3 * 2 * 100 = adc * 165 / 256
-  // This is approximately (adc * 29 / 45), making the calculation
-  // fit in an unsigned int. The error is less than 1mV.
-  const unsigned int centivolt = (adc * 29) / 45;
-
-  bp_write_dec_byte(centivolt / 100);
-
-  UART1TX('.');
-
-  c = centivolt % 100;
-
-  if (c < 10) // need extra zero?
-    UART1TX('0');
-
-  bp_write_dec_byte(centivolt % 100);
+  bp_write_dec_byte(value);
 }
 
 // Read the lower 16 bits from programming flash memory
 
-unsigned int bpReadFlash(unsigned int page, unsigned int addr) {
-  unsigned int tblold;
-  unsigned flash;
+uint16_t bp_read_from_flash(const uint16_t page, const uint16_t address) {
+  const uint16_t old_page = TBLPAG;
+  uint16_t word;
 
-  tblold = TBLPAG;
   TBLPAG = page;
-  flash = (__builtin_tblrdh(addr) << 8) | __builtin_tblrdl(addr);
-  TBLPAG = tblold;
+  word = (__builtin_tblrdh(address) << 8) | __builtin_tblrdl(address);
+  TBLPAG = old_page;
 
-  return flash;
+  return word;
 }
 
 #ifdef BUSPIRATEV3
+
+static uint16_t user_serial_ringbuffer_write;
+static uint16_t user_serial_ringbuffer_read;
 
 #ifndef BP_ENABLE_UART_SUPPORT
 static const uint16_t UART_BRG_SPEED[] = {
@@ -511,7 +550,7 @@ static const uint16_t UART_BRG_SPEED[] = {
 extern const uint16_t UART_BRG_SPEED[];
 #endif /* !BP_ENABLE_UART_SUPPORT */
 
-void InitializeUART1(void) {
+void user_serial_initialise(void) {
   if (bus_pirate_configuration.terminal_speed != 9) {
     U1BRG = UART_BRG_SPEED[bus_pirate_configuration.terminal_speed];
   }
@@ -522,102 +561,93 @@ void InitializeUART1(void) {
   U1STAbits.UTXEN = 1;
   IFS0bits.U1RXIF = 0;
 }
-unsigned char UART1TXEmpty(void) { return U1STAbits.TRMT; }
+bool user_serial_transmit_done(void) { return U1STAbits.TRMT; }
 
-inline bool UART1RXRdy(void) { return U1STAbits.URXDA; }
+bool user_serial_ready_to_read(void) { return U1STAbits.URXDA; }
 
-// new UART ring buffer
-// uses user terminal input buffer to buffer UART output
-// any existing user input will be destroyed
-// best used for binary mode and sniffers
-// static struct _UARTRINGBUF{
-static unsigned int writepointer;
-static unsigned int readpointer;
-//}ringBuf;
-
-void UARTbufSetup(void) {
-  // setup ring buffer pointers
-  readpointer = 0;
-  writepointer = 1;
-  bus_pirate_configuration.overflow = 0;
+void user_serial_ringbuffer_setup(void) {
+  user_serial_ringbuffer_read = 0;
+  user_serial_ringbuffer_write = 1;
+  bus_pirate_configuration.overflow = NO;
 }
 
-void UARTbufService(void) {
+void user_serial_ringbuffer_process(void) {
   unsigned int i;
   if (U1STAbits.UTXBF == 0) { // check first for free slot
 
-    i = readpointer + 1;
+    i = user_serial_ringbuffer_read + 1;
     if (i == BP_TERMINAL_BUFFER_SIZE)
       i = 0; // check for wrap
-    if (i == writepointer)
+    if (i == user_serial_ringbuffer_write)
       return; // buffer empty,
-    readpointer = i;
-    U1TXREG = bus_pirate_configuration
-                  .terminal_input[readpointer]; // move a byte to UART
+    user_serial_ringbuffer_read = i;
+    U1TXREG =
+        bus_pirate_configuration
+            .terminal_input[user_serial_ringbuffer_read]; // move a byte to UART
   }
 }
 
-void UARTbufFlush(void) {
+void user_serial_ringbuffer_flush(void) {
   unsigned int i;
 
-  while (1) {
-    i = readpointer + 1;
+  for (;;) {
+    i = user_serial_ringbuffer_read + 1;
     if (i == BP_TERMINAL_BUFFER_SIZE)
       i = 0; // check for wrap
-    if (i == writepointer)
+    if (i == user_serial_ringbuffer_write)
       return; // buffer empty,
 
     if (U1STAbits.UTXBF == 0) { // free slot, move a byte to UART
-      readpointer = i;
-      U1TXREG = bus_pirate_configuration.terminal_input[readpointer];
+      user_serial_ringbuffer_read = i;
+      U1TXREG =
+          bus_pirate_configuration.terminal_input[user_serial_ringbuffer_read];
     }
   }
 }
 
-void UARTbuf(char c) {
-  if (writepointer == readpointer) {
+void user_serial_ringbuffer_enqueue(const char character) {
+  if (user_serial_ringbuffer_write == user_serial_ringbuffer_read) {
     BP_LEDMODE = 0; // drop byte, buffer full LED off
     bus_pirate_configuration.overflow = 1;
   } else {
-    bus_pirate_configuration.terminal_input[writepointer] = c;
-    writepointer++;
-    if (writepointer == BP_TERMINAL_BUFFER_SIZE)
-      writepointer = 0; // check for wrap
+    bus_pirate_configuration.terminal_input[user_serial_ringbuffer_write] =
+        character;
+    user_serial_ringbuffer_write++;
+    if (user_serial_ringbuffer_write == BP_TERMINAL_BUFFER_SIZE)
+      user_serial_ringbuffer_write = 0; // check for wrap
   }
 }
 
-// get a byte from UART
-
-unsigned char UART1RX(void) {
-  while (U1STAbits.URXDA == 0) {
+uint8_t user_serial_read_byte(void) {
+  while (U1STAbits.URXDA == NO) {
   }
-  return U1RXREG;
+
+  return LO8(U1RXREG);
 }
 
-void WAITTXEmpty(void) {
-  while (U1STAbits.TRMT == 0) {
-  }
-}
-// add byte to buffer, pause if full
-// uses PIC 4 byte UART FIFO buffer
-
-void UART1TX(char c) {
-  if (bus_pirate_configuration.quiet)
+void user_serial_transmit_character(const char character) {
+  /* Do not transmit if the board should be quiet. */
+  if (bus_pirate_configuration.quiet) {
     return;
-  while (U1STAbits.UTXBF == 1) {
   }
-  U1TXREG = c;
+
+  /* Wait until transmission can take place. */
+  while (U1STAbits.UTXBF == ON) {
+  }
+
+  U1TXREG = character;
 }
 
-void UART1Speed(unsigned char brg) { U1BRG = brg; }
-
-unsigned char CheckCommsError(void) {
-  return U1STAbits.OERR; // check for user terminal buffer overflow error
+void user_serial_wait_transmission_done(void) {
+  while (U1STAbits.TRMT == NO) {
+  }
 }
 
-void ClearCommsError(void) {
-  U1STA &= (~0b10); // clear overrun error if exists
-}
+void user_serial_set_baud_rate(const uint16_t rate) { U1BRG = rate; }
+
+bool user_serial_check_overflow(void) { return U1STAbits.OERR; }
+
+void user_serial_clear_overflow(void) { U1STAbits.OERR = NO; }
 
 /* interrupt transfer related stuff */
 unsigned char __attribute__((section(".bss.filereg"))) * UART1RXBuf;
@@ -627,19 +657,23 @@ unsigned char __attribute__((section(".bss.filereg"))) * UART1TXBuf;
 unsigned int __attribute__((section(".bss.filereg"))) UART1TXSent;
 unsigned int __attribute__((section(".bss.filereg"))) UART1TXAvailable;
 
-void UART1TXInt() {
-  if (IEC0bits.U1TXIE == 1)
+void user_serial_process_transmission_interrupt() {
+  /* Quit early if there is nothing to transmit. */
+  if ((IEC0bits.U1TXIE == ON) || (UART1TXAvailable == UART1TXSent)) {
     return;
-  if (UART1TXAvailable == UART1TXSent)
-    return;
+  }
 
-  while (U1STAbits.UTXBF == 1)
-    ; // if buffer is full, wait
+  /* Wait until there is some space in the transmission queue. */
+  while (U1STAbits.UTXBF == ON) {
+  }
 
-  IFS0bits.U1TXIF = 0;
+  /* Clear interrupt flag. */
+  IFS0bits.U1TXIF = OFF;
 
-  IEC0bits.U1TXIE = 1;
+  /* Enable interrupt. */
+  IEC0bits.U1TXIE = ON;
 
+  /* Append character to transmission queue. */
   U1TXREG = UART1TXBuf[UART1TXSent];
 }
 
@@ -676,42 +710,38 @@ void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
 
 extern BDentry *CDC_Outbdp, *CDC_Inbdp;
 
-void UART1TX(char c) {
-  if (bus_pirate_configuration.quiet)
+void user_serial_transmit_character(const char character) {
+  if (bus_pirate_configuration.quiet) {
     return;
-  putc_cdc(c);
+  }
+
+  putc_cdc(character);
 }
 
-void UARTbuf(char c) { UART1TX(c); }
-
-void WAITTXEmpty(void) { WaitInReady(); }
-
-unsigned char UART1TXEmpty(void) { return 1; }
-
-// is data available?
-
-inline bool UART1RXRdy(void) {
-    return cdc_Out_len || getOutReady();
+void user_serial_ringbuffer_enqueue(const char character) {
+  user_serial_transmit_character(character);
 }
 
-// get a byte from UART
+bool user_serial_ready_to_read(void) { return cdc_Out_len || getOutReady(); }
 
-unsigned char UART1RX(void) { return getc_cdc(); }
+uint8_t user_serial_read_byte(void) { return getc_cdc(); }
 
-void UARTbufFlush(void) { CDC_Flush_In_Now(); }
+void user_serial_ringbuffer_flush(void) { CDC_Flush_In_Now(); }
 
-unsigned char CheckCommsError(void) {
-  return 0; // check for user terminal buffer overflow error
-}
+void user_serial_ringbuffer_setup(void) {}
 
-void UARTbufSetup(void) {}
+void user_serial_ringbuffer_process(void) {}
 
-void UARTbufService(void) {}
+void user_serial_initialise(void) {}
 
-void ClearCommsError(void) {}
+void user_serial_wait_transmission_done(void) { WaitInReady(); }
 
-void InitializeUART1(void) {}
+bool user_serial_check_overflow(void) { return NO; }
 
-void UART1Speed(unsigned char brg) {}
+void user_serial_clear_overflow(void) {}
+
+void user_serial_set_baud_rate(const uint16_t rate __attribute__((unused))) {}
+
+bool user_serial_transmit_done(void) { return YES; }
 
 #endif /* BUSPIRATEV4 */

@@ -256,7 +256,7 @@ void LCDmacro(unsigned int c)
                         for(i=0; i<input; i++){
                                 if(c>0x39) c=0x30;
                                 HD44780_WriteByte(HD44780_DATA, c);
-                                UART1TX(c);
+                                user_serial_transmit_character(c);
                                 c++;
                         }
                         break;  
@@ -268,7 +268,7 @@ void LCDmacro(unsigned int c)
                         for(i=0; i<input; i++){
                                 if(c>127)c=0x21;
                                 HD44780_WriteByte(HD44780_DATA, c);
-                                UART1TX(c);
+                                user_serial_transmit_character(c);
                                 c++;
                         }
                         break;

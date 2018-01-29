@@ -104,7 +104,7 @@ void picstart(void)					// switch  to commandmode
 {	picmode|=PICCMD;
 	//bpWstring("CMD");
 	BPMSG1075;
-	UART1TX(0x30+(picmode&PICMODEMSK));			// display #commandbits 
+	user_serial_transmit_character(0x30+(picmode&PICMODEMSK));			// display #commandbits 
 	mode_configuration.int16=0;
 	bpBR;
 }
@@ -301,7 +301,7 @@ void binpic(void)
 	piccmddelay=2;
 
 	while(1)
-	{	cmd=UART1RX();
+	{	cmd=user_serial_read_byte();
 
 		switch(cmd&0xC0)
 		{	case 0x00:	ok=1;
@@ -372,33 +372,33 @@ void binpic(void)
 							default:	ok=0;
 						}
 						if(ok)
-						{	UART1TX(1);
+						{	user_serial_transmit_character(1);
 						}
 						else
-						{	UART1TX(0);
+						{	user_serial_transmit_character(0);
 						}
 						break;
 			case 0x40:	picmode|=PICCMD;
 						picwrite(cmd&0x3F);
 						picmode&=PICMODEMSK;
-						UART1TX(1);
+						user_serial_transmit_character(1);
 						break;
 			case 0x80:	picmode|=PICCMD;
 						picwrite(cmd&0x3F);
 						picmode&=PICMODEMSK;
-						temp=UART1RX();
+						temp=user_serial_read_byte();
 						temp<<=8;
-						temp|=UART1RX();
+						temp|=user_serial_read_byte();
 						picwrite(temp);
-						UART1TX(1);
+						user_serial_transmit_character(1);
 						break;
 			case 0xC0:	picmode|=PICCMD;
 						picwrite(cmd&0x3F);
 						picmode&=PICMODEMSK;
-						UART1TX(1);
+						user_serial_transmit_character(1);
 						temp=picread();
-						UART1TX(temp>>8);
-						UART1TX(temp&0x0FF);
+						user_serial_transmit_character(temp>>8);
+						user_serial_transmit_character(temp&0x0FF);
 						break;
 		}
 	}

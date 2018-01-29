@@ -232,7 +232,7 @@ __loop_bit:					;   do {
 		pop.d	w8			; restore w8,w9
 
 		; If there was anything left
-		goto	_UART1TXInt
+		goto	_user_serial_process_transmission_interrupt
 
 		; (we used a goto, no need for return :)
 

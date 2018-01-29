@@ -36,14 +36,14 @@ void readByte(unsigned char *data){
         unsigned char bh, bl;
 
         if(bufBytes==0){
-                UART1TX(0xff);
+                user_serial_transmit_character(0xff);
        //--- while(U1STAbits.URXDA == 0);  //--- dont use it as already in UART1RX => dead lock
-                bh=UART1RX();//get up to 255 bytes each time
-                bl=UART1RX();//get up to 255 bytes each time
+                bh=user_serial_read_byte();//get up to 255 bytes each time
+                bl=user_serial_read_byte();//get up to 255 bytes each time
                 bufBytes=(bh<<8)|bl;
                 for(i=0; i<bufBytes; i++){
            //---     while(U1STAbits.URXDA == 0); //--- dont use it otherwise dead lock
-                        buf[i]=UART1RX();
+                        buf[i]=user_serial_read_byte();
                 }
                 bufPointer=0;
         }

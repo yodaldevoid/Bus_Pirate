@@ -178,7 +178,7 @@ void initialize_board(void) {
 
 #ifdef BUSPIRATEV3
   /* Initialize the internal UART port. */
-  InitializeUART1();
+  user_serial_initialise();
 #endif /* BUSPIRATEV3 */
 
 #if defined(BUSPIRATEV4)
@@ -200,9 +200,9 @@ void initialize_board(void) {
   /* Read device type and revision. */
 
   bus_pirate_configuration.device_type =
-      bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_TYPE);
+      bp_read_from_flash(DEV_ADDR_UPPER, DEV_ADDR_TYPE);
   bus_pirate_configuration.device_revision =
-      bpReadFlash(DEV_ADDR_UPPER, DEV_ADDR_REV);
+      bp_read_from_flash(DEV_ADDR_UPPER, DEV_ADDR_REV);
 
 #ifdef BUSPIRATEV3
   /* Get the revision identifier. */

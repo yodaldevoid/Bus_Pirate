@@ -4,22 +4,28 @@
  *
  * Written and maintained by the Bus Pirate project.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate.  This work is published from
+ * United States.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
+ */
+
+/**
+ * @file base.h
+ *
+ * @brief Base functions definition file.
  */
 
 #ifndef BP_BASE_H
 #define BP_BASE_H
 
 /**
- * MCU Operating Frequency, in Hz.
+ * @brief MCU Operating Frequency, in Hz.
  */
 #define FCY 16000000UL
 
@@ -34,75 +40,75 @@
 #include "messages.h"
 
 /**
- * Value indicating a bit to be OFF.
+ * @brief Value indicating a bit to be OFF.
  */
 #define OFF 0
 
 /**
- * Value indicating a bit to be ON.
+ * @brief Value indicating a bit to be ON.
  */
 #define ON 1
 
 /**
- * Value indicating a pin direction to be OUTPUT.
+ * @brief Value indicating a pin direction to be OUTPUT.
  */
 #define OUTPUT 0
 
 /**
- * Value indicating a pin direction to be INPUT.
+ * @brief Value indicating a pin direction to be INPUT.
  */
 #define INPUT 1
 
 /**
- * Value indicating a pin state to be LOW.
+ * @brief Value indicating a pin state to be LOW.
  */
 #define LOW 0
 
 /**
- * Value indicating a pin state to be HIGH.
+ * @brief Value indicating a pin state to be HIGH.
  */
 #define HIGH 1
 
 /**
- * Value indicating a negative statement.
+ * @brief Value indicating a negative statement.
  */
 #define NO 0
 
 /**
- * Value indicating a positive statement.
+ * @brief Value indicating a positive statement.
  */
 #define YES 1
 
 /**
- * Returns the most significant 16 bits of the given 32-bits integer.
+ * @brief Returns the most significant 16 bits of the given 32-bits integer.
  *
  * @param[in] value a 32-bits integer whose MSW is required.
  */
 #define HI16(value) (((uint32_t)(value) >> 16) & 0xFFFF)
 
 /**
- * Returns the least significant 16 bits of the given 32-bits integer.
+ * @brief Returns the least significant 16 bits of the given 32-bits integer.
  *
  * @param[in] value a 32-bits integer whose LSW is required.
  */
 #define LO16(value) ((uint32_t)(value)&0xFFFF)
 
 /**
- * Returns the most significant 8 bits of the given 16-bits integer.
+ * @brief Returns the most significant 8 bits of the given 16-bits integer.
  *
  * @param[in] value a 16-bits integer whose MSB is required.
  */
 #define HI8(value) (((uint16_t)(value) >> 8) & 0xFF)
 
 /**
- * Returns the least significant 8 bits of the given 16-bits integer.
+ * @brief Returns the least significant 8 bits of the given 16-bits integer.
  *
  * @param[in] value a 16-bits integer whose LSB is required.
  */
 #define LO8(value) ((uint16_t)(value)&0xFF)
 
 /**
- * Returns the given value with only the requested bottom bits masked in.
+ * @brief Returns the given value with only the requested bottom bits masked in.
  *
  * @param[in] value a 8-bits integer to mask.
  * @param[in] bits how many bits to leave, starting from LSB.
@@ -110,7 +116,16 @@
 #define MASKBOTTOM8(value, bits) (((uint8_t)value) & ((1 << (uint8_t)bits) - 1))
 
 /**
- * Firmware version string, used at startup and for the 'i' command.
+ * @brief Returns the given value with only the requested bottom bits masked in.
+ *
+ * @param[in] value a 16-bits integer to mask.
+ * @param[in] bits how many bits to leave, starting from LSB.
+ */
+#define MASKBOTTOM16(value, bits)                                              \
+  (((uint16_t)value) & ((1 << (uint16_t)bits) - 1))
+
+/**
+ * @brief Firmware version string, used at startup and for the 'i' command.
  */
 #define BP_FIRMWARE_STRING "Community Firmware v7.1 - goo.gl/gCzQnW "
 
@@ -125,16 +140,14 @@
 #endif /* BUSPIRATEV3 || BUSPIRATEV4 */
 
 /**
- * Current mode configuration settings structure.
+ * @brief Current mode configuration settings structure.
  *
  * This is used to let protocol implementations to interact with the Bus Pirate
  * event loop.  Every time a mode is changed (a.k.a. a new protocol gets
  * activated) this structure is cleared.
  */
 typedef struct {
-  unsigned char speed;
-  unsigned char numbits;
-  unsigned char buf[16];
+  uint8_t buf[16];
   uint8_t alternate_aux : 2;
   uint8_t periodicService : 1;
   uint8_t lsbEN : 1;
@@ -150,16 +163,20 @@ typedef struct {
    */
   uint8_t write_with_read : 1;
 
-} mode_configuration_t;
+  uint8_t reserved : 1;
+
+  uint8_t speed;
+  uint8_t numbits;
+} __attribute__((packed)) mode_configuration_t;
 
 typedef struct {
-  unsigned char cmd;
   unsigned int num;
   unsigned int repeat;
-} command_t;
+  unsigned char cmd;
+} __attribute__((packed)) command_t;
 
 /**
- * Reverses the bits in the given value and returns it.
+ * @brief Reverses the bits in the given value and returns it.
  *
  * @param[in] value the value whose bits should be reversed.
  * @param[in] bits width of the value to reverse, in bits.
@@ -169,7 +186,7 @@ typedef struct {
 uint16_t bp_reverse_integer(const uint16_t value, const uint8_t bits);
 
 /**
- * Reverses the bits in the given byte and returns it.
+ * @brief Reverses the bits in the given byte and returns it.
  *
  * @param[in] value the byte whose bits should be reversed.
  *
@@ -178,7 +195,7 @@ uint16_t bp_reverse_integer(const uint16_t value, const uint8_t bits);
 inline uint8_t bp_reverse_byte(const uint8_t value);
 
 /**
- * Reverses the bits in the given word and returns it.
+ * @brief Reverses the bits in the given word and returns it.
  *
  * @param[in] value the word whose bits should be reversed.
  *
@@ -187,13 +204,13 @@ inline uint8_t bp_reverse_byte(const uint8_t value);
 inline uint16_t bp_reverse_word(const uint16_t value);
 
 /**
- * Bring the board to a clean slate shortly before switching to a new
+ * @brief Bring the board to a clean slate shortly before switching to a new
  * operational mode.
  */
 void bp_reset_board_state(void);
 
 /**
- * Reads a value from the ADC on the given channel.
+ * @brief Reads a value from the ADC on the given channel.
  *
  * @warning this function assumes the ADC is already enabled, and will not turn
  *          it on or off.
@@ -201,36 +218,36 @@ void bp_reset_board_state(void);
  * @param[in] channel the channel to read data from.
  * @return the value read from the channel.
  */
-unsigned int bp_read_adc(unsigned int channel);
+uint16_t bp_read_adc(const uint16_t channel);
 
 /**
- * Takes one single ADC measurement and prints it to the serial port.
+ * @brief Takes one single ADC measurement and prints it to the serial port.
  */
 void bp_adc_probe(void);
 
 /**
- * Takes ADC measurements and prints them to the serial port until a byte is
- * sent to the serial port.
+ * @brief Takes ADC measurements and prints them to the serial port until a byte
+ * is sent to the serial port.
  */
 void bp_adc_continuous_probe(void);
 
 /**
- * Prints the given value to the user terminal according to the format settings
- * specified by bus_pirate_configuration_t.display_mode.
+ * @brief Prints the given value to the user terminal according to the format
+ * settings specified by bus_pirate_configuration_t.display_mode.
  *
  * @param[in] value the value to print to the serial port.
  */
-void bp_write_formatted_integer(unsigned int value);
+void bp_write_formatted_integer(const uint16_t value);
 
 /**
- * Pauses execution for the given amount of milliseconds.
+ * @brief Pauses execution for the given amount of milliseconds.
  *
  * @param[in] milliseconds the amount of milliseconds to wait.
  */
 #define bp_delay_ms(milliseconds) __delay_ms(milliseconds)
 
 /**
- * Pauses execution for the given amount of microseconds.
+ * @brief Pauses execution for the given amount of microseconds.
  *
  * @param[in] microseconds the amount of microseconds to wait.
  */
@@ -249,16 +266,13 @@ unsigned int bpGetASCIInumber(unsigned int totalBytes,
                               unsigned int *currentByte,
                               unsigned char *commandArr);
 
-// convert ASCII number string (HEX, BIN, DEC) to INT value
-unsigned int ASCII2INT(unsigned char totalDigits, unsigned char *numberArr);
-
 /**
- * Writes the given buffer to the serial port.
+ * @brief Writes the given buffer to the serial port.
  *
  * @param[in] buffer the data to write.
  * @param[in] length how many bytes to write.
  */
-void bp_write_buffer(const uint8_t *buffer, size_t length);
+void bp_write_buffer(const uint8_t *buffer, const size_t length);
 
 /**
  * Writes the given NULL-terminated string to the serial port.
@@ -268,41 +282,98 @@ void bp_write_buffer(const uint8_t *buffer, size_t length);
 void bp_write_string(const char *string);
 
 /**
- * Writes the given NULL-terminated string to the serial port, followed by a
- * line break.
+ * @brief Writes the given NULL-terminated string to the serial port, followed
+ * by a line break.
  *
  * @param[in] string the string to write.
  */
 void bp_write_line(const char *string);
 
-// output an 8bit/byte hex value to the user terminal
-void bp_write_hex_byte(uint8_t value);
+/**
+ * @brief Writes the given 8-bits value to the serial port in hexadecimal form.
+ *
+ * @param[in] value the value to write.
+ */
+void bp_write_hex_byte(const uint8_t value);
 
-// output an 16bit/2byte hex value to the user terminal
-void bp_write_hex_word(uint16_t value);
+/**
+ * @brief Writes the given 16-bits value to the serial port in hexadecimal form.
+ *
+ * @param[in] value the value to write.
+ */
+void bp_write_hex_word(const uint16_t value);
 
-// output an 8bit/byte binary value to the user terminal
-void bp_write_bin_byte(unsigned char c);
+/**
+ * @brief Writes the given 8-bits value to the serial port in binary form.
+ *
+ * @param[in] value the value to write.
+ */
+void bp_write_bin_byte(const uint8_t value);
 
-// output an 8bit/byte decimal value to the user terminal
-void bp_write_dec_byte(unsigned char c);
+/**
+ * @brief Writes the given 8-bits value to the serial port in decimal form.
+ *
+ * @param[in] value the value to write.
+ */
+inline void bp_write_dec_byte(const uint8_t value);
 
-// output an 16bit/integer decimal value to the user terminal
-void bp_write_dec_word(unsigned int i);
+/**
+ * @brief Writes the given 16-bits value to the serial port in decimal form.
+ *
+ * @param[in] value the value to write.
+ */
+inline void bp_write_dec_word(const uint16_t value);
 
-// output an 32bit/long decimal value to the user terminal
-void bp_write_dec_dword(unsigned long l);
+/**
+ * @brief Writes the given 32-bits value to the serial port in decimal form.
+ *
+ * @param[in] value the value to write.
+ */
+inline void bp_write_dec_dword(const uint32_t value);
 
-// friendly version
-void bp_write_dec_dword_friendly(unsigned long l);
+/**
+ * @brief Writes the given 32-bits value to the serial port in decimal form,
+ * using thousand separators.
+ *
+ * @param[in] value the value to write.
+ */
+void bp_write_dec_dword_friendly(const uint32_t value);
 
-// print an ADC measurement in decimal form
-void bp_write_voltage(unsigned int adc);
+/**
+ * @brief Writes the given ADC reading to the serial port in human-readable
+ * form.
+ *
+ * @param[in] adc the ADC reading to print.
+ */
+void bp_write_voltage(const uint16_t adc);
 
-// pseudofuncion break sequences
+/**
+ * @brief Reads the lower 16 bits of the given flash memory address.
+ *
+ * @param[in] page the memory page index.
+ * @param[in] address the address inside the memory page.
+ *
+ * @return the lower 16 bits of the 24 bits word at the given address.
+ */
+uint16_t bp_read_from_flash(const uint16_t page, const uint16_t address);
+
+/**
+ * @brief Writes the given value in hexadecimal format into the user-facing
+ * serial port ringbuffer.
+ *
+ * @param[in] value the value to write into the ringbuffer.
+ */
+void bp_write_hex_byte_to_ringbuffer(const uint8_t value);
+
+/**
+ * @brief Shortcut for writing an empty line to the user-facing serial port.
+ */
 #define bpBR bp_write_line("")
 
-#define bpSP UART1TX(' ') // macro for space
+/**
+ * @brief Shortcut for writing a space to the user-facing serial port.
+ */
+#define bpSP user_serial_transmit_character(' ')
 
 //
 //
@@ -312,6 +383,8 @@ void bp_write_voltage(unsigned int adc);
 #define UART_NORMAL_SPEED 34
 #define UART_FAST_SPEED 3
 
+#if defined(BUSPIRATEV3)
+
 /* interrupt transfer related stuff */
 extern uint8_t *UART1RXBuf;
 extern unsigned int UART1RXToRecv;
@@ -320,46 +393,91 @@ extern uint8_t *UART1TXBuf;
 extern unsigned int UART1TXSent;
 extern unsigned int UART1TXAvailable;
 
-// starts interrupt TX
-void UART1TXInt(void);
+#endif /* BUSPIRATEV3 */
 
-// is byte available in RX buffer?
-inline bool UART1RXRdy(void);
-unsigned char UART1TXEmpty(void);
-// get a byte from UART
-unsigned char UART1RX(void);
-void WAITTXEmpty(void);
+/**
+ * @defgroup user_serial User-facing serial port functions.
+ * @{
+ */
 
-// add byte to buffer, pause if full
-// uses PIC 4 byte UART FIFO buffer
-void UART1TX(char c);
+/**
+ * @brief Initialise the user-facing serial port.
+ */
+void user_serial_initialise(void);
 
-void ClearCommsError(void);
-unsigned char CheckCommsError(void);
-// sets the uart baudrate generator
-void UART1Speed(unsigned char brg);
-// Initialize the terminal UART for the speed currently set in
-// bpConfig.termSpeed
-void InitializeUART1(void);
-//
-//
-// Ring buffer for UART
-//
-//
-void UARTbufService(void);
-void UARTbufFlush(void);
-void UARTbufSetup(void);
-void UARTbuf(char c);
+/**
+ * @brief Checks whether the transmission queue is empty or not.
+ * 
+ * @return YES if the transmission queue is empty, NO otherwise.
+ */
+inline bool user_serial_transmit_done(void);
 
-void bp_write_hex_byte_to_ringbuffer(uint8_t value);
+/**
+ * @brief Checks whether the reception queue is full or not.
+ * 
+ * @return YES if the reception queue is not full, NO otherwise.
+ */
+inline bool user_serial_ready_to_read(void);
 
-unsigned char USBUSARTIsTxTrfReady(void);
-// void putUSBUSART(char *data, unsigned char length);
+/**
+ * @brief Clears the user-facing serial port overflow error flag.
+ */
+inline void user_serial_clear_overflow(void);
 
-//
-// Hardware functions and definitions
-//
-// Read the lower 16 bits from programming flash memory
-unsigned int bpReadFlash(unsigned int page, unsigned int addr);
+/**
+ * @brief Returns the user-facing serial port overflow error flag.
+ * 
+ * @return YES if an overflow error was detected, NO otherwise.
+ */
+inline bool user_serial_check_overflow(void);
+
+/**
+ * @brief Set the baud rate for the user-facing serial port.
+ *
+ * @param[in] rate the rate for the serial port, as a frequency counter for the
+ * baud rate generator circuitry.
+ */
+inline void user_serial_set_baud_rate(const uint16_t rate);
+
+/**
+ * @brief Blocks execution until the user-facing serial port transmission queue
+ * is empty.
+ */
+inline void user_serial_wait_transmission_done(void);
+
+/**
+ * @brief Blocks execution until a byte arrives on the user-facing serial port
+ * and returns said value.
+ *
+ * @return the byte read from the serial port.
+ */
+uint8_t user_serial_read_byte(void);
+
+/**
+ * @brief Writes the first available byte from the transmission queue into the
+ * serial port transmission buffer register.
+ */
+void user_serial_process_transmission_interrupt(void);
+
+void user_serial_transmit_character(const char character);
+
+/**
+ * @}
+ */
+
+/**
+ * @defgroup user_serial_ringbuffer User-facing serial port ringbuffer
+ * functions.
+ * @{
+ */
+
+void user_serial_ringbuffer_setup(void);
+void user_serial_ringbuffer_flush(void);
+void user_serial_ringbuffer_enqueue(const char character);
+void user_serial_ringbuffer_process(void);
+
+/**
+ * @}
+ */
 
 #endif /* !BP_BASE_H */

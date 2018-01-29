@@ -37,7 +37,7 @@
  */
 #define REPORT_IO_SUCCESS()                                                    \
   do {                                                                         \
-    UART1TX(BP_BINARY_IO_RESULT_SUCCESS);                                      \
+    user_serial_transmit_character(BP_BINARY_IO_RESULT_SUCCESS);                                      \
   } while (0)
 
 /**
@@ -47,7 +47,7 @@
  */
 #define REPORT_IO_FAILURE()                                                    \
   do {                                                                         \
-    UART1TX(BP_BINARY_IO_RESULT_FAILURE);                                      \
+    user_serial_transmit_character(BP_BINARY_IO_RESULT_FAILURE);                                      \
   } while (0)
 
 void binBB(void);

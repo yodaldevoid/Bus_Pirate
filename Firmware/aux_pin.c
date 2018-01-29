@@ -433,19 +433,19 @@ void bp_frequency_counter_setup(void) {
       if (period > 400000) {
         frequency = 16e11 / period;
         bp_write_dec_dword_friendly(frequency / 100000);
-        UART1TX('.');
+        user_serial_transmit_character('.');
         frequency = frequency % 100000;
         if (frequency < 10000) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         if (frequency < 1000) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         if (frequency < 100) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         if (frequency < 10) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         bp_write_dec_dword(frequency);
         goto write_marker;
@@ -454,16 +454,16 @@ void bp_frequency_counter_setup(void) {
       if (period > 126491) {
         frequency = 16e10 / period;
         bp_write_dec_dword_friendly(frequency / 10000);
-        UART1TX('.');
+        user_serial_transmit_character('.');
         frequency = frequency % 10000;
         if (frequency < 1000) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         if (frequency < 100) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         if (frequency < 10) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         bp_write_dec_word(frequency);
         goto write_marker;
@@ -472,13 +472,13 @@ void bp_frequency_counter_setup(void) {
       if (period > 40000) {
         frequency = 16e9 / period;
         bp_write_dec_dword_friendly(frequency / 1000);
-        UART1TX('.');
+        user_serial_transmit_character('.');
         frequency = frequency % 1000;
         if (frequency < 100) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         if (frequency < 10) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         bp_write_dec_word(frequency);
         goto write_marker;
@@ -487,10 +487,10 @@ void bp_frequency_counter_setup(void) {
       if (period > 12649) {
         frequency = 16e8 / period;
         bp_write_dec_dword_friendly(frequency / 100);
-        UART1TX('.');
+        user_serial_transmit_character('.');
         frequency = frequency % 100;
         if (frequency < 10) {
-          UART1TX('0');
+          user_serial_transmit_character('0');
         }
         bp_write_dec_byte(frequency);
         goto write_marker;
@@ -498,7 +498,7 @@ void bp_frequency_counter_setup(void) {
 
       frequency = 16e7 / period;
       bp_write_dec_dword_friendly(frequency / 10);
-      UART1TX('.');
+      user_serial_transmit_character('.');
       bp_write_dec_byte(frequency % 10);
 
     write_marker:

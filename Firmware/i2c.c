@@ -437,7 +437,7 @@ void i2c_macro(unsigned int c) {
 
       if (c == I2C_ACK_BIT) {
         bp_write_formatted_integer(i);
-        UART1TX('(');
+        user_serial_transmit_character('(');
         bp_write_formatted_integer((i >> 1));
         /* If the first bit is set, this is a read address. */
         if ((i & 1) == 0) {
@@ -805,7 +805,7 @@ void i2c_sniffer(bool interactive_mode) {
   data_value = 0;
 
   /* Setup UART ringbuffer. */
-  UARTbufSetup();
+  user_serial_ringbuffer_setup();
 
   SDA_TRIS = INPUT;
   SCL_TRIS = INPUT;
@@ -829,10 +829,10 @@ void i2c_sniffer(bool interactive_mode) {
       /* Change notice interrupt triggered. */
 
       /* Handle user I/O. */
-      UARTbufService();
+      user_serial_ringbuffer_process();
 
-      if (UART1RXRdy()) {
-        data_value = UART1RX();
+      if (user_serial_ready_to_read()) {
+        data_value = user_serial_read_byte();
         break;
       }
 
@@ -857,12 +857,12 @@ void i2c_sniffer(bool interactive_mode) {
           bp_write_hex_byte_to_ringbuffer(data_value);
         } else {
           /* Report data via binary I/O. */
-          UARTbuf(I2C_SNIFFER_ESCAPE);
-          UARTbuf(data_value);
+          user_serial_ringbuffer_enqueue(I2C_SNIFFER_ESCAPE);
+          user_serial_ringbuffer_enqueue(data_value);
         }
 
         /* SDA high is NACK, SDA low is ACK. */
-        UARTbuf(new_sda ? I2C_SNIFFER_NACK : I2C_SNIFFER_ACK);
+        user_serial_ringbuffer_enqueue(new_sda ? I2C_SNIFFER_NACK : I2C_SNIFFER_ACK);
 
         /* Ready for next byte. */
         data_bits = 0;
@@ -875,14 +875,14 @@ void i2c_sniffer(bool interactive_mode) {
           collect_data = true;
           data_bits = 0;
 
-          UARTbuf(I2C_SNIFFER_START);
+          user_serial_ringbuffer_enqueue(I2C_SNIFFER_START);
         } else {
           /* Stop condition. */
           if (!old_sda && new_sda) {
             collect_data = false;
             data_bits = 0;
 
-            UARTbuf(I2C_SNIFFER_STOP);
+            user_serial_ringbuffer_enqueue(I2C_SNIFFER_STOP);
           }
         }
       }
@@ -947,7 +947,7 @@ void binary_io_enter_i2c_mode(void) {
   MSG_I2C_MODE_IDENTIFIER;
 
   for (;;) {
-    inByte = UART1RX();
+    inByte = user_serial_read_byte();
     // get command bits in a separate variable
     rawCommand = (inByte >> 4);
 
@@ -973,7 +973,7 @@ void binary_io_enter_i2c_mode(void) {
         break;
 
       case 4: // I2C read byte
-        UART1TX(bitbang_read_value());
+        user_serial_transmit_character(bitbang_read_value());
         break;
 
       case 6: // I2C send ACK
@@ -988,14 +988,14 @@ void binary_io_enter_i2c_mode(void) {
 
       case 8: // write-then-read
         // get the number of commands that will follow
-        fw = UART1RX();
+        fw = user_serial_read_byte();
         fw = fw << 8;
-        fw |= UART1RX();
+        fw |= user_serial_read_byte();
 
         // get the number of reads to do
-        fr = UART1RX();
+        fr = user_serial_read_byte();
         fr = fr << 8;
-        fr |= UART1RX();
+        fr |= user_serial_read_byte();
 
         // check length and report error
         if (fw > BP_TERMINAL_BUFFER_SIZE || fr > BP_TERMINAL_BUFFER_SIZE) {
@@ -1006,7 +1006,7 @@ void binary_io_enter_i2c_mode(void) {
 
         // get bytes
         for (j = 0; j < fw; j++) {
-          bus_pirate_configuration.terminal_input[j] = UART1RX();
+          bus_pirate_configuration.terminal_input[j] = user_serial_read_byte();
         }
 
         // start
@@ -1039,7 +1039,7 @@ void binary_io_enter_i2c_mode(void) {
         REPORT_IO_SUCCESS();
 
         for (j = 0; j < fr; j++) { // send the read buffer contents over serial
-          UART1TX(bus_pirate_configuration.terminal_input[j]);
+          user_serial_transmit_character(bus_pirate_configuration.terminal_input[j]);
         }
         break; // 00001001 xxxxxxxx
 
@@ -1091,7 +1091,7 @@ void binary_io_enter_i2c_mode(void) {
           break;
         }
 
-        UART1TX(fr); // result
+        user_serial_transmit_character(fr); // result
         break;
 
       case 0b1111:
@@ -1111,8 +1111,8 @@ void binary_io_enter_i2c_mode(void) {
       REPORT_IO_SUCCESS();
 
       for (i = 0; i < inByte; i++) {
-        bitbang_write_value(UART1RX()); // JTR usb port //send byte
-        UART1TX(bitbang_read_bit());    // return ACK0 or NACK1
+        bitbang_write_value(user_serial_read_byte()); // JTR usb port //send byte
+        user_serial_transmit_character(bitbang_read_bit());    // return ACK0 or NACK1
       }
 
       break;
@@ -1130,7 +1130,7 @@ void binary_io_enter_i2c_mode(void) {
 
 #ifdef BUSPIRATEV4
     case 0b0101:
-      UART1TX(bp_binary_io_pullup_control(inByte));
+      user_serial_transmit_character(bp_binary_io_pullup_control(inByte));
       break;
 #endif /* BUSPIRATEV4 */
 

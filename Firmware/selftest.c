@@ -92,7 +92,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
     BPMSG1251;
 
     /* Wait for a character to come in. */
-    UART1RX();
+    user_serial_read_byte();
   }
 
   /* Start the test procedure. */
@@ -317,7 +317,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
 #endif /* BUSPIRATEV4 */
     BPMSG1178;
     MSG_ANY_KEY_TO_EXIT_PROMPT;
-    UART1RX();
+    user_serial_read_byte();
 #ifdef BUSPIRATEV4
     BP_USBLED_OFF();
 #endif /* BUSPIRATEV4 */
@@ -340,10 +340,10 @@ void perform_adc_test(unsigned int channel, unsigned int minimum_threshold,
 
   unsigned int measurement;
 
-  UART1TX('(');
+  user_serial_transmit_character('(');
   measurement = bp_read_adc(channel);
   bp_write_voltage(measurement);
-  UART1TX(')');
+  user_serial_transmit_character(')');
   check_result(
       ((measurement > minimum_threshold) && (measurement < maximum_threshold)),
       true);

@@ -120,8 +120,8 @@ void pc_at_keyboard_run_macro(const uint16_t macro) {
         bpSP;
       }
 
-      if (UART1RXRdy()) {
-        UART1RX();
+      if (user_serial_ready_to_read()) {
+        user_serial_read_byte();
         bpBR;
         break;
       }

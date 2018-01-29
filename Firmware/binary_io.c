@@ -179,9 +179,9 @@ void binBB(void) {
         binReset();
         send_binary_io_mode_identifier();
       } else if (inByte == 0b1111) { // return to terminal
-        UART1TX(1);
+        user_serial_transmit_character(1);
         BP_LEDMODE = 0; // light MODE LED
-        WAITTXEmpty();  // wait untill TX finishes
+        user_serial_wait_transmission_done();  // wait untill TX finishes
 #ifndef BUSPIRATEV4
         asm("RESET");
 #endif
@@ -223,30 +223,30 @@ void binBB(void) {
         PR2 = i; // write period
 
         T2CONbits.TON = 1; // Start Timer2
-        UART1TX(1);
+        user_serial_transmit_character(1);
       } else if (inByte == 0b10011) { // clear PWM
         T2CON = 0;                    // stop Timer2
         OC5CON = 0;
         BP_AUX_RPOUT = 0; // remove output from AUX pin
-        UART1TX(1);
+        user_serial_transmit_character(1);
         // ADC only for v1, v2, v3
       } else if (inByte == 0b10100) {  // ADC reading (x/1024)*6.6volts
         AD1CON1bits.ADON = 1;          // turn ADC ON
         i = bp_read_adc(BP_ADC_PROBE); // take measurement
         AD1CON1bits.ADON = 0;          // turn ADC OFF
-        UART1TX((i >> 8));             // send upper 8 bits
-        UART1TX(i);                    // send lower 8 bits
+        user_serial_transmit_character((i >> 8));             // send upper 8 bits
+        user_serial_transmit_character(i);                    // send lower 8 bits
       } else if (inByte == 0b10101) {  // ADC reading (x/1024)*6.6volts
         AD1CON1bits.ADON = 1;          // turn ADC ON
         while (1) {
           i = bp_read_adc(BP_ADC_PROBE); // take measurement
-          WAITTXEmpty();
-          UART1TX((i >> 8)); // send upper 8 bits
+          user_serial_wait_transmission_done();
+          user_serial_transmit_character((i >> 8)); // send upper 8 bits
           // while(UART1TXRdy==0);
-          UART1TX(i); // send lower 8 bits
+          user_serial_transmit_character(i); // send lower 8 bits
 
-          if (UART1RXRdy() == 1) { // any key pressed, exit
-            i = UART1RX();         // /* JTR usb port; */;
+          if (user_serial_ready_to_read() == 1) { // any key pressed, exit
+            i = user_serial_read_byte();         // /* JTR usb port; */;
             break;
           }
         }
@@ -254,10 +254,10 @@ void binBB(void) {
       } else if (inByte == 0b10110) { // binary frequency count access
         unsigned long l;
         l = bp_measure_frequency();
-        UART1TX((l >> (8 * 3)));
-        UART1TX((l >> (8 * 2)));
-        UART1TX((l >> (8 * 1)));
-        UART1TX((l));
+        user_serial_transmit_character((l >> (8 * 3)));
+        user_serial_transmit_character((l >> (8 * 2)));
+        user_serial_transmit_character((l >> (8 * 1)));
+        user_serial_transmit_character((l));
 //--- Added JM
 #ifdef BUSPIRATEV4
       } else if (inByte == 0b11000) { // XSVF Player to program CPLD
@@ -267,20 +267,20 @@ void binBB(void) {
 #endif
         //--- End added JM
       } else if ((inByte >> 5) & 0b010) { // set pin direction, return read
-        UART1TX(binBBpindirectionset(inByte));
+        user_serial_transmit_character(binBBpindirectionset(inByte));
       } else { // unknown command, error
-        UART1TX(0);
+        user_serial_transmit_character(0);
       }
 
     } else { // data for pins
-      UART1TX(binBBpinset(inByte));
+      user_serial_transmit_character(binBBpinset(inByte));
     } // if
   }   // while
 } // function
 
 unsigned char getRXbyte(void) {
   // JTR Not required while (UART1RXRdy() == 0); //wait for a byte
-  return UART1RX(); ///* JTR usb port; */ //grab it
+  return user_serial_read_byte(); ///* JTR usb port; */ //grab it
 }
 
 void binReset(void) {
@@ -411,17 +411,17 @@ void binSelfTest(bool jumper_test) {
   errors = perform_selftest(false, jumper_test); // silent self-test
   if (errors)
     BP_LEDMODE = 1; // light MODE LED if errors
-  UART1TX(errors);  // reply with number of errors
+  user_serial_transmit_character(errors);  // reply with number of errors
 
   while (1) {
     // echo incoming bytes + errors
     // tests FTDI chip, UART, retrieves results of test
-    if (UART1RXRdy()) {
-      inByte = UART1RX(); // check input
+    if (user_serial_ready_to_read()) {
+      inByte = user_serial_read_byte(); // check input
       if (inByte != 0xff) {
-        UART1TX(inByte + errors);
+        user_serial_transmit_character(inByte + errors);
       } else {
-        UART1TX(0x01);
+        user_serial_transmit_character(0x01);
         return; // exit if we get oxff, else send back byte+errors
       }
     }
@@ -608,7 +608,7 @@ void binwire(void) {
     while (1) {
 
 
-        inByte = UART1RX(); // /* JTR usb port; */; //grab it
+        inByte = user_serial_read_byte(); // /* JTR usb port; */; //grab it
         rawCommand = (inByte >> 4); //get command bits in seperate variable
 
         switch (rawCommand) {
@@ -623,19 +623,19 @@ void binwire(void) {
                         break;
                     case 2://start bit
                         bitbang_i2c_start();
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 3://stop bit
                         bitbang_i2c_stop();
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 4: //cs low
                         bitbang_set_cs(0);
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 5://cs high
                         bitbang_set_cs(1);
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 6://read byte
                         if (wires == 2) {
@@ -646,36 +646,36 @@ void binwire(void) {
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             i = bp_reverse_integer(i, mode_configuration.numbits);
                         }
-                        UART1TX(i);
+                        user_serial_transmit_character(i);
                         break;
                     case 7://read bit
-                        UART1TX(bitbang_read_bit());
+                        user_serial_transmit_character(bitbang_read_bit());
                         break;
                     case 8://peek bit
-                        UART1TX(bitbang_read_miso());
+                        user_serial_transmit_character(bitbang_read_miso());
                         break;
                     case 9://clock tick
                         bitbang_advance_clock_ticks(1);
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 10://clock low
                         bitbang_set_clk(0);
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 11://clock high
                         bitbang_set_clk(1);
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 12://data low
                         bitbang_set_mosi(0);
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     case 13://data high
                         bitbang_set_mosi(1);
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                         break;
                     default:
-                        UART1TX(0);
+                        user_serial_transmit_character(0);
                         break;
                 }
                 break;
@@ -683,22 +683,22 @@ void binwire(void) {
             case 0b0001://get x+1 bytes
                 inByte &= (~0b11110000); //clear command portion
                 inByte++; //increment by 1, 0=1byte
-                UART1TX(1); //send 1/OK
+                user_serial_transmit_character(1); //send 1/OK
 
                 for (i = 0; i < inByte; i++) {
-                    c = UART1RX(); // /* JTR usb port; */;
+                    c = user_serial_read_byte(); // /* JTR usb port; */;
                     if (mode_configuration.lsbEN == 1) {//adjust bitorder
                         c = bp_reverse_integer(c, mode_configuration.numbits);
                     }
                     if (wires == 2) {//2 wire, send 1
                         bitbang_write_value(c); //send byte
-                        UART1TX(1);
+                        user_serial_transmit_character(1);
                     } else { //3 wire, return read byte
                         c = bitbang_read_with_write(c); //send byte
                         if (mode_configuration.lsbEN == 1) {//adjust bitorder
                             c = bp_reverse_integer(c, mode_configuration.numbits);
                         }
-                        UART1TX(c);
+                        user_serial_transmit_character(c);
                     }
                 }
 
@@ -708,15 +708,15 @@ void binwire(void) {
                 inByte &= (~0b11110000); //clear command portion
                 inByte++; //increment by 1, 0=1byte
                 bitbang_advance_clock_ticks(inByte);
-                UART1TX(1); //send 1/OK
+                user_serial_transmit_character(1); //send 1/OK
                 break;
 
             case 0b0011: //# 0011xxxx - Bulk bits, send 1-8 bits of the next byte (0=1bit!)
                 inByte &= (~0b11110000); //clear command portion
                 inByte++; //increment by 1, 0=1byte
-                UART1TX(1); //send 1/OK
+                user_serial_transmit_character(1); //send 1/OK
 
-                rawCommand = UART1RX(); //  //get byte, reuse rawCommand variable
+                rawCommand = user_serial_read_byte(); //  //get byte, reuse rawCommand variable
                 for (i = 0; i < inByte; i++) {
                     if (rawCommand & 0b10000000) {//send 1
                         bitbang_write_bit(1); //send bit
@@ -725,7 +725,7 @@ void binwire(void) {
                     }
                     rawCommand = rawCommand << 1; //pop the MSB off
                 }
-                UART1TX(1);
+                user_serial_transmit_character(1);
                 break;
 
             case 0b1010:// PIC commands
@@ -733,36 +733,36 @@ void binwire(void) {
                 switch (inByte) {
                     case 0b10100000:
 
-                        picMode = UART1RX(); // /* JTR usb port; */; //get byte
-                        UART1TX(1); //send 1/OK
+                        picMode = user_serial_read_byte(); // /* JTR usb port; */; //get byte
+                        user_serial_transmit_character(1); //send 1/OK
                         break;
                     case 0b10100100: //write
                         switch (picMode) {
                             case PIC416:
 
                                 //get the number of commands that will follow
-                                cmds = UART1RX(); //  //get byte, reuse rawCommand variable
+                                cmds = user_serial_read_byte(); //  //get byte, reuse rawCommand variable
                                 cmds = cmds * 3; //make sure an int
                                 //get command byte, two data bytes
                                 for (j = 0; j < cmds; j++) {
 
-                                    bus_pirate_configuration.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
+                                    bus_pirate_configuration.terminal_input[j] = user_serial_read_byte(); // /* JTR usb port; */;
                                 }
 
                                 for (j = 0; j < cmds; j = j + 3) {
                                     PIC416Write(bus_pirate_configuration.terminal_input[j], bus_pirate_configuration.terminal_input[j + 1], bus_pirate_configuration.terminal_input[j + 2]);
                                 }
 
-                                UART1TX(1); //send 1/OK
+                                user_serial_transmit_character(1); //send 1/OK
                                 break;
                             case PIC424:
                                 //get the number of commands that will follow
-                                cmds = UART1RX(); // /* JTR usb port; */; //get byte, reuse rawCommand variable
+                                cmds = user_serial_read_byte(); // /* JTR usb port; */; //get byte, reuse rawCommand variable
                                 cmds = cmds * 4; //make sure an int
                                 //get three byte command, 1 byte pre-post NOP
                                 for (j = 0; j < cmds; j++) {
 
-                                    bus_pirate_configuration.terminal_input[j] = UART1RX(); // /* JTR usb port; */;
+                                    bus_pirate_configuration.terminal_input[j] = user_serial_read_byte(); // /* JTR usb port; */;
                                 }
 
                                 for (j = 0; j < cmds; j = j + 4) {
@@ -785,10 +785,10 @@ void binwire(void) {
                                         PIC24NOP();
                                     }
                                 }
-                                UART1TX(1); //send 1/OK
+                                user_serial_transmit_character(1); //send 1/OK
                                 break;
                             default:
-                                UART1TX(0); //send 1/OK
+                                user_serial_transmit_character(0); //send 1/OK
                                 break;
                         }
                         break;
@@ -797,11 +797,11 @@ void binwire(void) {
                             case PIC416:
 
                                 //get the number of commands that will follow
-                                cmds = UART1RX(); // //get byte, reuse rawCommand variable
+                                cmds = user_serial_read_byte(); // //get byte, reuse rawCommand variable
                                 //cmds=cmds; //make sure an int
                                 //get teh command to send on each read....
 
-                                rawCommand = UART1RX(); // /* JTR usb port; */;
+                                rawCommand = user_serial_read_byte(); // /* JTR usb port; */;
 
 
                                 for (j = 0; j < cmds; j++) {
@@ -816,12 +816,12 @@ void binwire(void) {
                                         c = c >> 1; //pop the LSB off
                                     }
                                     bitbang_read_value(); //dummy byte, setup input
-                                    UART1TX(bitbang_read_value());
+                                    user_serial_transmit_character(bitbang_read_value());
                                 }
                                 break;
                             case PIC424:
                                 //get the number of commands that will follow
-                                cmds = UART1RX(); //  //get byte, reuse rawCommand variable
+                                cmds = user_serial_read_byte(); //  //get byte, reuse rawCommand variable
 
                                 for (j = 0; j < cmds; j++) {
                                     //write command
@@ -840,8 +840,8 @@ void binwire(void) {
                         }
                         break;
                     case 0b10100111: // x write, y read commands.
-                        cmdw = UART1RX();
-                        cmdr = UART1RX();
+                        cmdw = user_serial_read_byte();
+                        cmdr = user_serial_read_byte();
 
                         if (picMode == PIC424) {
                             cmds = cmdw * 5 + cmdr;
@@ -850,16 +850,16 @@ void binwire(void) {
                         } else if (picMode == PIC614) {
                             cmds = cmdw * 4 + cmdr * 2;
                         } else {
-                            UART1TX(0);
+                            user_serial_transmit_character(0);
                             break;
                         }
 
                         for (j = 0; j < cmds; j++) {
-                            bus_pirate_configuration.terminal_input[j] = UART1RX();
+                            bus_pirate_configuration.terminal_input[j] = user_serial_read_byte();
                         }
 
                         if (cmdr != 0)
-                            UART1TX(1); // ACK
+                            user_serial_transmit_character(1); // ACK
 
                         j=0;
                         while (j < cmds) {
@@ -889,11 +889,11 @@ void binwire(void) {
                         }
 
                         if (cmdr == 0)
-                            UART1TX(1); // ACK
+                            user_serial_transmit_character(1); // ACK
 
                         break;
                     default:
-                        UART1TX(0x00); //send 0/Error
+                        user_serial_transmit_character(0x00); //send 0/Error
                         break;
                 }
 
@@ -903,12 +903,12 @@ void binwire(void) {
 
             case 0b0100: //configure peripherals w=power, x=pullups, y=AUX, z=CS
                 bp_binary_io_peripherals_set(inByte);
-                UART1TX(1); //send 1/OK
+                user_serial_transmit_character(1); //send 1/OK
                 break;
 
 #ifdef BUSPIRATEV4
 				case 0b0101:
-					UART1TX(bp_binary_io_pullup_control(inByte));
+					user_serial_transmit_character(bp_binary_io_pullup_control(inByte));
 					break;
 #endif
 
@@ -917,7 +917,7 @@ void binwire(void) {
                 mode_configuration.speed = inByte;
                 bitbang_setup(wires, mode_configuration.speed);
                 bitbang_set_cs(1); //takes care of custom HiZ settings too
-                UART1TX(1);
+                user_serial_transmit_character(1);
                 break;
 
             case 0b1000: //set config
@@ -935,7 +935,7 @@ void binwire(void) {
 
                 bitbang_setup(wires, mode_configuration.speed); //setup the bitbang library, must be done before calling bbCS below
                 bitbang_set_cs(1); //takes care of custom HiZ settings too
-                UART1TX(1); //send 1/OK
+                user_serial_transmit_character(1); //send 1/OK
                 break;
 
 #ifdef BP_ENABLE_SMPS_SUPPORT
@@ -947,16 +947,16 @@ void binwire(void) {
                         break;
                     case 0xf1:
                         smps_stop();    // Stop SMPS operation
-                        UART1TX(1); // Send 1/OK
+                        user_serial_transmit_character(1); // Send 1/OK
                         break;
                     default: {
                         unsigned int V_out;
 
                         V_out = inByte & 0x0f;
                         V_out <<= 8;
-                        V_out |= UART1RX();
+                        V_out |= user_serial_read_byte();
                         smps_start(V_out);
-                        UART1TX(1); // Send 1/OK
+                        user_serial_transmit_character(1); // Send 1/OK
                         break;
                     }
                 }
@@ -965,7 +965,7 @@ void binwire(void) {
 #endif /* BP_ENABLE_SMPS_SUPPORT */
 
             default:
-                UART1TX(0x00); //send 0/Error
+                user_serial_transmit_character(0x00); //send 0/Error
                 break;
         }//command switch
     }//while loop
@@ -980,8 +980,8 @@ void PIC614Read(unsigned char c) {
         c = c >> 1; //pop the LSB off
     }
 
-    UART1TX(bitbang_read_value());
-    UART1TX(bitbang_read_value());
+    user_serial_transmit_character(bitbang_read_value());
+    user_serial_transmit_character(bitbang_read_value());
 }
 
 void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
@@ -1016,7 +1016,7 @@ void PIC416Read(unsigned char c) {
     }
 
     bitbang_read_value(); //dummy byte, setup input
-    UART1TX(bitbang_read_value());
+    user_serial_transmit_character(bitbang_read_value());
 }
 
 void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
@@ -1116,8 +1116,8 @@ void PIC424Read(void) {
     //read 2 bytes
     //return bytes in little endian format
     c = bitbang_read_value();
-    UART1TX(bitbang_read_value());
-    UART1TX(c);
+    user_serial_transmit_character(bitbang_read_value());
+    user_serial_transmit_character(c);
 
     //ALWAYS POST nop TWICE after a read
     PIC24NOP();

@@ -45,7 +45,7 @@ void bp_message_write_buffer(unsigned long strptr) {
     }
 
     if (ch != '\0') {
-      UART1TX(ch);
+      user_serial_transmit_character(ch);
     }
   } while (ch != '\0');
 
@@ -91,10 +91,10 @@ bool agree(void) {
   BPMSG1135;
 
   /* Read the response. */
-  response = UART1RX();
+  response = user_serial_read_byte();
 
   /* Local echo. */
-  UART1TX(response);
+  user_serial_transmit_character(response);
   bpBR;
 
   /* 'y' and 'Y' are exactly one bit apart. */

@@ -1207,7 +1207,7 @@ void binary_io_enter_1wire_mode(void) {
   MSG_1WIRE_MODE_IDENTIFIER;
 
   for (;;) {
-    input_byte = UART1RX();
+    input_byte = user_serial_read_byte();
     command = input_byte >> 4;
 
     switch (command) {
@@ -1226,7 +1226,7 @@ void binary_io_enter_1wire_mode(void) {
         break;
 
       case BINARY_IO_ONEWIRE_ACTION_READ_BYTE:
-        UART1TX(ONEWIRE_READ_BYTE());
+        user_serial_transmit_character(ONEWIRE_READ_BYTE());
         break;
 
       case BINARY_IO_ONEWIRE_ACTION_ROM_SEARCH_MACRO:
@@ -1254,7 +1254,7 @@ void binary_io_enter_1wire_mode(void) {
         /* Send 8x 0xFF bytes. */
 
         for (index = 0; index < 8; index++) {
-          UART1TX(0xFF);
+          user_serial_transmit_character(0xFF);
         }
 
         break;
@@ -1273,7 +1273,7 @@ void binary_io_enter_1wire_mode(void) {
       REPORT_IO_SUCCESS();
 
       for (index = 0; index < input_byte; index++) {
-        ONEWIRE_WRITE_BYTE(UART1RX());
+        ONEWIRE_WRITE_BYTE(user_serial_read_byte());
         REPORT_IO_SUCCESS();
       }
 
@@ -1282,7 +1282,7 @@ void binary_io_enter_1wire_mode(void) {
 
     case BINARY_IO_ONEWIRE_COMMAND_CONFIGURE:
       mode_configuration.speed = (input_byte & 1);
-      UART1TX(BP_BINARY_IO_RESULT_SUCCESS);
+      user_serial_transmit_character(BP_BINARY_IO_RESULT_SUCCESS);
       break;
 
     case BINARY_IO_ONEWIRE_COMMAND_CONFIGURE_PERIPHERALS:
@@ -1292,7 +1292,7 @@ void binary_io_enter_1wire_mode(void) {
 
 #ifdef BUSPIRATEV4
     case BINARY_IO_ONEWIRE_COMMAND_READ_PERIPHERALS:
-      UART1TX(bp_binary_io_pullup_control(input_byte));
+      user_serial_transmit_character(bp_binary_io_pullup_control(input_byte));
       break;
 #endif /* BUSPIRATEV4 */
 

@@ -350,7 +350,7 @@ void uart_run_macro(const uint16_t macro) {
       }
 
       if (U2STAbits.URXDA == ON) {
-        UART1TX(U2RXREG);
+        user_serial_transmit_character(U2RXREG);
       }
 #else
       if ((U2STAbits.URXDA == ON) && (U1STAbits.UTXBF == OFF)) {
@@ -358,8 +358,8 @@ void uart_run_macro(const uint16_t macro) {
       }
 #endif /* BUSPIRATEV4 */
 
-      if (UART1RXRdy() && (U2STAbits.UTXBF == OFF)) {
-        U2TXREG = UART1RX();
+      if (user_serial_ready_to_read() && (U2STAbits.UTXBF == OFF)) {
+        U2TXREG = user_serial_read_byte();
       }
 
 #ifdef BUSPIRATEV3
@@ -397,7 +397,7 @@ void uart_run_macro(const uint16_t macro) {
       }
 
       if (uart2_rx_ready()) {
-        UART1TX(uart2_rx());
+        user_serial_transmit_character(uart2_rx());
       }
 #else
       if ((U2STAbits.URXDA == ON) && (U1STAbits.UTXBF == OFF)) {
@@ -405,10 +405,10 @@ void uart_run_macro(const uint16_t macro) {
       }
 #endif /* BUSPIRATEV4 */
 
-      if (UART1RXRdy()) {
+      if (user_serial_ready_to_read()) {
         volatile uint16_t dummy;
 
-        dummy = UART1RX();
+        dummy = user_serial_read_byte();
         break;
       }
     }
@@ -726,7 +726,7 @@ void binUART(void) {
 
     if (uart2_rx_ready()) {
       if (uart_settings.echo_uart) {
-        UART1TX(uart2_rx());
+        user_serial_transmit_character(uart2_rx());
       } else {
         uart2_rx();
       }
@@ -734,11 +734,11 @@ void binUART(void) {
     
     U2STAbits.OERR = OFF;
 
-    if (!UART1RXRdy()) {
+    if (!user_serial_ready_to_read()) {
       continue;
     }
 
-    input_byte = UART1RX();
+    input_byte = user_serial_read_byte();
 
     switch (input_byte & 0xF0) {
     case 0:
@@ -765,9 +765,9 @@ void binUART(void) {
       case 7:
         REPORT_IO_SUCCESS();
         uart2_disable();
-        brg_value = (uint16_t)UART1RX() << 8;
+        brg_value = (uint16_t)user_serial_read_byte() << 8;
         REPORT_IO_SUCCESS();
-        brg_value |= UART1RX();
+        brg_value |= user_serial_read_byte();
         uart2_setup(brg_value, mode_configuration.high_impedance,
                     uart_settings.receive_polarity,
                     uart_settings.databits_parity, uart_settings.stop_bits);
@@ -782,7 +782,7 @@ void binUART(void) {
 
 #ifdef BUSPIRATEV4
           if (U2STAbits.URXDA == ON) {
-            UART1TX(U2RXREG);
+            user_serial_transmit_character(U2RXREG);
           }
 #else
           if ((U2STAbits.URXDA == 1) && (U1STAbits.UTXBF == 0)) {
@@ -790,8 +790,8 @@ void binUART(void) {
           }
 #endif /* BUSPIRATEV4 */
           
-          if (UART1RXRdy() && (U2STAbits.UTXBF == 0)) {
-            U2TXREG = UART1RX();
+          if (user_serial_ready_to_read() && (U2STAbits.UTXBF == 0)) {
+            U2TXREG = user_serial_read_byte();
           }
         }
         break;
@@ -810,7 +810,7 @@ void binUART(void) {
       REPORT_IO_SUCCESS();
 
       for (counter = 0; counter < input_byte; counter++) {
-        uart2_tx(UART1RX());
+        uart2_tx(user_serial_read_byte());
         REPORT_IO_SUCCESS();
       }
       break;
@@ -823,7 +823,7 @@ void binUART(void) {
 
 #ifdef BUSPIRATEV4
     case 0b01010000:
-      UART1TX(bp_binary_io_pullup_control(input_byte));
+      user_serial_transmit_character(bp_binary_io_pullup_control(input_byte));
       break;
 #endif /* BUSPIRATEV4 */
       

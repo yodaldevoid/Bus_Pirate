@@ -800,7 +800,7 @@ void interpreter(void) {
           basic_program_counter++;
           while (basic_program_area[basic_program_counter] != '\"') {
             bus_pirate_configuration.quiet = 0;
-            UART1TX(basic_program_area[basic_program_counter++]);
+            user_serial_transmit_character(basic_program_area[basic_program_counter++]);
             bus_pirate_configuration.quiet = 1;
           }
           basic_program_counter++;
@@ -834,7 +834,7 @@ void interpreter(void) {
       {
         basic_program_counter++;
         while (basic_program_area[basic_program_counter] != '\"') {
-          UART1TX(basic_program_area[basic_program_counter++]);
+          user_serial_transmit_character(basic_program_area[basic_program_counter++]);
         }
         basic_program_counter++;
       }
@@ -1170,7 +1170,7 @@ void list(void) {
   while (basic_program_area[basic_program_counter]) {
     c = basic_program_area[basic_program_counter];
     if (c < TOK_LET) {
-      UART1TX(c);
+      user_serial_transmit_character(c);
     } else if (c > TOK_LEN) {
       bpBR;
       // bpWintdec(pc); bpSP;
@@ -1534,7 +1534,7 @@ void format(void) {
       basi2cwrite(0xFF);
     }
     basi2cstop();
-    UART1TX('.');
+    user_serial_transmit_character('.');
     waiteeprom();
   }
   // bpWline("done");
@@ -1599,7 +1599,7 @@ void save(void) {
       basi2cwrite(basic_program_area[i + j]);
     }
     basi2cstop();
-    UART1TX('.');
+    user_serial_transmit_character('.');
     waiteeprom();
   }
 }
@@ -1641,7 +1641,7 @@ void load(void) {
 
   for (i = 0; i < PGMSIZE; i++) {
     if (!(i % EEPROMPAGE))
-      UART1TX('.'); // pure estetic
+      user_serial_transmit_character('.'); // pure estetic
     basic_program_area[i] = basi2cread(1);
   }
 }
