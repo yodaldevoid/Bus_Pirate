@@ -233,7 +233,7 @@ void bp_adc_probe(void) {
 }
 
 void bp_adc_continuous_probe(void) {
-  unsigned int measurement;
+  uint16_t measurement;
 
   MSG_ADC_VOLTMETER_MODE;
   MSG_ANY_KEY_TO_EXIT_PROMPT;
@@ -521,10 +521,22 @@ uint16_t bp_read_from_flash(const uint16_t page, const uint16_t address) {
 
 #ifdef BUSPIRATEV3
 
+/**
+ * @brief User-facing serial ring buffer write pointer.
+ */
 static uint16_t user_serial_ringbuffer_write;
+
+/**
+ * @brief User-facing serial ring buffer read pointer.
+ */
 static uint16_t user_serial_ringbuffer_read;
 
 #ifndef BP_ENABLE_UART_SUPPORT
+
+/**
+ * @brief UART baud rate generator speed values, included here if UART support
+ * is disabled.
+ */
 static const uint16_t UART_BRG_SPEED[] = {
     13332, /* 300 bps */
     3332,  /* 1200 bps */
@@ -570,7 +582,7 @@ void user_serial_initialise(void) {
    * U1STA - UART1 STATUS AND CONTROL REGISTER
    *
    * MSB
-   * 000-01xx 000xxx0x
+   * 000-01xx000xxx0x
    * ||| ||  |||   |
    * ||| ||  |||   +-- OERR:    Overflow flag cleared.
    * ||| ||  ||+------ ADDEN:   Address detect mode disabled.
@@ -582,9 +594,9 @@ void user_serial_initialise(void) {
    */
   U1STA = 0x0400;
 
-
   IFS0bits.U1RXIF = NO;
 }
+
 bool user_serial_transmit_done(void) { return U1STAbits.TRMT; }
 
 bool user_serial_ready_to_read(void) { return U1STAbits.URXDA; }
