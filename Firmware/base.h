@@ -150,7 +150,13 @@ typedef struct {
   uint8_t buf[16];
   uint8_t alternate_aux : 2;
   uint8_t periodicService : 1;
-  uint8_t lsbEN : 1;
+
+  /**
+   * Values that can be either big or little endian are forced to read as
+   * little endian.
+   */
+  uint8_t little_endian : 1;
+
   uint8_t high_impedance : 1;
 
   /**

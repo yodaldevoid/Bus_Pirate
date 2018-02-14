@@ -160,7 +160,7 @@ void read_atr_header(void) {
   MSG_RAW2WIRE_ATR_REPLY_HEADER;
   for (index = 0; index < 4; index++) {
     buffer[index] = bitbang_read_value();
-    if (mode_configuration.lsbEN) {
+    if (mode_configuration.little_endian == YES) {
       buffer[index] = bp_reverse_byte(buffer[index]);
     }
     bp_write_hex_byte(buffer[index]);

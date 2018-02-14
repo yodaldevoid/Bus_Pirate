@@ -577,12 +577,12 @@ end:
                     break;
 #endif /* BUSPIRATEV4 */
                 case 'L':
-                    mode_configuration.lsbEN = 1;
+                    mode_configuration.little_endian = YES;
                     BPMSG1124;
                     bpBR;
                     break;
                 case 'l': 
-                    mode_configuration.lsbEN = 0;
+                    mode_configuration.little_endian = NO;
                     BPMSG1123;
                     bpBR;
                     break;
@@ -853,7 +853,7 @@ bpv4reset:
                             cmdstart &= CMDLENMSK;
                             user_serial_transmit_character(cmdbuf[cmdstart]);
                             sendw = cmdbuf[cmdstart];
-                            if (mode_configuration.lsbEN == 1) //adjust bitorder
+                            if (mode_configuration.little_endian == YES)
                             {
                                 sendw = bp_reverse_integer(sendw, mode_configuration.numbits);
                             }
@@ -904,14 +904,14 @@ bpv4reset:
                             user_serial_transmit_character(';');
                             bp_write_dec_byte(mode_configuration.numbits);
                         }
-                        if (mode_configuration.lsbEN == 1) {//adjust bitorder
+                        if (mode_configuration.little_endian == YES) {
                             sendw = bp_reverse_integer(sendw, mode_configuration.numbits);
                         }
                         received = enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
                         bpSP;
                         if (mode_configuration.write_with_read) { //bpWmessage(MSG_READ);
                             BPMSG1102;
-                            if (mode_configuration.lsbEN == 1) {//adjust bitorder
+                            if (mode_configuration.little_endian == YES) {
                                 received = bp_reverse_integer(received, mode_configuration.numbits);
                             }
                             bp_write_formatted_integer(received);
@@ -939,7 +939,7 @@ bpv4reset:
 						  }
                     while (--repeat) {
                         received = enabled_protocols[bus_pirate_configuration.bus_mode].read();
-                        if (mode_configuration.lsbEN == 1) {//adjust bitorder
+                        if (mode_configuration.little_endian == YES) {
                             received = bp_reverse_integer(received, mode_configuration.numbits);
                         }
                         bp_write_formatted_integer(received);
@@ -1601,7 +1601,7 @@ void statusInfo(void) {
     else BPMSG1121; // bpWmessage(MSG_STATUS_OUTPUT_HIZ); else bpWmessage(MSG_STATUS_OUTPUT_NORMAL);
 
     //bitorder toggle available, enabled
-    if (mode_configuration.lsbEN == 0) BPMSG1123;
+    if (mode_configuration.little_endian == NO) BPMSG1123;
     else BPMSG1124; //bpWmessage(MSG_OPT_BITORDER_LSB); else bpWmessage(MSG_OPT_BITORDER_MSB);
     user_serial_transmit_character(',');
     bpSP;

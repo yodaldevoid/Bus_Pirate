@@ -586,7 +586,7 @@ void binwire(void) {
     static unsigned int cmds, cmdw, cmdr, j;
 
     mode_configuration.high_impedance = 1; //yes, always hiz (bbio uses this setting, should be changed to a setup variable because stringing the modeconfig struct everyhwere is getting ugly!)
-    mode_configuration.lsbEN = 0; //just in case!
+    mode_configuration.little_endian = NO;
     mode_configuration.speed = 1;
     mode_configuration.numbits = 8;
     //startup in raw2wire mode
@@ -643,7 +643,7 @@ void binwire(void) {
                         } else {
                             i = bitbang_read_with_write(0xff);
                         }
-                        if (mode_configuration.lsbEN == 1) {//adjust bitorder
+                        if (mode_configuration.little_endian == YES) {
                             i = bp_reverse_integer(i, mode_configuration.numbits);
                         }
                         user_serial_transmit_character(i);
@@ -687,7 +687,7 @@ void binwire(void) {
 
                 for (i = 0; i < inByte; i++) {
                     c = user_serial_read_byte(); // /* JTR usb port; */;
-                    if (mode_configuration.lsbEN == 1) {//adjust bitorder
+                    if (mode_configuration.little_endian == YES) {
                         c = bp_reverse_integer(c, mode_configuration.numbits);
                     }
                     if (wires == 2) {//2 wire, send 1
@@ -695,7 +695,7 @@ void binwire(void) {
                         user_serial_transmit_character(1);
                     } else { //3 wire, return read byte
                         c = bitbang_read_with_write(c); //send byte
-                        if (mode_configuration.lsbEN == 1) {//adjust bitorder
+                        if (mode_configuration.little_endian == YES) {
                             c = bp_reverse_integer(c, mode_configuration.numbits);
                         }
                         user_serial_transmit_character(c);
@@ -928,8 +928,8 @@ void binwire(void) {
                 wires = 2;
                 if (inByte & 0b100) wires = 3; //3wire/2wire toggle
 
-                mode_configuration.lsbEN = 0;
-                if (inByte & 0b10) mode_configuration.lsbEN = 1; //lsb/msb, bit order
+                mode_configuration.little_endian = NO;
+                if (inByte & 0b10) mode_configuration.little_endian = YES; //lsb/msb, bit order
 
                 //if(inByte&0b1) //bit unused
 

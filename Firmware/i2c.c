@@ -942,7 +942,7 @@ void binary_io_enter_i2c_mode(void) {
   BP_CS_DIR = OUTPUT;
 
   mode_configuration.high_impedance = ON;
-  mode_configuration.lsbEN = OFF;
+  mode_configuration.little_endian = NO;
   bitbang_setup(2, BITBANG_SPEED_MAXIMUM);
   MSG_I2C_MODE_IDENTIFIER;
 

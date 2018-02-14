@@ -1200,7 +1200,7 @@ void binary_io_enter_1wire_mode(void) {
 
   /* Just in case. */
 
-  mode_configuration.lsbEN = false;
+  mode_configuration.little_endian = NO;
 
   /* Send version string. */
 

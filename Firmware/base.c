@@ -131,7 +131,7 @@ void clear_mode_configuration(void) {
   mode_configuration.speed = 0;
   mode_configuration.periodicService = OFF;
   mode_configuration.alternate_aux = 0;
-  mode_configuration.lsbEN = OFF;
+  mode_configuration.little_endian = NO;
 }
 
 void bp_reset_board_state(void) {
