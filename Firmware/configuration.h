@@ -396,6 +396,16 @@
 
 #ifdef BP_ENABLE_BASIC_SUPPORT
 
+/**
+ * Enable the `DEBUG` command at the BASIC interpreter prompt, to dump the
+ * tokenised program that is currently in memory.
+ * 
+ * Disabled by default as it is not really useful for normal usage of the
+ * Bus Pirate.
+ */
+
+#undef BP_BASIC_DEBUG_COMMAND
+
 #ifdef BUSPIRATEV4
 
 /**
@@ -405,9 +415,7 @@
  * Disabled by default as the code involved has not been tested yet.
  */
 
-/*
- #define BP_BASIC_I2C_FILESYSTEM
- */
+#undef BP_BASIC_I2C_FILESYSTEM
 
 #endif /* BUSPIRATEV4 */
 

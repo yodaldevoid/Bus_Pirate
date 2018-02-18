@@ -1,18 +1,27 @@
-
 /*
  * This file is part of the Bus Pirate project
  * (http://code.google.com/p/the-bus-pirate/).
  *
- * Initial written by Chris van Dongen, 2010.
+ * Initially written by Chris van Dongen, 2010.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * Written and maintained by the Bus Pirate project.
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate.  This work is published from
+ * United States.
+ *
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
+ */
+
+/**
+ * @file basic.c
+ *
+ * @brief BASIC interpreter functions implementation file.
  */
 
 #include "basic.h"
@@ -37,7 +46,7 @@
 #endif /* BP_BASIC_STACK_FRAMES_DEPTH <= 1*/
 
 /**
- * How many variables the BASIC interpreter can handle.
+ * @brief How many variables the BASIC interpreter can handle.
  *
  * Currently set to 26 to handle variables identified from 'A' to 'Z'.
  */
@@ -48,6 +57,8 @@
 #include "bitbang.h"
 #include "core.h"
 #include "proc_menu.h"
+
+#define INVALID_TOKEN 0x00
 
 #define TOKENS 0x80
 #define TOK_LET 0x80
@@ -127,15 +138,71 @@
 #define STAT_DUTY "DUTY"
 #define STAT_MACRO "MACRO"
 
-#define NOERROR 1
-#define NOLEN 2
-#define SYNTAXERROR 3
-#define FORERROR 4
-#define NEXTERROR 5
-#define GOTOERROR 6
-#define STACKERROR 7
-#define RETURNERROR 8
-#define DATAERROR 9
+/**
+ * @brief Status codes enumeration for the internal BASIC parser.
+ */
+typedef enum {
+
+  /**
+   * No status has been obtained yet.
+   */
+  STATUS_CODE_UNKNOWN = 0,
+
+  /**
+   * An `END` statement was reached whilst parsing the program.
+   */
+  STATUS_CODE_FINISHED,
+
+  /**
+   * A partial instruction was found in the program listing.
+   */
+  STATUS_CODE_PARTIAL_INSTRUCTION_ERROR,
+
+  /**
+   * A syntax error was found.
+   */
+  STATUS_CODE_SYNTAX_ERROR,
+
+  /**
+   * An invalid `FOR` statement was parsed.
+   */
+  STATUS_CODE_FOR_ERROR,
+
+  /**
+   * An invalid `NEXT` statement was parsed.
+   */
+  STATUS_CODE_NEXT_ERROR,
+
+  /**
+   * An invalid `GOTO` statement was parsed.
+   */
+  STATUS_CODE_GOTO_ERROR,
+
+  /**
+   * A call stack overflow was observed.
+   */
+  STATUS_CODE_STACK_ERROR,
+
+  /**
+   * An invalid `RETURN` statement was parsed.
+   */
+  STATUS_CODE_RETURN_ERROR,
+
+  /**
+   * One or more invalid `DATA` statements were found.
+   */
+  STATUS_CODE_DATA_ERROR
+} __attribute__((packed)) basic_status_code_t;
+
+/**
+ * @brief Flag indicating that the chosen line number was not found.
+ */
+#define LINE_NUMBER_NOT_FOUND NO
+
+/**
+ * @brief Flag indicating that the chosen line number was found.
+ */
+#define LINE_NUMBER_FOUND YES
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
@@ -143,18 +210,22 @@ extern command_t last_command;
 extern bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT];
 
 typedef struct {
-  unsigned int from;
-  unsigned int var;
-  unsigned int to;
+  uint16_t from;
+  uint16_t var;
+  uint16_t to;
 } __attribute__((packed)) basic_for_loop_t;
 
-static int basic_variables[BP_BASIC_VARIABLES_COUNT];
-static int basic_stack[BP_BASIC_STACK_FRAMES_DEPTH];
+static int16_t basic_variables[BP_BASIC_VARIABLES_COUNT];
+static int16_t basic_stack[BP_BASIC_STACK_FRAMES_DEPTH];
 static basic_for_loop_t basic_nested_for_loops[BP_BASIC_NESTED_FOR_LOOP_COUNT];
-static unsigned int basic_program_counter;
-static unsigned int basic_current_nested_for_index;
-static unsigned int basic_current_stack_frame;
-static unsigned int basic_data_read_pointer;
+static uint16_t basic_program_counter;
+static uint16_t basic_current_nested_for_index;
+static uint16_t basic_current_stack_frame;
+
+/**
+ * @brief Offset variable for `DATA` statements.
+ */
+static uint16_t basic_data_read_pointer;
 
 static char *tokens[NUMTOKEN + 1] = {
     STAT_LET,     // 0x80
@@ -191,302 +262,88 @@ static char *tokens[NUMTOKEN + 1] = {
     STAT_DUTY,    // 0x9f
 
     STAT_MACRO, // 0xA0
-    STAT_END,   // 0xa1
+    STAT_END,   // 0xA1
 };
-
-static uint8_t basic_program_area[BP_BASIC_PROGRAM_SPACE]; /*={
-
-// basic basic test :D
-#ifdef BASICTEST
-TOK_LEN+10, 0, 100, TOK_REM, 'b', 'a', 's', 'i', 'c', 't', 'e', 's', 't',
-TOK_LEN+ 7, 0, 110, TOK_LET, 'A', '=', 'C', '+', '1', '6',
-TOK_LEN+ 6, 0, 120, TOK_FOR, 'B', '=', '1', TOK_TO, '3',
-TOK_LEN+ 6, 0, 125, TOK_FOR, 'D', '=', '0', TOK_TO, '1',
-TOK_LEN+23, 0, 130, TOK_PRINT, '\"', 'A', '=', '\"', ';', 'A', ';', '\"', ' ',
-'B', '=', '\"', ';', 'B', ';', '\"', ' ', 'D', '=', '\"', ';', 'D', //';',
-TOK_LEN+ 2, 0, 135, TOK_NEXT, 'D',
-TOK_LEN+ 2, 0, 140, TOK_NEXT, 'B',
-TOK_LEN+12, 0, 200, TOK_INPUT, '\"', 'E', 'n', 't', 'e', 'r', ' ', 'C', '\"',
-',','C',
-TOK_LEN+ 2, 0, 201, TOK_READ, 'C',
-TOK_LEN+ 5, 0, 202, TOK_GOSUB, '1', '0', '0', '0',
-TOK_LEN+ 2, 0, 203, TOK_READ, 'C',
-TOK_LEN+ 5, 0, 204, TOK_GOSUB, '1', '0', '0', '0',
-TOK_LEN+ 2, 0, 205, TOK_READ, 'C',
-TOK_LEN+ 5, 0, 206, TOK_GOSUB, '1', '0', '0', '0',
-TOK_LEN+ 2, 0, 207, TOK_READ, 'C',
-TOK_LEN+ 5, 0, 210, TOK_GOSUB, '1', '0', '0', '0',
-TOK_LEN+26, 0, 220, TOK_IF, 'C', '=', '2', '0', TOK_THEN, TOK_PRINT, '\"', 'C',
-'=', '2', '0', '!', '!', '\"', ';', TOK_ELSE, TOK_PRINT, '\"', 'C', '!', '=',
-'2', '0', '"', ';',
-TOK_LEN+ 1, 0, 230, TOK_END,
-TOK_LEN+ 7, 3, 232, TOK_PRINT, '\"', 'C', '=', '\"', ';', 'C',
-TOK_LEN+ 1, 3, 242, TOK_RETURN,
-TOK_LEN+ 6, 7, 208, TOK_DATA, '1', ',', '2', ',', '3',
-TOK_LEN+ 3, 7, 218, TOK_DATA, '2', '0',
-TOK_LEN+ 1, 255, 255, TOK_END,
-#endif
-
-
-// I2C basic test (24lc02)
-
-#ifdef BASICTEST_I2C
-TOK_LEN+18, 0, 100, TOK_REM, 'I', '2', 'C', ' ', 't', 'e', 's', 't', ' ', '(',
-'2', '4', 'l', 'c', '0', '2', ')',
-TOK_LEN+ 2, 0, 110, TOK_PULLUP, '1',
-TOK_LEN+ 2, 0, 120, TOK_PSU, '1',
-TOK_LEN+ 4, 0, 130, TOK_DELAY, '2', '5', '5',
-TOK_LEN+ 1, 0, 140, TOK_STOP,
-TOK_LEN+ 5, 0, 150, TOK_GOSUB, '1', '0', '0', '0',
-TOK_LEN+ 1, 0, 200, TOK_START,
-TOK_LEN+ 4, 0, 210, TOK_SEND, '1', '6', '0',
-TOK_LEN+ 2, 0, 220, TOK_SEND, '0',
-TOK_LEN+ 6, 0, 230, TOK_FOR, 'A', '=', '1', TOK_TO, '8',
-TOK_LEN+ 2, 0, 240, TOK_READ, 'B',
-TOK_LEN+ 2, 0, 250, TOK_SEND, 'B',
-TOK_LEN+ 2, 0, 200, TOK_NEXT, 'A',
-TOK_LEN+ 1, 1,   4, TOK_STOP,
-TOK_LEN+ 4, 1,  14, TOK_DELAY, '2', '5', '5',
-TOK_LEN+ 5, 1,  24, TOK_GOSUB, '1', '0', '0', '0',
-TOK_LEN+ 2, 1,  34, TOK_PSU, '0',
-TOK_LEN+ 2, 1,  44, TOK_PULLUP, '0',
-TOK_LEN+ 1, 1,  54, TOK_END,
-TOK_LEN+13, 3, 232, TOK_REM, 'D', 'u', 'm', 'p', ' ', '8', ' ', 'b', 'y', 't',
-'e', 's',
-TOK_LEN+ 1, 3, 242, TOK_START,
-TOK_LEN+ 4, 3, 252, TOK_SEND, '1', '6', '0',
-TOK_LEN+ 2, 4,   6, TOK_SEND, '0',
-TOK_LEN+ 1, 4,  16, TOK_START,
-TOK_LEN+ 4, 4,  26, TOK_SEND, '1', '6', '1',
-TOK_LEN+ 7, 4,  36, TOK_PRINT, TOK_RECEIVE, ';', '"', ' ', '"', ';',
-TOK_LEN+ 7, 4,  46, TOK_PRINT, TOK_RECEIVE, ';', '"', ' ', '"', ';',
-TOK_LEN+ 7, 4,  56, TOK_PRINT, TOK_RECEIVE, ';', '"', ' ', '"', ';',
-TOK_LEN+ 7, 4,  66, TOK_PRINT, TOK_RECEIVE, ';', '"', ' ', '"', ';',
-TOK_LEN+ 7, 4,  76, TOK_PRINT, TOK_RECEIVE, ';', '"', ' ', '"', ';',
-TOK_LEN+ 7, 4,  86, TOK_PRINT, TOK_RECEIVE, ';', '"', ' ', '"', ';',
-TOK_LEN+ 7, 4,  96, TOK_PRINT, TOK_RECEIVE, ';', '"', ' ', '"', ';',
-TOK_LEN+ 2, 4, 106, TOK_PRINT, TOK_RECEIVE,
-TOK_LEN+ 1, 4, 116, TOK_STOP,
-TOK_LEN+ 1, 4, 116, TOK_RETURN,
-TOK_LEN+16, 7, 208, TOK_DATA, '2', '5' ,'5', ',', '2', '5' ,'5', ',','2', '5'
-,'5', ',','2', '5' ,'5',
-TOK_LEN+16, 7, 218, TOK_DATA, '2', '5' ,'5', ',', '2', '5' ,'5', ',','2', '5'
-,'5', ',','2', '5' ,'5',
-#endif
-
-// UART test (serial rfid reader from seed)
-#ifdef BASICTEST_UART
-TOK_LEN+15, 0, 100, TOK_REM, 'U', 'A', 'R', 'T', ' ', 't', 'e', 's', 't', ' ',
-'r', 'f', 'i', 'd',
-TOK_LEN+ 2, 0, 110, TOK_PSU, '1',
-TOK_LEN+ 4, 0, 120, TOK_DELAY, '2', '5', '5',
-TOK_LEN+ 5, 0, 130, TOK_GOSUB, '1', '0', '0', '0',
-TOK_LEN+ 3, 0, 135, TOK_DELAY, '1', '0',
-//TOK_LEN+12, 0, 140, TOK_IF, TOK_RECEIVE, '!', '=', '5', '2', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 145, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 150, TOK_IF, TOK_RECEIVE, '!', '=', '5', '4', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 155, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 160, TOK_IF, TOK_RECEIVE, '!', '=', '4', '8', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 165, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 170, TOK_IF, TOK_RECEIVE, '!', '=', '4', '8', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 175, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 180, TOK_IF, TOK_RECEIVE, '!', '=', '5', '4', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 185, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 190, TOK_IF, TOK_RECEIVE, '!', '=', '5', '3', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 195, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 200, TOK_IF, TOK_RECEIVE, '!', '=', '5', '5', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 205, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 210, TOK_IF, TOK_RECEIVE, '!', '=', '5', '5', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 215, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 220, TOK_IF, TOK_RECEIVE, '!', '=', '5', '7', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 225, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 230, TOK_IF, TOK_RECEIVE, '!', '=', '5', '4', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 235, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 240, TOK_IF, TOK_RECEIVE, '!', '=', '6', '7', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-//TOK_LEN+ 2, 0, 245, TOK_DELAY, '1',
-//TOK_LEN+12, 0, 250, TOK_IF, TOK_RECEIVE, '!', '=', '5', '0', TOK_THEN,
-TOK_GOTO, '2', '0', '2', '0',
-TOK_LEN+ 6, 0, 140, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 145, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 150, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 155, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 160, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 165, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 170, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 175, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 180, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 185, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 190, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 195, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 200, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 205, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 210, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 215, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 220, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 225, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 230, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 235, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 240, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 3, 0, 245, TOK_DELAY, '5', '0',
-TOK_LEN+ 6, 0, 250, TOK_PRINT, TOK_RECEIVE, '"', ' ', '"', ';',
-//TOK_LEN+ 5, 1,   4, TOK_GOTO, '2', '0', '0', '0',
-TOK_LEN+ 4, 1,  14, TOK_GOTO, '1', '3', '0',
-TOK_LEN+13, 3, 232, TOK_REM, 'W', 'a', 'i', 't', ' ', 'f', 'o', 'r', ' ', 'S',
-'T', 'X',
-TOK_LEN+ 4, 3, 242, TOK_LET, 'A', '=', TOK_RECEIVE,
-TOK_LEN+12, 3, 252, TOK_IF, 'A', '=', '2', TOK_THEN, TOK_RETURN, TOK_ELSE,
-TOK_GOTO, '1', '0', '1', '0',
-//TOK_LEN+ 8, 7, 208, TOK_PRINT, '"', 'V', 'A', 'L', 'I', 'D', '"',
-//TOK_LEN+ 4, 7, 218, TOK_GOTO, '1', '3', '0',
-//TOK_LEN+10, 7, 228, TOK_PRINT, '"', 'I', 'N', 'V', 'A', 'L', 'I', 'D', '"',
-//TOK_LEN+ 4, 7, 238, TOK_GOTO, '1', '3', '0',
-#endif
-
-// raw3wire test (atiny85)
-#ifdef BASICTEST_R3W
-TOK_LEN+22, 0, 10, TOK_REM, 'r', '2', 'w', 'i', 'r', 'e', ' ', 't', 'e', 's',
-'t', ' ', '(', 'a', 't', 'i', 'n', 'y', '8', '5', ')',
-TOK_LEN+ 2, 0, 100, TOK_PULLUP, '1',
-TOK_LEN+ 2, 0, 110, TOK_CLK, '0',
-TOK_LEN+ 2, 0, 120, TOK_DAT, '0',
-TOK_LEN+ 2, 0, 130, TOK_AUX, '0',
-TOK_LEN+ 2, 0, 140, TOK_PSU, '1',
-TOK_LEN+ 4, 0, 150, TOK_DELAY, '2', '5', '5',
-TOK_LEN+ 1, 0, 160, TOK_STARTR,
-TOK_LEN+ 7, 0, 170, TOK_LET, 'A', '=', TOK_SEND, '1', '7', '2',
-TOK_LEN+ 6, 0, 180, TOK_LET, 'B', '=', TOK_SEND, '8', '3',
-TOK_LEN+ 5, 0, 190, TOK_LET, 'C', '=', TOK_SEND, '0',
-TOK_LEN+ 5, 0, 200, TOK_LET, 'D', '=', TOK_SEND, '0',
-TOK_LEN+ 8, 0, 210, TOK_IF, 'C', '!', '=', '8', '3', TOK_THEN, TOK_END,
-TOK_LEN+15, 0, 220, TOK_PRINT, '"', 'F', 'O', 'U', 'N', 'D', ' ', 'D', 'E', 'V',
-'I', 'C', 'E', '"',
-TOK_LEN+13, 0, 230, TOK_PRINT, '"', 'd', 'e', 'v', 'i', 'c', 'e', 'I', 'D', ':',
-'"', ';',
-TOK_LEN+ 6, 0, 240, TOK_LET, 'A', '=', TOK_SEND, '4', '8',
-TOK_LEN+ 5, 0, 250, TOK_LET, 'B', '=', TOK_SEND, '0',
-TOK_LEN+ 5, 1,   4, TOK_LET, 'C', '=', TOK_SEND, '0',
-TOK_LEN+ 5, 1,  14, TOK_LET, 'D', '=', TOK_SEND, '0',
-TOK_LEN+ 7, 1,  24, TOK_PRINT, 'D', ';', '"', ' ', '"', ';',
-TOK_LEN+ 6, 1,  34, TOK_LET, 'A', '=', TOK_SEND, '4', '8',
-TOK_LEN+ 5, 1,  44, TOK_LET, 'B', '=', TOK_SEND, '0',
-TOK_LEN+ 5, 1,  54, TOK_LET, 'C', '=', TOK_SEND, '1',
-TOK_LEN+ 5, 1,  64, TOK_LET, 'D', '=', TOK_SEND, '0',
-TOK_LEN+ 7, 1,  74, TOK_PRINT, 'D', ';', '"', ' ', '"', ';',
-TOK_LEN+ 6, 1,  84, TOK_LET, 'A', '=', TOK_SEND, '4', '8',
-TOK_LEN+ 5, 1,  94, TOK_LET, 'B', '=', TOK_SEND, '0',
-TOK_LEN+ 5, 1, 104, TOK_LET, 'C', '=', TOK_SEND, '2',
-TOK_LEN+ 5, 1, 114, TOK_LET, 'D', '=', TOK_SEND, '0',
-TOK_LEN+ 2, 1, 124, TOK_PRINT, 'D',
-TOK_LEN+14, 1, 134, TOK_PRINT, '"', 'd', 'e', 'v', 'i', 'c', 'e', ' ', 'i', 's',
-' ', '"', ';',
-TOK_LEN+ 6, 1,  84, TOK_LET, 'A', '=', TOK_SEND, '8', '8',
-TOK_LEN+ 5, 1,  94, TOK_LET, 'B', '=', TOK_SEND, '0',
-TOK_LEN+ 5, 1, 104, TOK_LET, 'C', '=', TOK_SEND, '2',
-TOK_LEN+ 5, 1, 114, TOK_LET, 'D', '=', TOK_SEND, '0',
-TOK_LEN+26, 1, 124, TOK_IF, 'D', '=', '3', TOK_THEN, TOK_PRINT, '"', 'U', 'N',
-'L', 'O', 'C', 'K', 'E', 'D', '"', TOK_ELSE, TOK_PRINT, '"', 'L', 'O', 'C', 'K',
-'E', 'D','"',
-TOK_LEN+ 1, 1, 134, TOK_END,
-#endif
-
-#ifdef BASICTEST_PIC10
-
-TOK_LEN+15, 0, 100, TOK_REM, 'P', 'R', 'O', 'G', 'R', 'A', 'M', ' ', 'P', 'I',
-'C', '1', '0', 'F',
-TOK_LEN+ 7, 0, 110, TOK_FOR, 'A', '=', '1', TOK_TO, '2', '4',
-TOK_LEN+ 1, 0, 120, TOK_START,
-TOK_LEN+ 2, 0, 130, TOK_SEND, '2',
-TOK_LEN+ 1, 0, 140, TOK_STOP,
-TOK_LEN+ 2, 0, 150, TOK_READ, 'B',
-TOK_LEN+ 2, 0, 160, TOK_SEND, 'B',
-TOK_LEN+ 1, 0, 170, TOK_START,
-TOK_LEN+ 2, 0, 180, TOK_SEND, '8',
-TOK_LEN+ 2, 0, 190, TOK_DELAY, '2',
-TOK_LEN+ 3, 0, 200, TOK_SEND, '1', '4',
-TOK_LEN+ 2, 0, 210, TOK_SEND, '6',
-TOK_LEN+ 1, 0, 210, TOK_STOP,
-TOK_LEN+ 2, 0, 220, TOK_NEXT, 'A',
-TOK_LEN+ 1, 0, 230, TOK_START,
-TOK_LEN+ 9, 0, 240, TOK_FOR, 'A', '=', '2', '5', TOK_TO, '5', '1', '2',
-TOK_LEN+ 2, 0, 250, TOK_SEND, '6',
-TOK_LEN+ 2, 1,   4, TOK_NEXT, 'A',
-TOK_LEN+ 2, 1,  14, TOK_SEND, '2',
-TOK_LEN+ 1, 1,  24, TOK_STOP,
-TOK_LEN+ 2, 1,  34, TOK_READ, 'B',
-TOK_LEN+ 2, 1,  44, TOK_SEND, 'B',
-TOK_LEN+ 1, 1,  54, TOK_START,
-TOK_LEN+ 2, 1,  64, TOK_SEND, '8',
-TOK_LEN+ 2, 1,  74, TOK_DELAY, '2',
-TOK_LEN+ 3, 1,  84, TOK_SEND, '1', '4',
-TOK_LEN+ 1, 1,  94, TOK_STOP,
-TOK_LEN+ 1, 1, 104, TOK_END,
-//TOK_LEN+11, 3, 232, TOK_REM, 'C', 'O', 'N', 'F', 'I', 'G', 'W', 'O', 'R', 'D',
-TOK_LEN+ 5, 3, 232, TOK_DATA, '4', '0', '7', '5',
-//TOK_LEN+ 5, 7, 208, TOK_REM, 'M', 'A', 'I', 'N',
-TOK_LEN+26, 7, 208, TOK_DATA, '3', '7', ',', '1', '0', '2', '9', ',', '2', '5',
-'7', '3', ',', '3', '3', '2', '2', ',', '4', '9', ',', '3', '3', '2', '7',
-TOK_LEN+26, 7, 218, TOK_DATA, '5', '0', ',', '7', '5', '3', ',', '2', '5', '7',
-'0', ',', '2', '0', '4', '8', ',', '7', '5', '4', ',', '2', '5', '7', '0',
-TOK_LEN+25, 7, 228, TOK_DATA, '2', '5', '6', '7', ',', '3', '2', '6', '4', ',',
-'2', ',', '3', '0', '7', '2', ',', '3', '8', ',', '3', '3', '2', '3',
-TOK_LEN+21, 7, 238, TOK_DATA, '6', ',', '3', '0', '7', '6', ',', '4', '2', '2',
-',', '2', '3', '0', '7', ',', '2', '5', '7', '9',
-//TOK_LEN+ 7,11, 184, TOK_REM, 'O', 'S', 'C', 'C', 'A', 'L',
-TOK_LEN+ 5,11, 184, TOK_DATA, '3', '0', '9', '6',
-
-// data statements and rems aren't mixing well!
-#endif
-#ifdef BASICTEST_PIC10_2
-
-TOK_LEN+12, 0, 100, TOK_REM, 'D', 'U', 'M', 'P', ' ', 'P', 'I', 'C', '1', '0',
-'F',
-TOK_LEN+ 8, 0, 110, TOK_FOR, 'A', '=', '1', TOK_TO, '5', '1', '8',
-TOK_LEN+ 1, 0, 120, TOK_START,
-TOK_LEN+ 2, 0, 130, TOK_SEND, '4',
-TOK_LEN+ 1, 0, 140, TOK_STOP,
-TOK_LEN+ 7, 0, 150, TOK_PRINT, TOK_RECEIVE, ';', '"', ',', '"', ';',
-TOK_LEN+ 1, 0, 160, TOK_START,
-TOK_LEN+ 2, 0, 170, TOK_SEND, '6',
-TOK_LEN+ 2, 0, 180, TOK_NEXT, 'A',
-TOK_LEN+ 1, 0, 190, TOK_END,
-#endif
-
-
-0x00,0x00,
-};
-*/
 
 /**
- * Scans the currently loaded program to find the token index of the given line
- * number.
+ * @brief BASIC program data area.
+ */
+static uint8_t basic_program_area[BP_BASIC_PROGRAM_SPACE] = {0};
+
+/**
+ * @brief Scans the currently loaded program to find the token index of the
+ * given line number.
  *
  * @param[in] line the line number to obtain an offset for.
- * @return the offset inside basic_program_area where the given line starts, or
- * -1 if no such line was found.
+ * @param[out] result the offset in program memory for the line in question.
+ *
+ * @return LINE_NUMBER_FOUND if a matching line was found in program memory.
+ * @return LINE_NUMBER_NOT_FOUND if no matching line was found in program
+ * memory.
+ *
+ * @see LINE_NUMBER_FOUND
+ * @see LINE_NUMBER_NOT_FOUND
+ *
  */
-static int search_line_number(uint16_t line);
+static bool search_line_number(const uint16_t line, uint16_t *result);
 
-static int handle_special_token(const uint8_t token);
+/**
+ * @brief Handles execution of particular tokens that are related to
+ * the interface with the board hardware.
+ *
+ * Said tokens are `RECEIVE`, `SEND`, `AUX`, `DAT`, `BITREAD`, `PSU`,
+ * `PULLUP`, and `ADC`.
+ *
+ * @param[in] token the token identifier to handle.
+ *
+ * @return the result value for the given execution, or 0 if the token was not
+ * one of the special ones the function can handle.
+ *
+ * @see TOK_RECEIVE
+ * @see TOK_SEND
+ * @see TOK_AUX
+ * @see TOK_DAT
+ * @see TOK_BITREAD
+ * @see TOK_PSU
+ * @see TOK_PULLUP
+ * @see TOK_ADC
+ */
+static uint16_t handle_special_token(const uint8_t token);
+
+/**
+ * @brief Checks whether the string at the BASIC parser current position matches
+ * a valid token, and returns it if one is found.
+ *
+ * @return the token identifier if a matching token is found.
+ * @return INVALID_TOKEN if no valid token was found.
+ *
+ * @see INVALID_TOKEN
+ */
+static uint8_t get_token(void);
 
 static void list(void);
 static void interpreter(void);
+
+/**
+ * @brief Handles an else statement if one is detected.
+ */
 static void handle_else_statement(void);
-static int get_number_or_variable(void);
-static int get_multiplication_division_bitwise_ops(void);
-static int assign(void);
+
+static int16_t get_number_or_variable(void);
+static int16_t get_multiplication_division_bitwise_ops(void);
+static int16_t assign(void);
 static void interpreter(void);
 static void list(void);
+
+/**
+ * @brief Compares the string pointed by the given pointer with the current
+ * program space buffer pointer.
+ *
+ * @param[in] pointer the string to match.
+ *
+ * @return YES if the string matches, NO otherwise.
+ */
+static bool compare(char *pointer);
 
 #ifdef BP_BASIC_I2C_FILESYSTEM
 static void directory(void);
@@ -497,37 +354,39 @@ static void waiteeprom(void);
 #endif /* BP_BASIC_I2C_FILESYSTEM */
 
 void handle_else_statement(void) {
-  if (basic_program_area[basic_program_counter] == TOK_ELSE) {
+  if (basic_program_area[basic_program_counter] != TOK_ELSE) {
+    return;
+  }
+
+  basic_program_counter++;
+  while (basic_program_area[basic_program_counter] <= TOK_LEN) {
     basic_program_counter++;
-    while (basic_program_area[basic_program_counter] <= TOK_LEN) {
-      basic_program_counter++;
-    }
   }
 }
 
-int search_line_number(uint16_t line) {
-  size_t index;
+bool search_line_number(const uint16_t line, uint16_t *result) {
+  size_t index = 0;
   uint8_t token_length;
   uint16_t current_line_number;
 
-  index = 0;
   for (;;) {
     if (basic_program_area[index] <= TOK_LEN) {
-      return -1;
+      return LINE_NUMBER_NOT_FOUND;
     }
     token_length = basic_program_area[index] - TOK_LEN;
     current_line_number =
         (basic_program_area[index + 1] << 8) + basic_program_area[index + 2];
     if (line == current_line_number) {
-      return index;
+      *result = index;
+      return LINE_NUMBER_FOUND;
     }
     index += token_length + 3;
   }
 
-  return -1;
+  return LINE_NUMBER_NOT_FOUND;
 }
 
-int handle_special_token(const uint8_t token) {
+uint16_t handle_special_token(const uint8_t token) {
   switch (token) {
 
   case TOK_RECEIVE:
@@ -552,7 +411,7 @@ int handle_special_token(const uint8_t token) {
     return ~BP_PULLUP;
 
   case TOK_ADC: {
-    int adc_measurement;
+    uint16_t adc_measurement;
 
     ADCON();
     adc_measurement = bp_read_adc(BP_ADC_PROBE);
@@ -566,10 +425,8 @@ int handle_special_token(const uint8_t token) {
   }
 }
 
-int get_number_or_variable(void) {
-  int temp;
-
-  temp = 0;
+int16_t get_number_or_variable(void) {
+  int16_t temp = 0;
 
   if ((basic_program_area[basic_program_counter] == '(')) {
     basic_program_counter++;
@@ -598,10 +455,8 @@ int get_number_or_variable(void) {
   return temp;
 }
 
-int get_multiplication_division_bitwise_ops(void) {
-  int temp;
-
-  temp = get_number_or_variable();
+int16_t get_multiplication_division_bitwise_ops(void) {
+  int16_t temp = get_number_or_variable();
 
   for (;;) {
     switch (basic_program_area[basic_program_counter++]) {
@@ -627,10 +482,8 @@ int get_multiplication_division_bitwise_ops(void) {
   }
 }
 
-int assign(void) {
-  unsigned int temp;
-
-  temp = get_multiplication_division_bitwise_ops();
+int16_t assign(void) {
+  int16_t temp = get_multiplication_division_bitwise_ops();
 
   for (;;) {
     switch (basic_program_area[basic_program_counter++]) {
@@ -674,31 +527,28 @@ int assign(void) {
 }
 
 void interpreter(void) {
+  bool program_counter_updated = NO;
+  basic_status_code_t status = STATUS_CODE_UNKNOWN;
+
   int len = 0;
-  unsigned int lineno;
+  unsigned int lineno = 0;
   int i;
-  int stop;
-  int pcupdated;
-  int ifstat;
+  int ifstat = 0;
 
   int temp;
 
   basic_program_counter = 0;
-  stop = 0;
-  pcupdated = 0;
-  ifstat = 0;
   basic_current_nested_for_index = 0;
   basic_current_stack_frame = 0;
   basic_data_read_pointer = 0;
-  lineno = 0;
   bus_pirate_configuration.quiet = ON;
 
   memset((void *)&basic_variables, 0, sizeof(basic_variables));
 
-  while (!stop) {
+  while (status == STATUS_CODE_UNKNOWN) {
     if (!ifstat) {
       if (basic_program_area[basic_program_counter] < TOK_LEN) {
-        stop = NOLEN;
+        status = STATUS_CODE_PARTIAL_INSTRUCTION_ERROR;
         break;
       }
 
@@ -709,10 +559,9 @@ void interpreter(void) {
 
     ifstat = 0;
 
-    switch (basic_program_area[basic_program_counter + 3]) // first token
-    {
+    switch (basic_program_area[basic_program_counter + 3]) {
     case TOK_LET:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 6;
 
       basic_variables[basic_program_area[basic_program_counter - 2] - 0x41] =
@@ -721,7 +570,7 @@ void interpreter(void) {
       break;
 
     case TOK_IF:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       if (assign()) {
@@ -741,66 +590,68 @@ void interpreter(void) {
       }
       break;
 
-    case TOK_GOTO:
-      pcupdated = 1;
+    case TOK_GOTO: {
+      uint16_t line_number;
+
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
-      temp = search_line_number(assign());
-      if (temp != -1) {
-        basic_program_counter = temp;
+      if (search_line_number(assign(), &line_number)) {
+        basic_program_counter = line_number;
       } else {
-        stop = GOTOERROR;
+        status = STATUS_CODE_GOTO_ERROR;
       }
       break;
+    }
 
-    case TOK_GOSUB:
-      pcupdated = 1;
+    case TOK_GOSUB: {
+      uint16_t line_number;
+
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       if (basic_current_stack_frame < BP_BASIC_STACK_FRAMES_DEPTH) {
         basic_stack[basic_current_stack_frame] =
             basic_program_counter + len - 1;
         basic_current_stack_frame++;
-        temp = search_line_number(assign());
-        // bpSP; bpWinthex(temp); bpSP;
-        if (temp != -1) {
-          basic_program_counter = temp;
+        if (search_line_number(assign(), &line_number)) {
+          basic_program_counter = line_number;
         } else {
-          stop = GOTOERROR;
+          status = STATUS_CODE_GOTO_ERROR;
         }
       } else {
-        stop = STACKERROR;
+        status = STATUS_CODE_STACK_ERROR;
       }
       break;
+    }
 
     case TOK_RETURN:
       bp_write_string(STAT_RETURN);
 
-      pcupdated = 1;
+      program_counter_updated = YES;
       if (basic_current_stack_frame) {
         basic_program_counter = basic_stack[--basic_current_stack_frame];
       } else {
-        stop = RETURNERROR;
+        status = STATUS_CODE_RETURN_ERROR;
       }
       break;
 
     case TOK_REM:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += len + 3;
       break;
 
     case TOK_PRINT:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
       while ((basic_program_area[basic_program_counter] < TOK_LEN) &&
              (basic_program_area[basic_program_counter] != TOK_ELSE)) {
-        if (basic_program_area[basic_program_counter] ==
-            '\"') // is it a string?
-        {
+        if (basic_program_area[basic_program_counter] == '\"') {
           basic_program_counter++;
           while (basic_program_area[basic_program_counter] != '\"') {
             bus_pirate_configuration.quiet = 0;
-            user_serial_transmit_character(basic_program_area[basic_program_counter++]);
+            user_serial_transmit_character(
+                basic_program_area[basic_program_counter++]);
             bus_pirate_configuration.quiet = 1;
           }
           basic_program_counter++;
@@ -812,8 +663,7 @@ void interpreter(void) {
           bus_pirate_configuration.quiet = 0;
           bp_write_dec_word(temp);
           bus_pirate_configuration.quiet = 1;
-        } else if (basic_program_area[basic_program_counter] == ';') // spacer
-        {
+        } else if (basic_program_area[basic_program_counter] == ';') {
           basic_program_counter++;
         }
       }
@@ -826,38 +676,38 @@ void interpreter(void) {
       break;
 
     case TOK_INPUT:
-      pcupdated = 1;
-      bus_pirate_configuration.quiet = 0; // print prompt
+      program_counter_updated = YES;
+      bus_pirate_configuration.quiet = NO;
       basic_program_counter += 4;
 
-      if (basic_program_area[basic_program_counter] == '\"') // is it a string?
-      {
+      if (basic_program_area[basic_program_counter] == '\"') {
         basic_program_counter++;
         while (basic_program_area[basic_program_counter] != '\"') {
-          user_serial_transmit_character(basic_program_area[basic_program_counter++]);
+          user_serial_transmit_character(
+              basic_program_area[basic_program_counter++]);
         }
         basic_program_counter++;
       }
       if (basic_program_area[basic_program_counter] == ',') {
         basic_program_counter++;
       } else {
-        stop = SYNTAXERROR;
+        status = STATUS_CODE_SYNTAX_ERROR;
       }
 
       basic_variables[basic_program_area[basic_program_counter] - 'A'] =
           getnumber(0, 0, 0x7FFF, 0);
       basic_program_counter++;
       handle_else_statement();
-      bus_pirate_configuration.quiet = ON;
+      bus_pirate_configuration.quiet = YES;
       break;
 
     case TOK_FOR:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
       if (basic_current_nested_for_index < BP_BASIC_NESTED_FOR_LOOP_COUNT) {
         basic_current_nested_for_index++;
       } else {
-        stop = FORERROR; // to many nested fors
+        status = STATUS_CODE_FOR_ERROR;
       }
       basic_nested_for_loops[basic_current_nested_for_index].var =
           (basic_program_area[basic_program_counter++] - 'A') + 1;
@@ -868,29 +718,28 @@ void interpreter(void) {
             [(basic_nested_for_loops[basic_current_nested_for_index].var) - 1] =
                 assign();
       } else {
-        stop = SYNTAXERROR;
+        status = STATUS_CODE_SYNTAX_ERROR;
       }
-      if (basic_program_area[basic_program_counter++] ==
-          TOK_TO) { // bpWstring(STAT_TO);
+      if (basic_program_area[basic_program_counter++] == TOK_TO) {
         basic_nested_for_loops[basic_current_nested_for_index].to = assign();
       } else {
-        stop = SYNTAXERROR;
+        status = STATUS_CODE_SYNTAX_ERROR;
       }
       if (basic_program_area[basic_program_counter] >= TOK_LEN) {
         basic_nested_for_loops[basic_current_nested_for_index].from =
             basic_program_counter;
       } else {
-        stop = SYNTAXERROR;
+        status = STATUS_CODE_SYNTAX_ERROR;
       }
       handle_else_statement();
       break;
 
     case TOK_NEXT:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       temp = (basic_program_area[basic_program_counter++] - 'A') + 1;
-      stop = NEXTERROR;
+      status = STATUS_CODE_NEXT_ERROR;
 
       for (i = 0; i <= basic_current_nested_for_index; i++) {
         if (basic_nested_for_loops[i].var == temp) {
@@ -900,14 +749,14 @@ void interpreter(void) {
           } else {
             basic_current_nested_for_index--;
           }
-          stop = 0;
+          status = STATUS_CODE_UNKNOWN;
         }
       }
       handle_else_statement();
       break;
 
     case TOK_READ:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       if (basic_data_read_pointer == 0) {
@@ -920,7 +769,7 @@ void interpreter(void) {
         if (basic_program_area[i]) {
           basic_data_read_pointer = i + 4;
         } else {
-          stop = DATAERROR;
+          status = STATUS_CODE_DATA_ERROR;
         }
       }
       temp = basic_program_counter;
@@ -935,22 +784,22 @@ void interpreter(void) {
       }
       if (basic_program_area[basic_data_read_pointer] > TOK_LEN) {
         if (basic_program_area[basic_data_read_pointer + 3] != TOK_DATA) {
-          basic_data_read_pointer = 0; // rolover
+          basic_data_read_pointer = 0;
         } else {
           basic_data_read_pointer += 4;
         }
       }
 
       handle_else_statement();
-
       break;
+
     case TOK_DATA:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += len + 3;
       break;
 
     case TOK_START:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode].start();
@@ -958,7 +807,7 @@ void interpreter(void) {
       break;
 
     case TOK_STARTR:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode].start_with_read();
@@ -966,7 +815,7 @@ void interpreter(void) {
       break;
 
     case TOK_STOP:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode].stop();
@@ -974,7 +823,7 @@ void interpreter(void) {
       break;
 
     case TOK_STOPR:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       enabled_protocols[bus_pirate_configuration.bus_mode].stop_from_read();
@@ -982,14 +831,14 @@ void interpreter(void) {
       break;
 
     case TOK_SEND:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
       enabled_protocols[bus_pirate_configuration.bus_mode].send((int)assign());
       handle_else_statement();
       break;
 
     case TOK_AUX:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       if (assign()) {
@@ -1001,7 +850,7 @@ void interpreter(void) {
       break;
 
     case TOK_PSU:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       if (assign()) {
@@ -1013,7 +862,7 @@ void interpreter(void) {
       break;
 
     case TOK_AUXPIN:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       if (assign()) {
@@ -1025,28 +874,26 @@ void interpreter(void) {
       break;
 
     case TOK_FREQ: {
-      int16_t frequency;
-      int16_t duty_cycle;
-        
-      pcupdated = 1;
+      int16_t frequency = assign();
+      int16_t duty_cycle = assign();
+
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
-      frequency = assign();
       if (frequency < PWM_MINIMUM_FREQUENCY) {
-          frequency = PWM_MINIMUM_FREQUENCY;
+        frequency = PWM_MINIMUM_FREQUENCY;
       }
       if (frequency > PWM_MAXIMUM_FREQUENCY) {
-          frequency = PWM_MAXIMUM_FREQUENCY;
+        frequency = PWM_MAXIMUM_FREQUENCY;
       }
-      
-      duty_cycle = assign();
+
       if (duty_cycle < PWM_MINIMUM_DUTY_CYCLE) {
-          duty_cycle = PWM_MINIMUM_DUTY_CYCLE;
+        duty_cycle = PWM_MINIMUM_DUTY_CYCLE;
       }
       if (duty_cycle > PWM_MAXIMUM_DUTY_CYCLE) {
-          duty_cycle = PWM_MAXIMUM_DUTY_CYCLE;
+        duty_cycle = PWM_MAXIMUM_DUTY_CYCLE;
       }
-      
+
       bp_update_pwm(frequency, duty_cycle);
 
       handle_else_statement();
@@ -1054,27 +901,26 @@ void interpreter(void) {
     }
 
     case TOK_DUTY: {
-      int16_t duty_cycle;
+      int16_t duty_cycle = assign();
 
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
-      duty_cycle = assign();
       if (duty_cycle < PWM_MINIMUM_DUTY_CYCLE) {
-          duty_cycle = PWM_MINIMUM_DUTY_CYCLE;
+        duty_cycle = PWM_MINIMUM_DUTY_CYCLE;
       }
       if (duty_cycle > PWM_MAXIMUM_DUTY_CYCLE) {
-          duty_cycle = PWM_MAXIMUM_DUTY_CYCLE;
+        duty_cycle = PWM_MAXIMUM_DUTY_CYCLE;
       }
 
       bp_update_duty_cycle(duty_cycle);
-      
+
       handle_else_statement();
       break;
     }
 
     case TOK_DAT:
-      pcupdated = 1;
+      program_counter_updated = 1;
       basic_program_counter += 4;
 
       if (assign()) {
@@ -1086,7 +932,7 @@ void interpreter(void) {
       break;
 
     case TOK_CLK:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       switch (assign()) {
@@ -1101,10 +947,10 @@ void interpreter(void) {
         break;
       }
       handle_else_statement();
-
       break;
+
     case TOK_PULLUP:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
 
       if (assign()) {
@@ -1116,15 +962,15 @@ void interpreter(void) {
       break;
 
     case TOK_DELAY:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
       temp = assign();
       bp_delay_ms(temp);
       handle_else_statement();
-
       break;
+
     case TOK_MACRO:
-      pcupdated = 1;
+      program_counter_updated = YES;
       basic_program_counter += 4;
       temp = assign();
       enabled_protocols[bus_pirate_configuration.bus_mode].run_macro(temp);
@@ -1132,29 +978,27 @@ void interpreter(void) {
       break;
 
     case TOK_END:
-      stop = 1;
+      status = STATUS_CODE_FINISHED;
       break;
+
     default:
-      stop = SYNTAXERROR;
+      status = STATUS_CODE_SYNTAX_ERROR;
       break;
     }
 
-    if (!pcupdated) {
+    if (!program_counter_updated) {
       basic_program_counter += len + 3;
     }
-    pcupdated = 0;
+    program_counter_updated = NO;
   }
 
   bus_pirate_configuration.quiet = OFF;
 
-  if (stop != NOERROR) {
-    // bpWstring("Error(");
+  if ((status != STATUS_CODE_FINISHED) && (status != STATUS_CODE_UNKNOWN)) {
     BPMSG1047;
-    bp_write_dec_word(stop);
-    // bpWstring(") @line:");
+    bp_write_dec_word(status);
     BPMSG1048;
     bp_write_dec_word(lineno);
-    // bpWstring(" @pgmspace:");
     BPMSG1049;
     bp_write_dec_word(basic_program_counter);
     bpBR;
@@ -1173,7 +1017,6 @@ void list(void) {
       user_serial_transmit_character(c);
     } else if (c > TOK_LEN) {
       bpBR;
-      // bpWintdec(pc); bpSP;
       lineno = (basic_program_area[basic_program_counter + 1] << 8) +
                basic_program_area[basic_program_counter + 2];
       basic_program_counter += 2;
@@ -1188,50 +1031,54 @@ void list(void) {
   }
   bpBR;
   bp_write_dec_word(basic_program_counter - 1);
-  // bpWline(" bytes.");
   BPMSG1050;
 }
 
-int compare(char *p) {
-  int oldstart;
+bool compare(char *pointer) {
+  int oldstart = cmdstart;
 
-  oldstart = cmdstart;
-  while (*p) {
-    if (*p != cmdbuf[cmdstart]) {
+  while (*pointer) {
+    if (*pointer != cmdbuf[cmdstart]) {
       cmdstart = oldstart;
-      return 0;
+      return NO;
     }
-    cmdstart = (cmdstart + 1) & CMDLENMSK;
 
-    p++;
+    cmdstart = (cmdstart + 1) & CMDLENMSK;
+    pointer++;
   }
-  return 1;
+
+  return YES;
 }
 
-unsigned char gettoken(void) {
-  int i;
+uint8_t get_token(void) {
+  size_t index;
 
-  for (i = 0; i < NUMTOKEN; i++) {
-    if (compare(tokens[i])) {
-      return TOKENS + i;
+  for (index = 0; index < NUMTOKEN; index++) {
+    if (compare(tokens[index])) {
+      return TOKENS + index;
     }
   }
+
   return 0;
 }
 
 void bp_basic_enter_interactive_interpreter(void) {
-  int i, j, temp;
-  int pos, end, len, string;
+  int i, temp;
+  int end, len; //, string;
+  bool string_found = NO;
   unsigned char line[35];
+  uint16_t pos;
+  size_t index = cmdstart;
 
   unsigned int lineno1, lineno2;
 
-  // convert to everyhting to uppercase
-  for (i = cmdstart; i != cmdend;) {
-    if ((cmdbuf[i] >= 'a') && (cmdbuf[i] <= 'z'))
-      cmdbuf[i] &= 0xDF;
-    i++;
-    i &= CMDLENMSK;
+  /* Convert all text to upper case ASCII. */
+
+  while (index != cmdend) {
+    if ((cmdbuf[index] >= 'a') && (cmdbuf[index] <= 'z')) {
+      cmdbuf[index] &= 0xDF;
+    }
+    index = (index + 1) & CMDLENMSK;
   }
 
   i = 0;
@@ -1247,66 +1094,48 @@ void bp_basic_enter_interactive_interpreter(void) {
     line[1] = temp >> 8;
     line[2] = temp & 0xFF;
 
-    // bpWstring("search for line ");
-    // bpWintdec(temp); bpBR;
-
-    pos = search_line_number(temp);
-    // bpWstring("pos=");
-    // bpWintdec(pos); bpSP;
-    if (pos != -1) // if it already exist remove it first
-    {              // bpWstring("replace/remove line @");
-      // bpWintdec(pos); bpBR
+    if (search_line_number(temp, &pos)) {
       len = (basic_program_area[pos] - TOK_LEN) + 3;
-      // bpWstring("pos=");
-      // bpWintdec(pos); bpSP;
+      /* @TODO: replace this with a memmove. */
       for (i = pos; i < BP_BASIC_PROGRAM_SPACE - len; i++) {
-        basic_program_area[i] =
-            basic_program_area[i +
-                               len]; // move everyhting from pos len bytes down
+        basic_program_area[i] = basic_program_area[i + len];
       }
-      // bpWstring("i=");
-      // bpWintdec(i); bpBR;
-      for (; i < BP_BASIC_PROGRAM_SPACE; i++) {
-        basic_program_area[i] = 0x00;
-      }
+      memset(&basic_program_area[i], 0x00, BP_BASIC_PROGRAM_SPACE - i);
     }
 
     i = 3;
-    string = 0;
 
     consumewhitechars();
     while (cmdstart != cmdend) {
-      if (!string) {
+      if (!string_found) {
         consumewhitechars();
       }
 
-      if (!string) {
-        temp = gettoken();
-      } else {
-        temp = 0;
-      }
+      temp = string_found ? 0 : get_token();
 
       if (temp) {
         line[i] = temp;
-        if (temp == TOK_REM)
-          string = 1; // allow spaces in rem statement
+        if (temp == TOK_REM) {
+          string_found = YES;
+        }
       } else {
-        if (cmdbuf[cmdstart] == '"')
-          string ^= 0x01;
+        if (cmdbuf[cmdstart] == '"') {
+          string_found = !string_found;
+        }
         line[i] = cmdbuf[cmdstart];
         cmdstart = (cmdstart + 1) & CMDLENMSK;
       }
       i++;
-      if (i > 35) { // bpWline("Too long!");
+      if (i > 35) {
         BPMSG1051;
         return;
       }
     }
 
-    if (i == 3)
-      return; // no need to insert an empty line
-    if (i == 4)
-      return; // no need to insert an empty line
+    /* No need to insert an empty line. */
+    if ((i == 3) || (i == 4)) {
+      return;
+    }
 
     line[0] = TOK_LEN + (i - 4);
 
@@ -1315,8 +1144,7 @@ void bp_basic_enter_interactive_interpreter(void) {
     pos = 0;
 
     while (!end) {
-      if (basic_program_area[i] > TOK_LEN) // valid line
-      {
+      if (basic_program_area[i] > TOK_LEN) {
         len = basic_program_area[i] - TOK_LEN;
         lineno1 = (basic_program_area[i + 1] << 8) + basic_program_area[i + 2];
         lineno2 = (line[1] << 8) + line[2];
@@ -1333,15 +1161,11 @@ void bp_basic_enter_interactive_interpreter(void) {
 
     temp = (line[0] - TOK_LEN) + 3;
 
-    // for(i=end+temp; i>=pos; i--)
+    /* @TODO: Replace this with memmove. */
     for (i = end; i >= pos; i--) {
-      basic_program_area[i + temp] =
-          basic_program_area[i]; // move every thing from pos temp
+      basic_program_area[i + temp] = basic_program_area[i];
     }
-    for (i = 0; i < temp; i++) // insert line
-    {
-      basic_program_area[pos + i] = line[i];
-    }
+    memcpy(&basic_program_area[pos + i], &line[i], temp);
   } else {
     if (compare("RUN")) {
       interpreter();
@@ -1349,7 +1173,7 @@ void bp_basic_enter_interactive_interpreter(void) {
     } else if (compare("LIST")) {
       list();
     } else if (compare("EXIT")) {
-      bus_pirate_configuration.basic = 0;
+      bus_pirate_configuration.basic = NO;
     }
 #ifdef BP_BASIC_I2C_FILESYSTEM
     else if (compare("FORMAT")) {
@@ -1360,6 +1184,8 @@ void bp_basic_enter_interactive_interpreter(void) {
       load();
     }
 #endif /* BP_BASIC_I2C_FILESYSTEM */
+
+#ifdef BP_BASIC_DEBUG_COMMAND
     else if (compare("DEBUG")) {
       for (i = 0; i < BP_BASIC_PROGRAM_SPACE; i += 16) {
         for (j = 0; j < 16; j++) {
@@ -1367,9 +1193,12 @@ void bp_basic_enter_interactive_interpreter(void) {
           bpSP;
         }
       }
-    } else if (compare("NEW")) {
+    }
+#endif /* BP_BASIC_DEBUG_COMMAND */
+
+    else if (compare("NEW")) {
       bp_basic_initialize();
-    } else { // bpWline("Syntax error");
+    } else {
       BPMSG1052;
     }
   }
@@ -1380,7 +1209,7 @@ void bp_basic_initialize(void) {
   basic_program_area[1] = 0xFF;
   basic_program_area[2] = 0xFF;
   basic_program_area[3] = TOK_END;
-  memset(basic_program_area + 4, 0, BP_BASIC_PROGRAM_SPACE - 4);
+  memset(&basic_program_area[4], 0x00, BP_BASIC_PROGRAM_SPACE - 4);
 }
 
 #ifdef BP_BASIC_I2C_FILESYSTEM

@@ -262,19 +262,6 @@ void bp_write_formatted_integer(const uint16_t value);
  */
 #define bp_delay_us(microseconds) __delay_us(microseconds)
 
-// manage user terminal input
-unsigned int bpUserNumberPrompt(unsigned int maxBytes, unsigned int maxValue,
-                                unsigned int defValue);
-
-// manage user terminal input
-unsigned int bpGetUserInput(unsigned int *currentByte, unsigned int maxBytes,
-                            unsigned char *terminalInput);
-
-// reads forward to grab ASCII number string, returns byte value
-unsigned int bpGetASCIInumber(unsigned int totalBytes,
-                              unsigned int *currentByte,
-                              unsigned char *commandArr);
-
 /**
  * @brief Writes the given buffer to the serial port.
  *
@@ -394,11 +381,11 @@ void bp_write_hex_byte_to_ringbuffer(const uint8_t value);
 #if defined(BUSPIRATEV3)
 
 extern uint8_t *UART1RXBuf;
-extern unsigned int UART1RXToRecv;
-extern unsigned int UART1RXRecvd;
+extern uint16_t UART1RXToRecv;
+extern uint16_t UART1RXRecvd;
 extern uint8_t *UART1TXBuf;
-extern unsigned int UART1TXSent;
-extern unsigned int UART1TXAvailable;
+extern uint16_t UART1TXSent;
+extern uint16_t UART1TXAvailable;
 
 #endif /* BUSPIRATEV3 */
 
