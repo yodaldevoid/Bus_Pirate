@@ -17,6 +17,8 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 #define OOCD_SRST_TRIS BP_AUX0_DIR
 #ifdef BUSPIRATEV3
 #define OOCD_TRST_TRIS BP_PGD_DIR
+#else
+#define OOCD_TRST_TRIS BP_AUX1_DIR
 #endif /* BUSPIRATEV3 */
 
 // io ports
@@ -27,6 +29,8 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 #define OOCD_SRST BP_AUX0
 #ifdef BUSPIRATEV3
 #define OOCD_TRST BP_PGD
+#else
+#define OOCD_TRST BP_AUX1
 #endif /* BUSPIRATEV3 */
 
 // open-drain control
@@ -37,6 +41,8 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 #define OOCD_SRST_ODC BP_AUX0
 #ifdef BUSPIRATEV3
 #define OOCD_TRST_ODC BP_PGD
+#else
+#define OOCD_TRST_ODC BP_AUX1
 #endif /* BUSPIRATEV3 */
 
 #define CMD_UNKNOWN 0x00
@@ -183,7 +189,11 @@ void binOpenOCD(void) {
       inByte = user_serial_read_byte();
       inByte2 = user_serial_read_byte();
 
+#if defined(BUSPIRATEV3)      
+      
       IFS0bits.U1RXIF = 0; // reset the RX flag
+      
+#endif /* BUSPIRATEV3 */
 
       j = (inByte << 8) | inByte2; // number of bit sequences
 
@@ -303,26 +313,20 @@ static void binOpenOCDPinMode(unsigned char mode) {
   OOCD_TDI = 0;
   OOCD_CLK = 0;
   OOCD_SRST = 0;
-#if defined(BUSPIRATEV3)
   OOCD_TRST = 0;
-#endif
   // setup open-drain if necessary
   if (mode == MODE_JTAG_OD) {
     OOCD_TMS_ODC = 1;
     OOCD_CLK_ODC = 1;
     OOCD_TDI_ODC = 1;
     OOCD_SRST_ODC = 1;
-#if defined(BUSPIRATEV3)
     OOCD_TRST_ODC = 1;
-#endif
   } else {
     OOCD_TMS_ODC = 0;
     OOCD_CLK_ODC = 0;
     OOCD_TDI_ODC = 0;
     OOCD_SRST_ODC = 0;
-#if defined(BUSPIRATEV3)
     OOCD_TRST_ODC = 0;
-#endif
   }
   // make pins output
   if (mode == MODE_JTAG || mode == MODE_JTAG_OD) {
@@ -330,18 +334,14 @@ static void binOpenOCDPinMode(unsigned char mode) {
     OOCD_TDI_TRIS = 0;
     OOCD_CLK_TRIS = 0;
     OOCD_SRST_TRIS = 0;
-#if defined(BUSPIRATEV3)
     OOCD_TRST_TRIS = 0;
-#endif
     OOCD_TDO_TRIS = 1;
   } else {
     OOCD_TMS_TRIS = 1;
     OOCD_TDI_TRIS = 1;
     OOCD_CLK_TRIS = 1;
     OOCD_SRST_TRIS = 1;
-#if defined(BUSPIRATEV3)
     OOCD_TRST_TRIS = 1;
-#endif
     OOCD_TDO_TRIS = 1;
   }
 }
@@ -367,19 +367,15 @@ static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
     }
     break;
   case FEATURE_PULLUP:
-#if defined(BUSPIRATEV3)
     if (action) {
       BP_PULLUP_ON();
     } else {
       BP_PULLUP_OFF();
     }
-#endif
     break;
-#if defined(BUSPIRATEV3)
   case FEATURE_TRST:
     OOCD_TRST = action;
     break;
-#endif
   case FEATURE_SRST:
     OOCD_SRST = action;
     break;
