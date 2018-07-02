@@ -491,6 +491,8 @@ void MSG_NO_VOLTAGE_ON_PULLUP_PIN_str(void);
 #define MSG_NO_VOLTAGE_ON_PULLUP_PIN bp_message_write_line(__builtin_tbladdress(MSG_NO_VOLTAGE_ON_PULLUP_PIN_str))
 void MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED_str(void);
 #define MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED bp_message_write_line(__builtin_tbladdress(MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED_str))
+void MSG_OPENOCD_MODE_IDENTIFIER_str(void);
+#define MSG_OPENOCD_MODE_IDENTIFIER bp_message_write_buffer(__builtin_tbladdress(MSG_OPENOCD_MODE_IDENTIFIER_str))
 void MSG_PIC_MODE_IDENTIFIER_str(void);
 #define MSG_PIC_MODE_IDENTIFIER bp_message_write_buffer(__builtin_tbladdress(MSG_PIC_MODE_IDENTIFIER_str))
 void MSG_PIC_UNKNOWN_MODE_str(void);

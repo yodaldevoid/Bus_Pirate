@@ -470,7 +470,10 @@
 
 #ifdef BP_ENABLE_JTAG_SUPPORT
 
-#ifdef BUSPIRATEV3
+/**
+ * Maximum number of bit sequences to handle in a single command set.
+ */
+#define BP_JTAG_OPENOCD_BIT_SEQUENCES_LIMIT 0x2000
 
 /**
  * Allow OpenOCD to interact with the Bus Pirate board for JTAG operations.
@@ -479,9 +482,16 @@
  */
 #define BP_JTAG_OPENOCD_SUPPORT
 
-#endif /* BUSPIRATEV3 */
-
 #ifdef BUSPIRATEV4
+
+#ifdef BP_JTAG_OPENOCD_SUPPORT
+
+/**
+ * Add an extra delay before and after OpenOCD I/O bursts.
+ */
+#define BP_JTAG_OPENOCD_DELAY
+
+#endif /* BP_JTAG_OPENOCD_SUPPORT */
 
 /**
  * Enable support for XSVF JTAG commands.
