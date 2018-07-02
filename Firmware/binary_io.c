@@ -622,7 +622,7 @@ void binwire(void) {
                         MSG_RAW_MODE_IDENTIFIER;
                         break;
                     case 2://start bit
-                        bitbang_i2c_start();
+                        bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT);
                         user_serial_transmit_character(1);
                         break;
                     case 3://stop bit

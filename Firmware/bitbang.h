@@ -47,6 +47,21 @@ typedef enum {
 } bp_bitbang_speed_t;
 
 /**
+ * The possible I2C start signalling types.
+ */
+typedef enum {
+  /**
+   * Signal normal I2C start.
+   */
+  BITBANG_I2C_START_ONE_SHOT = 0,
+
+  /**
+   * Signal repeated I2C start.
+   */
+  BITBANG_I2C_RESTART
+} bp_bitbang_i2c_start_type_t;
+
+/**
  * Sets up the bit-bang module.
  *
  * This function sets the bit-banging module operation type, whether to use
@@ -195,18 +210,18 @@ bool bitbang_read_pin(const uint16_t pin_bit);
 /**
  * Sends the appropriate signals to indicate an I2C transmission start frame.
  *
- * @return true if an error occurred, false otherwise.
- */
-bool bitbang_i2c_start(void);
-
-/**
- * Sends the appropriate signals to indicate an I2C transmission repeated 
- * start frame. This is used for consecutive atomic operations without releasing
- * the I2C bus.
+ * Sending BITBANG_I2C_RESTART effectively resets the I2C transmission state
+ * without releasing the I2C bus.  This is used whenever consecutive atomic
+ * operations are needed, and the normal start code would not only reset the
+ * protocol state but also the connection state.
+ *
+ * @param[in] type the start signal type.
  *
  * @return true if an error occurred, false otherwise.
+ *
+ * @see bp_bitbang_i2c_start_type_t
  */
-bool bitbang_i2c_repeated_start(void);
+bool bitbang_i2c_start(bp_bitbang_i2c_start_type_t type);
 
 /**
  * Sends the appropriate signals to indicate an I2C transmission stop frame.

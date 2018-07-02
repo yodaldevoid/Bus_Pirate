@@ -59,7 +59,7 @@ typedef struct {
 
 /**
  * Predefined delay profiles, each associated with a predefined bus speed.
- * 
+ *
  * @see bp_bitbang_speed_t
  */
 static const bitbang_delays_t BITBANG_DELAYS[] = {
@@ -86,59 +86,34 @@ void bitbang_setup(unsigned char bitbang_pins, const bp_bitbang_speed_t speed) {
                                       : speed];
 }
 
-bool bitbang_i2c_start(void) {
-  bool error;
-
-  error = false;
+bool bitbang_i2c_start(bp_bitbang_i2c_start_type_t type) {
 
   /* Set both SDA and CLK high. */
   bitbang_set_pins_high(MOSI + CLK, delay_profile->clock);
 
-  /* Check whether lines are still high. */
-  if ((BP_CLK == LOW) || (BP_MOSI == LOW)) {
-    error = true;
-  } else {
-    /* Bring SDA low. */
-    bitbang_set_pins_low(MOSI, delay_profile->clock);
-
-    /* Bring CLK low too. */
-    bitbang_set_pins_low(CLK, delay_profile->clock);
-
-    /* Bring SDA back high. */
+  if (type == BITBANG_I2C_RESTART) {
+    /* Set SDA high. */
     bitbang_set_pins_high(MOSI, delay_profile->clock);
+
+    /* Set CLK high too. */
+    bitbang_set_pins_high(CLK, delay_profile->clock);
   }
 
-  return error;
-}
+  /* Check whether lines are still high. */
+  if ((BP_CLK == LOW) || (BP_MOSI == LOW)) {
+    return true;
+  }
 
-bool bitbang_i2c_repeated_start(void) { // sends a restart condition on the line
-  bool error;
+  /* Bring SDA low. */
+  bitbang_set_pins_low(MOSI, delay_profile->clock);
 
-  error = false;
+  /* Bring CLK low too. */
+  bitbang_set_pins_low(CLK, delay_profile->clock);
 
-  /* Set both SDA and CLK low. */
-  bitbang_set_pins_low(MOSI + CLK, delay_profile->clock);
-
-  /* Set SDA high. */
+  /* Bring SDA back high. */
   bitbang_set_pins_high(MOSI, delay_profile->clock);
 
-  /* Set CLK high too. */
-  bitbang_set_pins_high(CLK, delay_profile->clock);
-
-  /* Check whether lines are still high. */
-  if ((BP_CLK == LOW) || (BP_MOSI == LOW)) {
-    error = true;
-  } else {
-    /* Bring SDA low. */
-    bitbang_set_pins_low(MOSI, delay_profile->clock);
-
-    /* Bring CLK low too. */
-    bitbang_set_pins_low(CLK, delay_profile->clock);
-
-    /* Bring SDA back high. */
-    bitbang_set_pins_high(MOSI, delay_profile->clock);
-  }
-  return error;
+  return false;
 }
 
 void bitbang_i2c_stop(void) {

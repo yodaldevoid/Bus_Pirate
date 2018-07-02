@@ -182,6 +182,13 @@ static uint8_t hardware_i2c_read(void);
  */
 static void i2c_sniffer(bool interactive_mode);
 
+/**
+ * Performs the bulk of the write-then-read I2C binary IO command.
+ *
+ * @return true if the operation was successful, false otherwise.
+ */
+static bool i2c_write_then_read(void);
+
 uint16_t i2c_read(void) {
   uint8_t value;
 
@@ -246,7 +253,7 @@ void i2c_start(void) {
   /* Send a start signal on the bus. */
 
   if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
-    if (bitbang_i2c_start()) {
+    if (bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT)) {
       /* There is a short or pull-ups are wrong. */
       MSG_WARNING_HEADER;
       MSG_WARNING_SHORT_OR_NO_PULLUP;
@@ -424,9 +431,9 @@ void i2c_macro(unsigned int c) {
 
     for (i = 0; i < 0x100; i++) {
       if (i2c_state.mode == I2C_TYPE_SOFTWARE) {
-        bitbang_i2c_start();    // send start
-        bitbang_write_value(i); // send address
-        c = bitbang_read_bit(); // look for ack
+        bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT); // send start
+        bitbang_write_value(i);                        // send address
+        c = bitbang_read_bit();                        // look for ack
       } else {
 #ifdef BP_I2C_USE_HW_BUS
         hardware_i2c_start();
@@ -470,7 +477,7 @@ void i2c_macro(unsigned int c) {
 
   case 2:
     i2c_cleanup();
-    
+
     MSG_SNIFFER_MESSAGE;
     MSG_ANY_KEY_TO_EXIT_PROMPT;
     i2c_sniffer(true);
@@ -593,7 +600,7 @@ bool hardware_i2c_get_ack(void) {
    * I2C1STAT.  However, since the amount of boards with older MCUs is set to
    * dwindle as time goes by this is not going to be much of an issue.
    */
-  
+
   /*
    * PIC24FJ64GA004 Errata - item #26:
    *
@@ -655,7 +662,7 @@ void hardware_i2c_write(const uint8_t value) {
    * I2C1STAT.  However, since the amount of boards with older MCUs is set to
    * dwindle as time goes by this is not going to be much of an issue.
    */
-  
+
   /*
    * PIC24FJ64GA004 Errata - item #26:
    *
@@ -745,7 +752,7 @@ void hardware_i2c_setup(void) {
 
   /* Disable SMBus. */
   I2C1CONbits.SMEN = OFF;
-    
+
 #if !defined(BPV3_IS_REV_B4_OR_LATER)
 
   /*
@@ -862,7 +869,8 @@ void i2c_sniffer(bool interactive_mode) {
         }
 
         /* SDA high is NACK, SDA low is ACK. */
-        user_serial_ringbuffer_append(new_sda ? I2C_SNIFFER_NACK : I2C_SNIFFER_ACK);
+        user_serial_ringbuffer_append(new_sda ? I2C_SNIFFER_NACK
+                                              : I2C_SNIFFER_ACK);
 
         /* Ready for next byte. */
         data_bits = 0;
@@ -931,8 +939,7 @@ rawI2C mode:
 
 void binary_io_enter_i2c_mode(void) {
   static unsigned char inByte, rawCommand, i;
-  unsigned int j, fw, fr;
-  unsigned char i2Caddress;
+  unsigned int fw, fr;
 
   SDA_TRIS = INPUT;
   SCL_TRIS = INPUT;
@@ -964,7 +971,7 @@ void binary_io_enter_i2c_mode(void) {
         break;
 
       case 2: // I2C start bit
-        bitbang_i2c_start();
+        bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT);
         REPORT_IO_SUCCESS();
         break;
 
@@ -988,69 +995,8 @@ void binary_io_enter_i2c_mode(void) {
         break;
 
       case 8: // write-then-read
-        // get the number of commands that will follow
-        fw = user_serial_read_byte();
-        fw = fw << 8;
-        fw |= user_serial_read_byte();
-
-        // get the number of reads to do
-        fr = user_serial_read_byte();
-        fr = fr << 8;
-        fr |= user_serial_read_byte();
-
-        // check length and report error
-        if (fw > BP_TERMINAL_BUFFER_SIZE || fr > BP_TERMINAL_BUFFER_SIZE) {
-           goto I2C_write_read_error;
-        }
-
-        // get bytes
-        for (j = 0; j < fw; j++) {
-          bus_pirate_configuration.terminal_input[j] = user_serial_read_byte();
-        }
-
-        // Store i2C device address
-        i2Caddress = bus_pirate_configuration.terminal_input[0];
-        // start
-        bitbang_i2c_start();
-
-        for (j = 0; j < fw; j++) {
-          // get ACK
-          // if no ack, goto error
-          bitbang_write_value(
-              bus_pirate_configuration.terminal_input[j]); // send byte
-          if (bitbang_read_bit() == 1)
-            goto I2C_write_read_error;
-        }
-
-        if(fr > 0){ // do we want to read ?
-           if(fw > 1) { //previous write was address and data ?
-              // Send restart
-              bitbang_i2c_repeated_start();
-              bitbang_write_value(i2Caddress | 0x01); // send address again
-              if (bitbang_read_bit() == 1)
-                 goto I2C_write_read_error;
-           }
-        }
-        
-        fw = fr - 1;
-        for (j = 0; j < fr; j++) { // read bulk bytes from SPI
-          // send ack
-          // i flast byte, send NACK
-          bus_pirate_configuration.terminal_input[j] = bitbang_read_value();
-
-          if (j < fw) {
-            bitbang_write_bit(LOW);
-          } else {
-            bitbang_write_bit(HIGH);
-          }
-        }
-        // I2C stop
-        bitbang_i2c_stop();
-
-        REPORT_IO_SUCCESS();
-
-        for (j = 0; j < fr; j++) { // send the read buffer contents over serial
-          user_serial_transmit_character(bus_pirate_configuration.terminal_input[j]);
+        if (!i2c_write_then_read()) {
+          REPORT_IO_FAILURE();
         }
         break; // 00001001 xxxxxxxx
 
@@ -1122,8 +1068,10 @@ void binary_io_enter_i2c_mode(void) {
       REPORT_IO_SUCCESS();
 
       for (i = 0; i < inByte; i++) {
-        bitbang_write_value(user_serial_read_byte()); // JTR usb port //send byte
-        user_serial_transmit_character(bitbang_read_bit());    // return ACK0 or NACK1
+        bitbang_write_value(
+            user_serial_read_byte()); // JTR usb port //send byte
+        user_serial_transmit_character(
+            bitbang_read_bit()); // return ACK0 or NACK1
       }
 
       break;
@@ -1146,11 +1094,107 @@ void binary_io_enter_i2c_mode(void) {
 #endif /* BUSPIRATEV4 */
 
     default:
-    I2C_write_read_error: // use this for the read error too
       REPORT_IO_FAILURE();
       break;
     }
   }
+}
+
+bool i2c_write_then_read(void) {
+  size_t bytes_to_read;
+  size_t bytes_to_write;
+  size_t index;
+
+  /* Read the amount of bytes to write. */
+
+  bytes_to_write = user_serial_read_byte();
+  bytes_to_write <<= 8;
+  bytes_to_write |= user_serial_read_byte();
+
+  /* Read the amount of bytes to read. */
+
+  bytes_to_read = user_serial_read_byte();
+  bytes_to_read <<= 8;
+  bytes_to_read |= user_serial_read_byte();
+
+  /* Check lengths. */
+
+  if ((bytes_to_write > BP_TERMINAL_BUFFER_SIZE) ||
+      (bytes_to_read > BP_TERMINAL_BUFFER_SIZE)) {
+    return false;
+  }
+
+  /* Read payload. */
+
+  for (index = 0; index < bytes_to_write; index++) {
+    bus_pirate_configuration.terminal_input[index] = user_serial_read_byte();
+  }
+
+  /* Get I2C address. */
+
+  uint8_t i2c_address = bus_pirate_configuration.terminal_input[0];
+
+  /* Signal write start. */
+
+  bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT);
+
+  /* Write the payload to the I2C bus. */
+
+  for (index = 0; index < bytes_to_write; index++) {
+    bitbang_write_value(bus_pirate_configuration.terminal_input[index]);
+
+    if (bitbang_read_bit() == HIGH) {
+      /* No ACK read on the bus, bailing out. */
+      return false;
+    }
+  }
+
+  if ((bytes_to_read > 0) && (bytes_to_write > 1)) {
+
+    /* Send a restart signal on the I2C bus. */
+
+    bitbang_i2c_start(BITBANG_I2C_RESTART);
+
+    /* Send the I2C address. */
+
+    bitbang_write_value(i2c_address | 0x01);
+
+    if (bitbang_read_bit() == HIGH) {
+      /* No ACK read on the bus, bailing out. */
+      return false;
+    }
+  }
+
+  /* Read the rest of the data. */
+
+  bytes_to_write = bytes_to_read - 1;
+
+  for (index = 0; index < bytes_to_read; index++) {
+    /* Read the byte from the I2C bus. */
+
+    bus_pirate_configuration.terminal_input[index] = bitbang_read_value();
+
+    /* Report ACK or NACK depending on the length. */
+
+    bitbang_write_bit(index >= bytes_to_write ? HIGH : LOW);
+  }
+
+  /* Stop the I2C bus operations. */
+
+  bitbang_i2c_stop();
+
+  /* Report operation status. */
+
+  REPORT_IO_SUCCESS();
+
+  /* And send the I2C data over to the UART. */
+
+  for (index = 0; index < bytes_to_read; index++) {
+    user_serial_transmit_character(
+        bus_pirate_configuration.terminal_input[index]);
+  }
+
+  return true;
 }
 
 #endif /* BP_ENABLE_I2C_SUPPORT */

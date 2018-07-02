@@ -66,7 +66,7 @@ uint16_t raw2wire_write(const uint16_t value) {
 }
 
 void raw2wire_start(void) {
-  bitbang_i2c_start();
+  bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT);
   MSG_RAW2WIRE_I2C_START;
   MSG_I2C_START_BIT;
 }
