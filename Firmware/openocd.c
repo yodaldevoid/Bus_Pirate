@@ -189,10 +189,10 @@ void binOpenOCD(void) {
       inByte = user_serial_read_byte();
       inByte2 = user_serial_read_byte();
 
-#if defined(BUSPIRATEV3)      
-      
+#if defined(BUSPIRATEV3)
+
       IFS0bits.U1RXIF = 0; // reset the RX flag
-      
+
 #endif /* BUSPIRATEV3 */
 
       j = (inByte << 8) | inByte2; // number of bit sequences
@@ -224,34 +224,23 @@ void binOpenOCD(void) {
 
 #else
 
-      size_t available_bytes = 0;
-      uint16_t total_bytes_consumed = 0;
-      uint16_t bytes_to_read = 2 * i;
-      uint16_t bytes_read = 0;
-      uint8_t *rx_buffer = bus_pirate_configuration.terminal_input;
-      uint8_t *tx_buffer = &bus_pirate_configuration.terminal_input[2100];
-      size_t tx_buffer_offset = 0;
-      uint16_t bit_sequences = j;
+      int16_t bit_sequences = (int16_t)(j & 0x7FFF);
 
       do {
-        total_bytes_consumed += 4;
+        /* Read TDI and TMS. */
 
-        while (bytes_read < min(bytes_to_read, total_bytes_consumed)) {
-          rx_buffer[bytes_read++] = user_serial_read_byte();
-        }
+        uint16_t tdi_data_out = user_serial_read_byte();
+        uint16_t tms_data_out = user_serial_read_byte();
+        tms_data_out = (tms_data_out << 8) | user_serial_read_byte();
+        tdi_data_out = (tdi_data_out << 8) | user_serial_read_byte();
 
-        uint16_t tdi_data_out = *(uint16_t *)rx_buffer;
-        uint16_t tms_data_out = *(uint16_t *)(rx_buffer + sizeof(uint16_t));
+        /* Clock TDI and TMS out, while reading TDO in. */
 
-        asm("swap %0" : "+r"(tdi_data_out));
-        uint16_t tdo_data_in = (tdi_data_out ^ tms_data_out) & 0xFF;
-        tdi_data_out ^= tdo_data_in;
-        tms_data_out ^= tdo_data_in;
-        asm("swap %0" : "+r"(tdi_data_out));
+        size_t bits_to_process = min(16, bit_sequences);
+        size_t counter;
+        uint16_t tdo_data_in = 0;
 
-        uint16_t bits_to_process = min(15, bit_sequences);
-
-        do {
+        for (counter = 0; counter < bits_to_process; counter++) {
 #ifdef BP_JTAG_OPENOCD_DELAY
           asm volatile("\t repeat %0 \n"
                        "\t nop       \n"
@@ -277,20 +266,17 @@ void binOpenOCD(void) {
 
           /* Set TCK. */
           OOCD_CLK = HIGH;
+          
           /* Sample TDO. */
-          tdo_data_in = (OOCD_TDO << 15) | tdo_data_in;
-        } while (--bits_to_process >= 0);
-
-        tms_data_out >>= 15 - min(15, bit_sequences);
-        *(uint16_t *)(tx_buffer + tx_buffer_offset) = tms_data_out;
-        tx_buffer_offset += sizeof(uint16_t);
-        available_bytes += (min(15, bit_sequences) >> 3) + 1;
-
-        size_t current_tx_offset = 0;
-        while (current_tx_offset < available_bytes) {
-          user_serial_transmit_character(tx_buffer[current_tx_offset++]);
+          tdo_data_in = (OOCD_TDO << 15) | (tdo_data_in >> 1);
         }
-
+        
+        /* Report TDO. */
+        
+        tdo_data_in >>= 15 - (bits_to_process - 1);
+        user_serial_transmit_character((tdo_data_in >> 8) & 0xFF);
+        user_serial_transmit_character(tdo_data_in & 0xFF);
+        
         bit_sequences -= 16;
       } while (bit_sequences >= 0);
 
