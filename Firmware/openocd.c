@@ -198,13 +198,13 @@ void binOpenOCD(void) {
       j = (inByte << 8) | inByte2; // number of bit sequences
 
       j = min(j, BP_JTAG_OPENOCD_BIT_SEQUENCES_LIMIT);
-      i = (j + 7) / 8; // number of bytes used
       buf[0] = CMD_TAP_SHIFT;
       buf[1] = inByte;
       buf[2] = inByte2;
       binOpenOCDAnswer(buf, 3);
 
 #if defined(BUSPIRATEV3)
+      i = (j + 7) / 8; // number of bytes used
 
       // prepare the interrupt transfer
       UART1RXBuf = (unsigned char *)bus_pirate_configuration.terminal_input;
@@ -231,8 +231,10 @@ void binOpenOCD(void) {
 
         uint16_t tdi_data_out = user_serial_read_byte();
         uint16_t tms_data_out = user_serial_read_byte();
-        tms_data_out = (tms_data_out << 8) | user_serial_read_byte();
-        tdi_data_out = (tdi_data_out << 8) | user_serial_read_byte();
+        tms_data_out = tms_data_out |
+                       ((bit_sequences > 8) ? user_serial_read_byte() : 0) << 8;
+        tdi_data_out = tdi_data_out |
+                       ((bit_sequences > 8) ? user_serial_read_byte() : 0) << 8;
 
         /* Clock TDI and TMS out, while reading TDO in. */
 
@@ -266,17 +268,17 @@ void binOpenOCD(void) {
 
           /* Set TCK. */
           OOCD_CLK = HIGH;
-          
+
           /* Sample TDO. */
           tdo_data_in = (OOCD_TDO << 15) | (tdo_data_in >> 1);
         }
-        
+
         /* Report TDO. */
-        
+
         tdo_data_in >>= 15 - (bits_to_process - 1);
         user_serial_transmit_character((tdo_data_in >> 8) & 0xFF);
         user_serial_transmit_character(tdo_data_in & 0xFF);
-        
+
         bit_sequences -= 16;
       } while (bit_sequences >= 0);
 
