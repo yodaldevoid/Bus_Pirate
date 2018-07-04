@@ -77,10 +77,13 @@ Macros
 Connections
 ------------------
 
-| Bus Pirate | Dir. | Circuit | Description          |
-| ----------:|:----:|:------- | -------------------- |
-| MOSI       | →    | TDI     | Master Out, Slave In |
-| MISO       | ←    | TDO     | Master In, Slave Out |
-| CS         | →    | TMS     | Chip Select          |
-| CLK        | →    | TCK     | Clock signal         |
-| GND        | ⏚    | GND     | Signal Ground        |
+| Bus Pirate | Dir. | Circuit | Description            |
+| ----------:|:----:|:------- | ---------------------- |
+| MOSI       | →    | TDI     | Master Out, Slave In   |
+| MISO       | ←    | TDO     | Master In, Slave Out   |
+| CS         | →    | TMS     | Chip Select            |
+| CLK        | →    | TCK     | Clock signal           |
+| AUX0       | →    | SRST    | System reset           |
+| AUX1       | →    | TRST    | Target reset (v4 only) |
+| PGD        | →    | TRST    | Target reset (v3 only) |
+| GND        | ⏚    | GND     | Signal Ground          |
