@@ -477,8 +477,6 @@
 
 /**
  * Allow OpenOCD to interact with the Bus Pirate board for JTAG operations.
- *
- * This is not yet supported on v4 boards.
  */
 #define BP_JTAG_OPENOCD_SUPPORT
 
