@@ -14,6 +14,7 @@
 * Bootloader v1 has been migrated to MPLAB X.
 * USB I/O now works when building the firmware using higher optimisation levels, working around a bug in the USB stack. (#11, #56)
 * OpenOCD JTAG support got an initial implementation (#28, #103, #104, #105).
+* Modules that require an additional hardware board (LCD, SMPS) are no longer built in by default.
 
 ### Changes applicable to both hardware versions:
 
