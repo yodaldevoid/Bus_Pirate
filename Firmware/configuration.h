@@ -98,7 +98,7 @@
  * Enable controlling a HD44780 LCD controller connected via an expansion board.
  *
  * @note BPv3 default firmware status: OPTIONAL
- * @note BPv4 default firmware status: INCLUDED
+ * @note BPv4 default firmware status: OPTIONAL
  *
  * This module allows interaction with a HD44780-based expansion board like this
  * one: http://dangerousprototypes.com/docs/Bus_Pirate_LCD_adapter_v2 or this
@@ -264,7 +264,7 @@
  * commands.
  *
  * @note BPv3 default firmware status: DISABLED
- * @note BPv4 default firmware status: INCLUDED
+ * @note BPv4 default firmware status: OPTIONAL
  *
  * The schematic for such an interface board can be found at
  * http://dangerousprototypes.com/docs/Bus_Pirate_SMPS - although it is not
@@ -300,14 +300,14 @@
 #define BP_ENABLE_1WIRE_SUPPORT
 #define BP_ENABLE_BASIC_SUPPORT
 #define BP_ENABLE_DIO_SUPPORT
-#define BP_ENABLE_HD44780_SUPPORT
+#undef BP_ENABLE_HD44780_SUPPORT
 #define BP_ENABLE_I2C_SUPPORT
 #define BP_ENABLE_JTAG_SUPPORT
 #define BP_ENABLE_PIC_SUPPORT
 #define BP_ENABLE_PC_AT_KEYBOARD_SUPPORT
 #define BP_ENABLE_RAW_2WIRE_SUPPORT
 #define BP_ENABLE_RAW_3WIRE_SUPPORT
-#define BP_ENABLE_SMPS_SUPPORT
+#undef BP_ENABLE_SMPS_SUPPORT
 #define BP_ENABLE_SPI_SUPPORT
 #define BP_ENABLE_SUMP_SUPPORT
 #define BP_ENABLE_UART_SUPPORT
