@@ -93,7 +93,6 @@
       <itemPath>../core.c</itemPath>
       <itemPath>../uart2.c</itemPath>
       <itemPath>../aux_pin.c</itemPath>
-      <itemPath>../raw_common.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
