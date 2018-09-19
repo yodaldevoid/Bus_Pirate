@@ -284,9 +284,7 @@ unsigned char getRXbyte(void) {
 }
 
 void binReset(void) {
-#if defined(BUSPIRATEV4) // Shut down the pull up voltages
-  BP_3V3PU_OFF();
-#endif
+  bp_disable_3v3_pullup();
   binBBpindirectionset(0xff); // pins to input on start
   binBBpinset(0);             // startup everything off, pins at ground
 }
@@ -344,17 +342,8 @@ unsigned char binBBpindirectionset(unsigned char inByte) {
 unsigned char binBBpinset(unsigned char inByte) {
   unsigned char i;
 
-  if (inByte & 0b1000000) {
-    BP_VREG_ON(); // power on
-  } else {
-    BP_VREG_OFF(); // power off
-  }
-
-  if (inByte & 0b100000) {
-    BP_PULLUP_ON(); // pullups on
-  } else {
-    BP_PULLUP_OFF();
-  }
+  bp_set_voltage_regulator_state((inByte & 0b01000000) == 0b01000000);
+  bp_set_pullup_state((inByte & 0b00100000) == 0b00100000);
 
   // set pin LAT
   // using this method is long and nasty,
@@ -437,17 +426,8 @@ void binSelfTest(bool jumper_test) {
 }
 
 void bp_binary_io_peripherals_set(unsigned char inByte) {
-  if (inByte & 0b1000) {
-    BP_VREG_ON(); // power on
-  } else {
-    BP_VREG_OFF(); // power off
-  }
-
-  if (inByte & 0b100) {
-    BP_PULLUP_ON(); // pullups on
-  } else {
-    BP_PULLUP_OFF();
-  }
+  bp_set_voltage_regulator_state((inByte & 0b00001000) == 0b00001000);
+  bp_set_pullup_state((inByte & 0b00000100) == 0b00000100);
 
   // AUX pin, high/low only
   if (inByte & 0b10) {
@@ -485,34 +465,34 @@ bool bp_binary_io_pullup_control(uint8_t control_byte) {
     result = false;
   } else {
     /* Disable both pull-ups. */
-    BP_3V3PU_OFF();
+    bp_disable_3v3_pullup();
     bp_delay_ms(2);
 
     /* Turn on the ADC. */
-    ADCON();
+    bp_enable_adc();
     if (bp_read_adc(BP_ADC_VPU) > 0x100) {
       /* Is there already an external voltage? */
       result = false;
     }
     /* Turn off the ADC. */
-    ADCOFF();
+    bp_disable_adc();
   }
 
   if (result) {
     switch (control_byte) {
     case 0x51:
       /* Turn on the +3.3v pull-up. */
-      BP_3V3PU_ON();
+      bp_enable_3v3_pullup();
       break;
 
     case 0x52:
       /* Turn on the +5v pull-up. */
-      BP_5VPU_ON();
+      bp_enable_5v0_pullup();
       break;
 
     default:
       /* Turn off both pull-ups. */
-      BP_3V3PU_OFF();
+      bp_disable_3v3_pullup();
       break;
     }
   }

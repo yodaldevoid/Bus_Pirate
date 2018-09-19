@@ -143,10 +143,10 @@ void bp_reset_board_state(void) {
   BP_LEDMODE = OFF;
   BP_LEDMODE_DIR = OUTPUT;
 #ifdef BUSPIRATEV4
-  BP_USBLED_OFF();
+  bp_enable_usb_led();
   BPV4_HWI2CPINS_SETUP();
   BP_BUTTON_SETUP();
-  BP_3V3PU_OFF();
+  bp_disable_3v3_pullup();
   eeprom_initialize();
 #endif /* BUSPIRATEv4 */
 
@@ -155,9 +155,9 @@ void bp_reset_board_state(void) {
 
   bus_pirate_configuration.bus_mode = BP_HIZ;
   clear_mode_configuration();
-  BP_PULLUP_OFF();
-  BP_VREG_OFF();
-  BP_ADC_PINSETUP();
+  bp_disable_pullup();
+  bp_disable_voltage_regulator();
+  bp_adc_pin_setup();
 
   /* Configure the ADC. */
 

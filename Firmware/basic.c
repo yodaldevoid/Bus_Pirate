@@ -411,11 +411,9 @@ uint16_t handle_special_token(const uint8_t token) {
     return ~BP_PULLUP;
 
   case TOK_ADC: {
-    uint16_t adc_measurement;
-
-    ADCON();
-    adc_measurement = bp_read_adc(BP_ADC_PROBE);
-    ADCOFF();
+    bp_enable_adc();
+    uint16_t adc_measurement = bp_read_adc(BP_ADC_PROBE);
+    bp_disable_adc();
 
     return adc_measurement;
   }
@@ -852,12 +850,7 @@ void interpreter(void) {
     case TOK_PSU:
       program_counter_updated = YES;
       basic_program_counter += 4;
-
-      if (assign()) {
-        BP_VREG_ON();
-      } else {
-        BP_VREG_OFF();
-      }
+      bp_set_voltage_regulator_state(assign() ? ON : OFF);
       handle_else_statement();
       break;
 
@@ -952,12 +945,7 @@ void interpreter(void) {
     case TOK_PULLUP:
       program_counter_updated = YES;
       basic_program_counter += 4;
-
-      if (assign()) {
-        BP_PULLUP_ON();
-      } else {
-        BP_PULLUP_OFF();
-      }
+      bp_set_pullup_state(assign() ? ON : OFF);
       handle_else_statement();
       break;
 

@@ -37,6 +37,7 @@
 #include <xc.h>
 
 #include "configuration.h"
+#include "hardware.h"
 #include "messages.h"
 #include "types.h"
 
@@ -44,16 +45,6 @@
  * @brief Firmware version string, used at startup and for the 'i' command.
  */
 #define BP_FIRMWARE_STRING "Community Firmware v7.1 - goo.gl/gCzQnW "
-
-#ifdef BUSPIRATEV3
-#include "hardwarev3.h"
-#elif defined(BUSPIRATEV4)
-#include "dp_usb/usb_stack_globals.h"
-#include "hardwarev4a.h"
-#include "onboard_eeprom.h"
-#else
-#error "No hardware defined in base.h."
-#endif /* BUSPIRATEV3 || BUSPIRATEV4 */
 
 /**
  * @brief Current mode configuration settings structure.

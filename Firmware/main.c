@@ -74,10 +74,9 @@ int main(void) {
   firmware_signature = FIRMWARE_SIGNATURE;
 
   initialize_board();
+  bp_enable_usb_led();
 
 #if defined(BUSPIRATEV4)
-  BP_LEDUSB_DIR = OUTPUT;
-  BP_USBLED_ON();
 
 #ifdef USB_INTERRUPTS
   EnableUsbPerifInterrupts(USB_TRN | USB_SOF | USB_UERR | USB_URST);
@@ -91,10 +90,12 @@ int main(void) {
     usb_handler();
 #endif /* !USB_INTERRUPTS */
   } while (usb_device_state < CONFIGURED_STATE);
-  BP_USBLED_OFF();
+  
   usb_register_sof_handler(CDCFlushOnTimeout);
 
 #endif /* BUSPIRATEV4 */
+
+  bp_disable_usb_led();
 
   /* Starts processing user requests. */
   serviceuser();

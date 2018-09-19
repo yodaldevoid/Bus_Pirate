@@ -351,22 +351,8 @@ void binpic(void)
 											{
                                             bp_update_pwm(PWM_OFF, PWM_OFF);
 											}
-											if(cmd&0x02)	// vreg on
-											{	BP_VREG_ON();
-												//modeConfig.vregEN=1;
-											}
-											else
-											{	BP_VREG_OFF();
-												//modeConfig.vregEN=0;
-											}
-											if(cmd&0x01)	// pullup on
-											{	BP_PULLUP_ON(); 
-//												modeConfig.pullupEN=1;
-											}
-											else
-											{	BP_PULLUP_OFF();
-//												modeConfig.pullupEN=0;
-											}
+                                            bp_set_voltage_regulator_state((cmd & 0x02) == 0x02);
+                                            bp_set_pullup_state((cmd & 0x01) == 0x01);
 										}
 										break;
 							default:	ok=0;

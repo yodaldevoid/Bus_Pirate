@@ -350,18 +350,10 @@ static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
     BP_LEDMODE = action;
     break;
   case FEATURE_VREG:
-    if (action) {
-      BP_VREG_ON();
-    } else {
-      BP_VREG_OFF();
-    }
+    bp_set_voltage_regulator_state(action ? ON : OFF);
     break;
   case FEATURE_PULLUP:
-    if (action) {
-      BP_PULLUP_ON();
-    } else {
-      BP_PULLUP_OFF();
-    }
+    bp_set_pullup_state(action ? ON : OFF);
     break;
   case FEATURE_TRST:
     OOCD_TRST = action;

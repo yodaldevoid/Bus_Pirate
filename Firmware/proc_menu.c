@@ -592,9 +592,7 @@ end:
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
-                        BP_PULLUP_OFF(); //pseudofunction in hardwarevx.h
-                        //								modeConfig.pullupEN=0;
-                        //bpWmessage(MSG_OPT_PULLUP_OFF);
+                        bp_disable_pullup();
                         BPMSG1089;
                         bpBR;
                     }
@@ -607,18 +605,16 @@ end:
                         if (mode_configuration.high_impedance == 0) { //bpWmessage(MSG_ERROR_NOTHIZPIN);
                             BPMSG1209;
                         }
-                        BP_PULLUP_ON(); //pseudofunction in hardwarevx.h
-                        //								modeConfig.pullupEN=1;
-                        //bpWmessage(MSG_OPT_PULLUP_ON);
+                        bp_enable_pullup();
                         BPMSG1091;
                         bpBR;
 
-                        ADCON();
+                        bp_enable_adc();
                         if (bp_read_adc(BP_ADC_VPU) < 0x50) {
                             /* No voltage on pullup pin detected. */
                             MSG_NO_VOLTAGE_ON_PULLUP_PIN;
                         }
-                        ADCOFF();
+                        bp_disable_adc();
                     }
                     break;
 #ifdef BUSPIRATEV4
@@ -701,8 +697,8 @@ bpv4reset:
                     if (bus_pirate_configuration.bus_mode == BP_HIZ) { //bpWmessage(MSG_ERROR_MODE);
                         BPMSG1088;
                     } else {
-                        BP_VREG_ON();
-                        ADCON(); // turn ADC ON
+                        bp_enable_voltage_regulator();
+                        bp_enable_adc();
                         bp_delay_ms(2); //wait for VREG to come up
 
                         if ((bp_read_adc(BP_ADC_3V3) > V33L) && (bp_read_adc(BP_ADC_5V0) > V5L)) { //voltages are correct
@@ -716,12 +712,12 @@ bpv4reset:
                             enabled_protocols[bus_pirate_configuration.bus_mode].setup_execute();
                             MSG_CLUTCH_ENGAGED;
                         } else {
-                            BP_VREG_OFF();
+                            bp_disable_voltage_regulator();
                             MSG_VREG_TOO_LOW;
                             BPMSG1097;
                             bpBR;
                         }
-                        ADCOFF(); // turn ADC OFF
+                        bp_disable_adc();
                     }
                     break;
                 case 'w': //bpWline("-PSU off");	//disable the power supplies
@@ -732,8 +728,7 @@ bpv4reset:
                         //cleans up the protocol and HiZs the pins
                         enabled_protocols[bus_pirate_configuration.bus_mode].cleanup();
                         MSG_CLUTCH_DISENGAGED;
-                        
-                        BP_VREG_OFF();
+                        bp_disable_voltage_regulator();
                         //bpWmessage(MSG_VREG_OFF);
                         BPMSG1097;
                         bpBR;
@@ -1667,7 +1662,7 @@ void print_pins_information(void) {
 #endif /* BUSPIRATEV4 */
     bpBR;
     BPMSG1234; //bpWstring("GND\t");
-    ADCON();
+    bp_enable_adc();
 
 #ifdef BUSPIRATEV4
     bp_write_voltage(bp_read_adc(BP_ADC_5V0));
@@ -1709,7 +1704,7 @@ void print_pins_information(void) {
     MSG_VOLTAGE_UNIT;
     user_serial_transmit_character('\t');
     
-    ADCOFF();
+    bp_disable_adc();
     
 #ifdef BUSPIRATEV4
     print_pin_state(AUX2);
@@ -1831,14 +1826,14 @@ void setPullupVoltage(void) {
         return;
     }
 
-    BP_3V3PU_OFF(); //disable any existing pullup
+    bp_disable_3v3_pullup();
     bp_delay_ms(2);
-    ADCON();
+    bp_enable_adc();
     if (bp_read_adc(BP_ADC_VPU) > 0x100) { //is there already an external voltage?
         /* Shouldn't this be an error? */
         MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT;
     }
-    ADCOFF();
+    bp_disable_adc();
 
     cmdstart = (cmdstart + 1) & CMDLENMSK;
     consumewhitechars();
@@ -1853,29 +1848,27 @@ void setPullupVoltage(void) {
         temp = getnumber(1, 1, 3, 0);
     }
     switch (temp) {
-        case 1: BP_3V3PU_OFF();
-
+        case 1:
+            bp_disable_3v3_pullup();
             BPMSG1272; //;0;" on-board pullup voltage "
             BPMSG1274; //1;"disabled"
-
-            //bpWline("on-board pullup voltage disabled");
             break;
-        case 2: BP_3V3PU_ON();
+        case 2:
+            bp_enable_3v3_pullup();
             BPMSG1173; //3.3v
             BPMSG1272; //;0;" on-board pullup voltage "
             BPMSG1273; //1;"enabled"
-            //bpWline("3V3 on-board pullup voltage enabled");
             break;
-        case 3: BP_5VPU_ON();
+        case 3:
+            bp_enable_5v0_pullup();
             BPMSG1171; //5v
             BPMSG1272; //;0;" on-board pullup voltage "
             BPMSG1273; //1;"enabled"
-            //bpWline("5V on-board pullup voltage enabled");
             break;
-        default:BP_3V3PU_OFF();
+        default:
+            bp_disable_3v3_pullup();
             BPMSG1272; //;0;" on-board pullup voltage "
             BPMSG1274; //1;"disabled"
-            //bpWline("on-board pullup voltage disabled");
     }
 }
 

@@ -19,6 +19,7 @@
 #define BP_TYPES_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * @brief Value indicating a bit to be OFF.

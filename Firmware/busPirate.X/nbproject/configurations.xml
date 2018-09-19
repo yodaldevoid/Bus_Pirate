@@ -12,7 +12,6 @@
       <itemPath>../descriptors.h</itemPath>
       <itemPath>../dio.h</itemPath>
       <itemPath>../hardwarev3.h</itemPath>
-      <itemPath>../hardwarev4a.h</itemPath>
       <itemPath>../pc_at_keyboard.h</itemPath>
       <itemPath>../pic.h</itemPath>
       <itemPath>../dp_usb/picusb.h</itemPath>
@@ -40,6 +39,8 @@
       <itemPath>../aux_pin.h</itemPath>
       <itemPath>../raw_common.h</itemPath>
       <itemPath>../types.h</itemPath>
+      <itemPath>../hardware.h</itemPath>
+      <itemPath>../hardwarev4.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
@@ -203,7 +204,7 @@
         <C30Global>
         </C30Global>
       </item>
-      <item path="../hardwarev4a.h" ex="true" overriding="false">
+      <item path="../hardwarev4.h" ex="true" overriding="false">
         <C30>
         </C30>
         <C30-AR>
@@ -290,7 +291,7 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="../../microchip/include;.."/>
+        <property key="extra-include-directories" value=".."/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="true"/>
         <property key="oXC16gcc-align-arr" value="false"/>
@@ -856,7 +857,7 @@
         <property key="enable-short-double" value="false"/>
         <property key="enable-symbols" value="true"/>
         <property key="enable-unroll-loops" value="false"/>
-        <property key="extra-include-directories" value="../../microchip/include;.."/>
+        <property key="extra-include-directories" value=".."/>
         <property key="isolate-each-function" value="false"/>
         <property key="keep-inline" value="true"/>
         <property key="oXC16gcc-align-arr" value="false"/>

@@ -118,19 +118,19 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
 
   /* Check whether the pull-up line goes HIGH when requested. */
 
-  BP_PULLUP_ON();
+  bp_enable_pullup();
   BPMSG1167;
   check_result(BP_PULLUP, HIGH);
 
   /* Check whether the pull-up line goes LOW when requested. */
 
-  BP_PULLUP_OFF();
+  bp_disable_pullup();
   BPMSG1168;
   check_result(BP_PULLUP, LOW);
 
   /* Check whether the regulated voltage line goes HIGH when requested. */
 
-  BP_VREG_ON();
+  bp_enable_voltage_regulator();
   bp_delay_ms(PWR_STATE_TEST_DELAY);
   BPMSG1169;
   check_result(BP_VREGEN, HIGH);
@@ -165,7 +165,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
   BPMSG1170;
 
   /* Turn ADC on. */
-  ADCON();
+  bp_enable_adc();
 
 #ifdef BUSPIRATEV4
 
@@ -185,13 +185,13 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
 
   /* Test the +5v pull-up line. */
 
-  BP_5VPU_ON();
+  bp_enable_5v0_pullup();
   BPMSG1171;
   bpSP;
   BPMSG1172;
   bp_delay_ms(PWR_STATE_TEST_DELAY);
   perform_adc_test(BP_ADC_VPU, V5L, V5H);
-  BP_5VPU_OFF();
+  bp_disable_5v0_pullup();
 
   if (jumper_test) {
 
@@ -215,13 +215,13 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
 
   /* Test the +3.3v pull-up line. */
 
-  BP_3V3PU_ON();
+  bp_enable_3v3_pullup();
   BPMSG1173;
   bpSP;
   BPMSG1172;
   bp_delay_ms(PWR_STATE_TEST_DELAY);
   perform_adc_test(BP_ADC_VPU, V33L, V33H);
-  BP_3V3PU_OFF();
+  bp_disable_3v3_pullup();
 
 #elif defined(BUSPIRATEV3)
 
@@ -257,7 +257,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
 #endif /* BUSPIRATEV4 || BUSPIRATEV3 */
 
   /* Turn ADC off. */
-  ADCOFF();
+  bp_disable_adc();
 
   /*
    * Pull all I/O pins HIGH with pull-ups deactivated, and check the pins
@@ -278,10 +278,8 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
   BPMSG1176;
   IOLAT &= ~ALLIO;
   if (jumper_test) {
-#ifdef BUSPIRATEV4
-    BP_3V3PU_ON();
-#endif /* BUSPIRATEV4 */
-    BP_PULLUP_ON();
+    bp_enable_3v3_pullup();
+    bp_enable_pullup();
   }
   bp_delay_ms(PIN_STATE_TEST_DELAY);
   perform_pins_state_test(LOW);
@@ -298,9 +296,7 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
     IODIR |= ALLIO;
     bp_delay_ms(PIN_STATE_TEST_DELAY);
     perform_pins_state_test(HIGH);
-#ifdef BUSPIRATEV4
-    BP_3V3PU_OFF();
-#endif /* BUSPIRATEV4 */
+    bp_disable_3v3_pullup();
   }
 
   if (show_progress && jumper_test) {
@@ -310,19 +306,15 @@ uint8_t perform_selftest(bool show_progress, bool jumper_test) {
      * to be pressed to continue.
      */
 
-    BP_VREG_ON();
-    BP_MODELED_ON();
-#ifdef BUSPIRATEV4
-    BP_USBLED_ON();
-#endif /* BUSPIRATEV4 */
+    bp_enable_voltage_regulator();
+    bp_enable_mode_led();
+    bp_enable_usb_led();
     BPMSG1178;
     MSG_ANY_KEY_TO_EXIT_PROMPT;
     user_serial_read_byte();
-#ifdef BUSPIRATEV4
-    BP_USBLED_OFF();
-#endif /* BUSPIRATEV4 */
-    BP_MODELED_OFF();
-    BP_VREG_OFF();
+    bp_disable_usb_led();
+    bp_disable_mode_led();
+    bp_disable_voltage_regulator();
   }
 
   bp_reset_board_state();
