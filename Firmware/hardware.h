@@ -122,8 +122,22 @@ static inline void bp_set_adc_state(bool state) {
   }
 }
 
-static inline void bp_enable_mode_led(void) { BP_LEDMODE = ON; }
+static inline void bp_enable_mode_led(void) {
+  BP_LEDMODE_DIR = OUTPUT;
+  BP_LEDMODE = ON;
+}
 
-static inline void bp_disable_mode_led(void) { BP_LEDMODE = OFF; }
+static inline void bp_disable_mode_led(void) {
+  BP_LEDMODE_DIR = OUTPUT;
+  BP_LEDMODE = OFF;
+}
+
+static inline void bp_set_mode_led_state(const bool state) {
+  if (state == ON) {
+    bp_enable_mode_led();
+  } else {
+    bp_disable_mode_led();
+  }
+}
 
 #endif /* !BP_HARDWARE_H */

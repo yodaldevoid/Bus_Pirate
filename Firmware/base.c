@@ -140,10 +140,9 @@ void bp_reset_board_state(void) {
   BP_MISO_DIR = INPUT;
   BP_CS_DIR = INPUT;
   BP_AUX0_DIR = INPUT;
-  BP_LEDMODE = OFF;
-  BP_LEDMODE_DIR = OUTPUT;
-#ifdef BUSPIRATEV4
+  bp_disable_mode_led();
   bp_enable_usb_led();
+#ifdef BUSPIRATEV4
   BPV4_HWI2CPINS_SETUP();
   BP_BUTTON_SETUP();
   bp_disable_3v3_pullup();
@@ -223,13 +222,13 @@ uint16_t bp_read_adc(const uint16_t channel) {
 
 void bp_adc_probe(void) {
   /* Turn the ADC on. */
-  AD1CON1bits.ADON = ON;
+  bp_enable_adc();
 
   /* Perform the measurement. */
   bp_write_voltage(bp_read_adc(BP_ADC_PROBE));
 
   /* Turn the ADC off. */
-  AD1CON1bits.ADON = OFF;
+  bp_disable_adc();
 }
 
 void bp_adc_continuous_probe(void) {

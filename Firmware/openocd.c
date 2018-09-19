@@ -81,8 +81,7 @@ enum {
 static unsigned int openocd_jtag_delay;
 
 void binOpenOCD(void) {
-  unsigned char *buf =
-      bus_pirate_configuration.terminal_input; // for simplicity :)
+  uint8_t *buf = bus_pirate_configuration.terminal_input;
   unsigned int i, j;
   unsigned char inByte;
   unsigned char inByte2;
@@ -91,7 +90,7 @@ void binOpenOCD(void) {
 
   MSG_OPENOCD_MODE_IDENTIFIER;
 
-  while (1) {
+  for (;;) {
     /*
     this will misbehave when polling is turned off in OpenOCD
 
@@ -346,21 +345,25 @@ static void binOpenOCDAnswer(unsigned char *buf, unsigned int len) {
 static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
   switch (feat) {
   case FEATURE_LED:
-    BP_LEDMODE_DIR = 0; // LED to output
-    BP_LEDMODE = action;
+    bp_set_mode_led_state(action ? ON : OFF);
     break;
+    
   case FEATURE_VREG:
     bp_set_voltage_regulator_state(action ? ON : OFF);
     break;
+    
   case FEATURE_PULLUP:
     bp_set_pullup_state(action ? ON : OFF);
     break;
+    
   case FEATURE_TRST:
     OOCD_TRST = action;
     break;
+    
   case FEATURE_SRST:
     OOCD_SRST = action;
     break;
+    
   default:
     break;
   }
