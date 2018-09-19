@@ -39,6 +39,7 @@
       <itemPath>../uart2.h</itemPath>
       <itemPath>../aux_pin.h</itemPath>
       <itemPath>../raw_common.h</itemPath>
+      <itemPath>../types.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LibraryFiles"
                    displayName="Library Files"
