@@ -32,7 +32,6 @@ BPMSG1203	0	" 0.Macro menu\r\n 1.Transparent bridge\r\n 2.Live monitor\r\n 3.Bri
 BPMSG1248	1	"Input a custom BAUD rate:"
 BPMSG1256	1	"#12    \t#11    \t#10    \t#09   \t#08   \t#07   \t#06   \t#05   \t#04   \t#03   \t#02   \t#01   "
 BPMSG1257	0	"GND\t5.0V\t3.3V\tVPU\tADC\tAUX2\tAUX1\tAUX\t"
-BPMSG1262	1	"-\t-\tPGC\tPGD"
 BPMSG1263	1	"a/A/@ controls AUX1 pin"
 BPMSG1264	1	"a/A/@ controls AUX2 pin"
 BPMSG1265	1	"EEPROM"
@@ -73,13 +72,13 @@ HLP1022	1	"w/W\tPSU (off/ON)\t\t<x>/<x= >/<0>\tUsermacro x/assign x/list all"
 // Post-6.2 strings.
 
 MSG_1WIRE_PINS_STATE	1	"-\t-\t-\tOWD"
-
 MSG_BAUD_DETECTION_SELECTED	1	"Baud detection selected.."
 MSG_CFG0_FIELD	0	"CFG0: "
 MSG_CHIP_REVISION_A5	0	"A5"
 MSG_CHIP_REVISION_ID_BEGIN	0	" (24FJ256GB106 "
 MSG_I2C_PINS_STATE	1	"-\t-\tSCL\tSDA"
 MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED	1	"On-board EEPROM write protect disabled"
+MSG_PIC_PINS_STATE	1	"-\t-\tPGC\tPGD"
 MSG_RESET_MESSAGE	1	"RESET"
 MSG_SPI_PINS_STATE	1	"CS\tMISO\tCLK\tMOSI"
 MSG_UART_NORMAL_TO_EXIT	1	"Normal to exit"

@@ -69,10 +69,6 @@ void BPMSG1069_str(void);
 #define BPMSG1069 bp_message_write_buffer(__builtin_tbladdress(BPMSG1069_str))
 void BPMSG1070_str(void);
 #define BPMSG1070 bp_message_write_line(__builtin_tbladdress(BPMSG1070_str))
-void BPMSG1072_str(void);
-#define BPMSG1072 bp_message_write_line(__builtin_tbladdress(BPMSG1072_str))
-void BPMSG1073_str(void);
-#define BPMSG1073 bp_message_write_line(__builtin_tbladdress(BPMSG1073_str))
 void BPMSG1074_str(void);
 #define BPMSG1074 bp_message_write_buffer(__builtin_tbladdress(BPMSG1074_str))
 void BPMSG1075_str(void);
@@ -81,8 +77,6 @@ void BPMSG1076_str(void);
 #define BPMSG1076 bp_message_write_line(__builtin_tbladdress(BPMSG1076_str))
 void BPMSG1077_str(void);
 #define BPMSG1077 bp_message_write_line(__builtin_tbladdress(BPMSG1077_str))
-void BPMSG1078_str(void);
-#define BPMSG1078 bp_message_write_line(__builtin_tbladdress(BPMSG1078_str))
 void BPMSG1079_str(void);
 #define BPMSG1079 bp_message_write_line(__builtin_tbladdress(BPMSG1079_str))
 void BPMSG1080_str(void);
@@ -301,8 +295,6 @@ void BPMSG1256_str(void);
 #define BPMSG1256 bp_message_write_line(__builtin_tbladdress(BPMSG1256_str))
 void BPMSG1257_str(void);
 #define BPMSG1257 bp_message_write_buffer(__builtin_tbladdress(BPMSG1257_str))
-void BPMSG1262_str(void);
-#define BPMSG1262 bp_message_write_line(__builtin_tbladdress(BPMSG1262_str))
 void BPMSG1263_str(void);
 #define BPMSG1263 bp_message_write_line(__builtin_tbladdress(BPMSG1263_str))
 void BPMSG1264_str(void);
@@ -493,8 +485,14 @@ void MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED_str(void);
 #define MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED bp_message_write_line(__builtin_tbladdress(MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED_str))
 void MSG_OPENOCD_MODE_IDENTIFIER_str(void);
 #define MSG_OPENOCD_MODE_IDENTIFIER bp_message_write_buffer(__builtin_tbladdress(MSG_OPENOCD_MODE_IDENTIFIER_str))
+void MSG_PIC_DELAY_PROMPT_str(void);
+#define MSG_PIC_DELAY_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_PIC_DELAY_PROMPT_str))
 void MSG_PIC_MODE_IDENTIFIER_str(void);
 #define MSG_PIC_MODE_IDENTIFIER bp_message_write_buffer(__builtin_tbladdress(MSG_PIC_MODE_IDENTIFIER_str))
+void MSG_PIC_MODE_PROMPT_str(void);
+#define MSG_PIC_MODE_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_PIC_MODE_PROMPT_str))
+void MSG_PIC_PINS_STATE_str(void);
+#define MSG_PIC_PINS_STATE bp_message_write_line(__builtin_tbladdress(MSG_PIC_PINS_STATE_str))
 void MSG_PIC_UNKNOWN_MODE_str(void);
 #define MSG_PIC_UNKNOWN_MODE bp_message_write_line(__builtin_tbladdress(MSG_PIC_UNKNOWN_MODE_str))
 void MSG_PIN_OUTPUT_TYPE_PROMPT_str(void);

@@ -202,18 +202,6 @@ _BPMSG1069_str:
 _BPMSG1070_str:
 	.pasciz "Searching I2C address space. Found devices at:"
 
-	; BPMSG1072
-	.section .text.BPMSG1072, code
-	.global _BPMSG1072_str
-_BPMSG1072_str:
-	.pasciz "Commandmode?\r\n1. 6b/14b\r\n2. 4b/16b"
-
-	; BPMSG1073
-	.section .text.BPMSG1073, code
-	.global _BPMSG1073_str
-_BPMSG1073_str:
-	.pasciz "Delay?"
-
 	; BPMSG1074
 	.section .text.BPMSG1074, code
 	.global _BPMSG1074_str
@@ -237,12 +225,6 @@ _BPMSG1076_str:
 	.global _BPMSG1077_str
 _BPMSG1077_str:
 	.pasciz "no read"
-
-	; BPMSG1078
-	.section .text.BPMSG1078, code
-	.global _BPMSG1078_str
-_BPMSG1078_str:
-	.pasciz "unknown mode"
 
 	; BPMSG1079
 	.section .text.BPMSG1079, code
@@ -898,12 +880,6 @@ _BPMSG1256_str:
 _BPMSG1257_str:
 	.pasciz "GND\t5.0V\t3.3V\tVPU\tADC\tAUX2\tAUX1\tAUX\t"
 
-	; BPMSG1262
-	.section .text.BPMSG1262, code
-	.global _BPMSG1262_str
-_BPMSG1262_str:
-	.pasciz "-\t-\tPGC\tPGD"
-
 	; BPMSG1263
 	.section .text.BPMSG1263, code
 	.global _BPMSG1263_str
@@ -1474,11 +1450,29 @@ _MSG_ONBOARD_I2C_EEPROM_WRITE_PROTECT_DISABLED_str:
 _MSG_OPENOCD_MODE_IDENTIFIER_str:
 	.pasciz "OCD1"
 
+	; MSG_PIC_DELAY_PROMPT
+	.section .text.MSG_PIC_DELAY_PROMPT, code
+	.global _MSG_PIC_DELAY_PROMPT_str
+_MSG_PIC_DELAY_PROMPT_str:
+	.pasciz "Delay?"
+
 	; MSG_PIC_MODE_IDENTIFIER
 	.section .text.MSG_PIC_MODE_IDENTIFIER, code
 	.global _MSG_PIC_MODE_IDENTIFIER_str
 _MSG_PIC_MODE_IDENTIFIER_str:
 	.pasciz "PIC1"
+
+	; MSG_PIC_MODE_PROMPT
+	.section .text.MSG_PIC_MODE_PROMPT, code
+	.global _MSG_PIC_MODE_PROMPT_str
+_MSG_PIC_MODE_PROMPT_str:
+	.pasciz "Commandmode?\r\n1. 6b/14b\r\n2. 4b/16b"
+
+	; MSG_PIC_PINS_STATE
+	.section .text.MSG_PIC_PINS_STATE, code
+	.global _MSG_PIC_PINS_STATE_str
+_MSG_PIC_PINS_STATE_str:
+	.pasciz "-\t-\tPGC\tPGD"
 
 	; MSG_PIC_UNKNOWN_MODE
 	.section .text.MSG_PIC_UNKNOWN_MODE, code

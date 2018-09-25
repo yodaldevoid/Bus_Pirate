@@ -4,7 +4,6 @@
  *
  * Initially written by Chris van Dongen, 2010.
  *
- *
  * Written and maintained by the Bus Pirate project.
  *
  * To the extent possible under law, the project has waived all copyright and
