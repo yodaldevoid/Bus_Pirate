@@ -4,15 +4,15 @@
  *
  * Written and maintained by the Bus Pirate project.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate. This work is published from
+ * United States.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
  */
 
 #include "raw2wire.h"
@@ -29,6 +29,8 @@
 
 #define R2WDIO_TRIS BP_MOSI_DIR
 #define R2WDIO BP_MOSI
+
+#define ATR_HEADER_LENGTH 4
 
 typedef enum {
   RAW2WIRE_MACRO_MENU = 0,
@@ -87,16 +89,12 @@ void raw2wire_print_settings(void) {
 }
 
 void raw2wire_setup_prepare(void) {
-  bool user_prompt;
-  int speed;
-  int output;
-
   consumewhitechars();
-  speed = getint();
+  int speed = getint();
   consumewhitechars();
-  output = getint();
+  int output = getint();
 
-  user_prompt =
+  bool user_prompt =
       !(((speed > 0) && (speed <= 4)) && ((output > 0) && (output <= 2)));
 
   if (user_prompt) {
@@ -153,12 +151,10 @@ void trigger_atr(void) {
 }
 
 void read_atr_header(void) {
-  uint8_t buffer[4];
-  size_t index;
-  uint8_t length;
+  uint8_t buffer[ATR_HEADER_LENGTH];
 
   MSG_RAW2WIRE_ATR_REPLY_HEADER;
-  for (index = 0; index < 4; index++) {
+  for (size_t index = 0; index < ATR_HEADER_LENGTH; index++) {
     buffer[index] = bitbang_read_value();
     if (mode_configuration.little_endian == YES) {
       buffer[index] = bp_reverse_byte(buffer[index]);
@@ -201,7 +197,7 @@ void read_atr_header(void) {
   bpBR;
 
   MSG_RAW2WIRE_ATR_DATA_UNITS_HEADER;
-  length = (buffer[1] >> 3) & 0b00001111;
+  uint8_t length = (buffer[1] >> 3) & 0b00001111;
   switch (length) {
   case 0:
     MSG_RAW2WIRE_ATR_DATA_UNITS_NO_INDICATION;

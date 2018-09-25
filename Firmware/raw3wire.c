@@ -8,11 +8,11 @@
  * related or neighboring rights to Bus Pirate. This work is published from
  * United States.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
  */
 
 #include "raw3wire.h"

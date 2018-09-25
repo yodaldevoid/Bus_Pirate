@@ -4,15 +4,15 @@
  *
  * Written and maintained by the Bus Pirate project.
  *
- * To the extent possible under law, the project has
- * waived all copyright and related or neighboring rights to Bus Pirate. This
- * work is published from United States.
+ * To the extent possible under law, the project has waived all copyright and
+ * related or neighboring rights to Bus Pirate. This work is published from
+ * United States.
  *
- * For details see: http://creativecommons.org/publicdomain/zero/1.0/.
+ * For details see: http://creativecommons.org/publicdomain/zero/1.0/
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE.
  */
 
 #include "smps.h"
@@ -88,15 +88,15 @@ void smps_start(unsigned int requested_voltage) {
    * MSB
    * 0000xxx000011111
    * ||||   |||||||||
-   * ||||   ||||+++++--> SYNCSELx - Trigger source is the same module.
-   * ||||   |||+-------> OCTRIS   - Peripheral connected to pin.
-   * ||||   ||+--------> TRIGSTAT - Timer source has not been triggered.
-   * ||||   |+---------> OCTRIG   - Output Compare synchronized with SYNCSELx.
-   * ||||   +----------> OC32     - Cascade module operation disabled.
-   * |||+--------------> OCINV    - Output Compare result is not inverted.
-   * ||+---------------> FLTTRIEN - pin I/O unaffected by a fault.
-   * |+----------------> FLTOUT   - PWM output driven low on a fault.
-   * +-----------------> FLTMD    - fault mode maintained.
+   * ||||   ||||+++++--- SYNCSELx - Trigger source is the same module.
+   * ||||   |||+-------- OCTRIS   - Peripheral connected to pin.
+   * ||||   ||+--------- TRIGSTAT - Timer source has not been triggered.
+   * ||||   |+---------- OCTRIG   - Output Compare synchronized with SYNCSELx.
+   * ||||   +----------- OC32     - Cascade module operation disabled.
+   * |||+--------------- OCINV    - Output Compare result is not inverted.
+   * ||+---------------- FLTTRIEN - pin I/O unaffected by a fault.
+   * |+----------------- FLTOUT   - PWM output driven low on a fault.
+   * +------------------ FLTMD    - fault mode maintained.
    */
   OC5CON2 = 0x001F;
 
@@ -106,12 +106,12 @@ void smps_start(unsigned int requested_voltage) {
    * MSB
    * xx0111xx0xx00110
    *   ||||  |  |||||
-   *   ||||  |  ||+++--> OCM      - Edge-aligned PWM mode.
-   *   ||||  |  |+-----> TRIGMODE - TRIGSTAT cleared by software.
-   *   ||||  |  +------> OCFLT0   - No PWM fault condition occurred.
-   *   ||||  +---------> ENFLT0   - Fault 0 input disabled.
-   *   |+++------------> OCTSEL   - Output Compare Timer is System Clock
-   *   +---------------> OCSIDL   - Output Compare stops on idle.
+   *   ||||  |  ||+++--- OCM      - Edge-aligned PWM mode.
+   *   ||||  |  |+------ TRIGMODE - TRIGSTAT cleared by software.
+   *   ||||  |  +------- OCFLT0   - No PWM fault condition occurred.
+   *   ||||  +---------- ENFLT0   - Fault 0 input disabled.
+   *   |+++------------- OCTSEL   - Output Compare Timer is System Clock
+   *   +---------------- OCSIDL   - Output Compare stops on idle.
    */
   OC5CON1 = 0x1C06;
 
@@ -141,15 +141,15 @@ void smps_stop(void) {
    * MSB
    * 0000xxx000000000
    * ||||   |||||||||
-   * ||||   ||||+++++--> SYNCSELx - Not synchronized with any other module.
-   * ||||   |||+-------> OCTRIS   - Peripheral connected to pin.
-   * ||||   ||+--------> TRIGSTAT - Timer source has not been triggered.
-   * ||||   |+---------> OCTRIG   - Output Compare synchronized with SYNCSELx.
-   * ||||   +----------> OC32     - Cascade module operation disabled.
-   * |||+--------------> OCINV    - Output Compare result is not inverted.
-   * ||+---------------> FLTTRIEN - pin I/O unaffected by a fault.
-   * |+----------------> FLTOUT   - PWM output driven low on a fault.
-   * +-----------------> FLTMD    - fault mode maintained.
+   * ||||   ||||+++++--- SYNCSELx - Not synchronized with any other module.
+   * ||||   |||+-------- OCTRIS   - Peripheral connected to pin.
+   * ||||   ||+--------- TRIGSTAT - Timer source has not been triggered.
+   * ||||   |+---------- OCTRIG   - Output Compare synchronized with SYNCSELx.
+   * ||||   +----------- OC32     - Cascade module operation disabled.
+   * |||+--------------- OCINV    - Output Compare result is not inverted.
+   * ||+---------------- FLTTRIEN - pin I/O unaffected by a fault.
+   * |+----------------- FLTOUT   - PWM output driven low on a fault.
+   * +------------------ FLTMD    - fault mode maintained.
    */
   OC5CON2 = 0;
 
@@ -159,12 +159,12 @@ void smps_stop(void) {
    * MSB
    * xx0000xx0xx00000
    *   ||||  |  |||||
-   *   ||||  |  ||+++--> OCM      - Output Compare channel disabled.
-   *   ||||  |  |+-----> TRIGMODE - TRIGSTAT cleared by software.
-   *   ||||  |  +------> OCFLT0   - No PWM fault condition occurred.
-   *   ||||  +---------> ENFLT0   - Fault 0 input disabled.
-   *   |+++------------> OCTSEL   - Output Compare Timer is Timer #2.
-   *   +---------------> OCSIDL   - Output Compare stops on idle.
+   *   ||||  |  ||+++--- OCM      - Output Compare channel disabled.
+   *   ||||  |  |+------ TRIGMODE - TRIGSTAT cleared by software.
+   *   ||||  |  +------- OCFLT0   - No PWM fault condition occurred.
+   *   ||||  +---------- ENFLT0   - Fault 0 input disabled.
+   *   |+++------------- OCTSEL   - Output Compare Timer is Timer #2.
+   *   +---------------- OCSIDL   - Output Compare stops on idle.
    */
   OC5CON1 = 0;
 
