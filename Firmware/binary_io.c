@@ -269,7 +269,7 @@ void binBB(void) {
       }
 
     } else { // data for pins
-      user_serial_transmit_character(binBBpinset(inByte));
+      user_serial_transmit_character(bitbang_pin_state_set(inByte));
     } // if
   }   // while
 } // function
@@ -282,7 +282,7 @@ unsigned char getRXbyte(void) {
 void binReset(void) {
   bp_disable_3v3_pullup();
   bitbang_pin_direction_set(0xff); // pins to input on start
-  binBBpinset(0);                  // startup everything off, pins at ground
+  bitbang_pin_state_set(0);        // startup everything off, pins at ground
 }
 
 uint8_t bitbang_pin_direction_set(const uint8_t direction_mask) {
@@ -308,58 +308,30 @@ uint8_t bitbang_pin_direction_set(const uint8_t direction_mask) {
          ((BP_CS == HIGH) ? 0b00000001 : 0b00000000);
 }
 
-unsigned char binBBpinset(unsigned char inByte) {
-  unsigned char i;
+uint8_t bitbang_pin_state_set(const uint8_t state_mask) {
 
-  bp_set_voltage_regulator_state((inByte & 0b01000000) == 0b01000000);
-  bp_set_pullup_state((inByte & 0b00100000) == 0b00100000);
+  /* Set state. */
 
-  // set pin LAT
-  // using this method is long and nasty,
-  // but it makes it work for all hardware versions
-  // without special adjustments
-  i = 0;
-  if (inByte & 0b10000)
-    i = 1;
-  BP_AUX0 = i;
+  bp_set_voltage_regulator_state((state_mask & 0b01000000) ? ON : OFF);
+  bp_set_pullup_state((state_mask & 0b00100000) ? ON : OFF);
 
-  i = 0;
-  if (inByte & 0b1000)
-    i = 1;
-  BP_MOSI = i;
+  BP_AUX0 = (state_mask & 0b00010000) ? HIGH : LOW;
+  BP_MOSI = (state_mask & 0b00001000) ? HIGH : LOW;
+  BP_CLK = (state_mask & 0b00000100) ? HIGH : LOW;
+  BP_MISO = (state_mask & 0b00000010) ? HIGH : LOW;
+  BP_CS = (state_mask & 0b00000001) ? HIGH : LOW;
 
-  i = 0;
-  if (inByte & 0b100)
-    i = 1;
-  BP_CLK = i;
+  /* Wait a bit. */
 
-  i = 0;
-  if (inByte & 0b10)
-    i = 1;
-  BP_MISO = i;
-
-  i = 0;
-  if (inByte & 0b1)
-    i = 1;
-  BP_CS = i;
-
-  // delay for a brief period
   bp_delay_us(5);
 
-  // return PORT read
-  inByte &= (~0b00011111);
-  if (BP_AUX0 != 0)
-    inByte |= 0b10000;
-  if (BP_MOSI != 0)
-    inByte |= 0b1000;
-  if (BP_CLK != 0)
-    inByte |= 0b100;
-  if (BP_MISO != 0)
-    inByte |= 0b10;
-  if (BP_CS != 0)
-    inByte |= 0b1;
+  /* Return current state. */
 
-  return inByte; // return the read
+  return ((BP_AUX0 == HIGH) ? 0b00010000 : 0b00000000) |
+         ((BP_MOSI == HIGH) ? 0b00001000 : 0b00000000) |
+         ((BP_CLK == HIGH) ? 0b00000100 : 0b00000000) |
+         ((BP_MISO == HIGH) ? 0b00000010 : 0b00000000) |
+         ((BP_CS == HIGH) ? 0b00000001 : 0b00000000);
 }
 
 void binSelfTest(bool jumper_test) {
