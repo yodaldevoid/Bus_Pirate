@@ -66,8 +66,6 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
  */
 static void send_binary_io_mode_identifier(void);
 
-// unsigned char binBBpindirectionset(unsigned char inByte);
-// unsigned char binBBpinset(unsigned char inByte);
 void binSelfTest(bool jumper_test);
 void binReset(void);
 unsigned char getRXbyte(void);
@@ -265,7 +263,7 @@ void binBB(void) {
 #endif
         //--- End added JM
       } else if ((inByte >> 5) & 0b010) { // set pin direction, return read
-        user_serial_transmit_character(binBBpindirectionset(inByte));
+        user_serial_transmit_character(bitbang_pin_direction_set(inByte));
       } else { // unknown command, error
         user_serial_transmit_character(0);
       }
@@ -283,58 +281,31 @@ unsigned char getRXbyte(void) {
 
 void binReset(void) {
   bp_disable_3v3_pullup();
-  binBBpindirectionset(0xff); // pins to input on start
-  binBBpinset(0);             // startup everything off, pins at ground
+  bitbang_pin_direction_set(0xff); // pins to input on start
+  binBBpinset(0);                  // startup everything off, pins at ground
 }
 
-unsigned char binBBpindirectionset(unsigned char inByte) {
-  unsigned char i;
-  // setup pin TRIS
-  // using this method is long and nasty,
-  // but it makes it work for all hardware versions
-  // without special adjustments
-  i = 0;
-  if (inByte & 0b10000)
-    i = 1;
-  BP_AUX0_DIR = i;
+uint8_t bitbang_pin_direction_set(const uint8_t direction_mask) {
 
-  i = 0;
-  if (inByte & 0b1000)
-    i = 1;
-  BP_MOSI_DIR = i;
+  /* Set directions. */
 
-  i = 0;
-  if (inByte & 0b100)
-    i = 1;
-  BP_CLK_DIR = i;
+  BP_AUX0_DIR = (direction_mask & 0b00010000) ? INPUT : OUTPUT;
+  BP_MOSI_DIR = (direction_mask & 0b00001000) ? INPUT : OUTPUT;
+  BP_CLK_DIR = (direction_mask & 0b00000100) ? INPUT : OUTPUT;
+  BP_MISO_DIR = (direction_mask & 0b00000010) ? INPUT : OUTPUT;
+  BP_CS_DIR = (direction_mask & 0b00000001) ? INPUT : OUTPUT;
 
-  i = 0;
-  if (inByte & 0b10)
-    i = 1;
-  BP_MISO_DIR = i;
+  /* Wait a bit. */
 
-  i = 0;
-  if (inByte & 0b1)
-    i = 1;
-  BP_CS_DIR = i;
-
-  // delay for a brief period
   bp_delay_us(5);
 
-  // return PORT read
-  inByte &= (~0b00011111);
-  if (BP_AUX0 != 0)
-    inByte |= 0b10000;
-  if (BP_MOSI != 0)
-    inByte |= 0b1000;
-  if (BP_CLK != 0)
-    inByte |= 0b100;
-  if (BP_MISO != 0)
-    inByte |= 0b10;
-  if (BP_CS != 0)
-    inByte |= 0b1;
+  /* Return current state. */
 
-  return inByte; // return the read
+  return ((BP_AUX0 == HIGH) ? 0b00010000 : 0b00000000) |
+         ((BP_MOSI == HIGH) ? 0b00001000 : 0b00000000) |
+         ((BP_CLK == HIGH) ? 0b00000100 : 0b00000000) |
+         ((BP_MISO == HIGH) ? 0b00000010 : 0b00000000) |
+         ((BP_CS == HIGH) ? 0b00000001 : 0b00000000);
 }
 
 unsigned char binBBpinset(unsigned char inByte) {

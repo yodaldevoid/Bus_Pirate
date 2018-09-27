@@ -33,7 +33,7 @@ unsigned int dio_read(void) {
 
 unsigned int dio_write(unsigned int value) {
     return (value & DIO_PIN_SET_STATE_FLAG_MASK) ? binBBpinset(value) :
-        binBBpindirectionset(value);
+        bitbang_pin_direction_set(value);
 }
 
 #endif /* BP_ENABLE_DIO_SUPPORT */

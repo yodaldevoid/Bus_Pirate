@@ -51,7 +51,34 @@
   } while (0)
 
 void binBB(void);
-uint8_t binBBpindirectionset(uint8_t inByte);
+
+/**
+ * Sets the direction of the various I/O pins.
+ *
+ * Bits set to 1 are for pins that must be set in INPUT mode, while bits set to
+ * 0 indicate pins that must be set to OUTPUT mode.
+ *
+ * The bitmask is as follows:
+ *
+ * <table>
+ * <tr><th>Bit #</th><th>Pin</th></tr>
+ * <tr><td>7</td><td>Unused</td></tr>
+ * <tr><td>6</td><td>Unused</td></tr>
+ * <tr><td>5</td><td>Unused</td></tr>
+ * <tr><td>4</td><td><tt>AUX0</tt></td></tr>
+ * <tr><td>3</td><td><tt>MOSI</tt></td></tr>
+ * <tr><td>2</td><td><tt>CLK</tt></td></tr>
+ * <tr><td>1</td><td><tt>MISO</tt></td></tr>
+ * <tr><td>0</td><td><tt>CS</tt></td></tr>
+ * </table>
+ *
+ * @param[in] direction_mask the bitmask indicating the directions to assign to
+ * I/O pins.
+ *
+ * @return the current state of the pins.
+ */
+uint8_t bitbang_pin_direction_set(const uint8_t direction_mask);
+
 uint8_t binBBpinset(uint8_t inByte);
 
 void bp_binary_io_peripherals_set(uint8_t input_byte);
