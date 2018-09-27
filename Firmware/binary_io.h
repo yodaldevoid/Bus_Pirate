@@ -32,22 +32,22 @@
 
 /**
  * @def REPORT_IO_SUCCESS()
- * 
+ *
  * Outputs a success code to the binary I/O channel.
  */
 #define REPORT_IO_SUCCESS()                                                    \
   do {                                                                         \
-    user_serial_transmit_character(BP_BINARY_IO_RESULT_SUCCESS);                                      \
+    user_serial_transmit_character(BP_BINARY_IO_RESULT_SUCCESS);               \
   } while (0)
 
 /**
  * @def REPORT_IO_FAILURE()
- * 
+ *
  * Outputs a failure code to the binary I/O channel.
  */
 #define REPORT_IO_FAILURE()                                                    \
   do {                                                                         \
-    user_serial_transmit_character(BP_BINARY_IO_RESULT_FAILURE);                                      \
+    user_serial_transmit_character(BP_BINARY_IO_RESULT_FAILURE);               \
   } while (0)
 
 void binBB(void);
