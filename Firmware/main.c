@@ -18,7 +18,6 @@
 #include <stdint.h>
 
 #include "base.h"
-
 #include "basic.h"
 #include "core.h"
 #include "proc_menu.h"
@@ -109,13 +108,13 @@ int main(void) {
  * Table for all possible v3 hardware versions.
  */
 static const uint8_t BPV3_HARDWARE_VERSION_TABLE[] = {
-    /** RB3 == 0 && RB2 == 0 - v3.5 */
+    /* RB3 == 0 && RB2 == 0 - v3.5 */
     '5',
-    /** RB3 == 0 && RB2 == 1 - Unknown */
+    /* RB3 == 0 && RB2 == 1 - Unknown */
     '?',
-    /** RB3 == 1 && RB2 == 0 - v3b */
+    /* RB3 == 1 && RB2 == 0 - v3b */
     'b',
-    /** RB3 == 1 && RB2 == 1 - v2go, v3a */
+    /* RB3 == 1 && RB2 == 1 - v2go, v3a */
     'a'};
 
 #endif /* BUSPIRATEV3 */
@@ -194,8 +193,7 @@ void initialize_board(void) {
 
 #ifdef BUSPIRATEV3
   /* Turn pull-ups ON. */
-  CNPU1bits.CN6PUE = ON;
-  CNPU1bits.CN7PUE = ON;
+  CNPU1 |= _CNPU1_CN6PUE_MASK | _CNPU1_CN7PUE_MASK;
 #endif /* BUSPIRATEV3 */
 
   /* Read device type and revision. */
@@ -211,8 +209,7 @@ void initialize_board(void) {
       BPV3_HARDWARE_VERSION_TABLE[(PORTB >> 2) & 0b00000011];
 
   /* Turn pull-ups OFF. */
-  CNPU1bits.CN6PUE = OFF;
-  CNPU1bits.CN7PUE = OFF;
+  CNPU1 &= ~(_CNPU1_CN6PUE_MASK | _CNPU1_CN7PUE_MASK);
 #else
   bus_pirate_configuration.hardware_version = 0;
 #endif /* BUSPIRATEV3 */
