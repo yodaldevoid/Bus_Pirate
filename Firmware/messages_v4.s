@@ -166,12 +166,6 @@ _BPMSG1057_str:
 _BPMSG1058_str:
 	.pasciz "Loading from slot "
 
-	; BPMSG1059
-	.section .text.BPMSG1059, code
-	.global _BPMSG1059_str
-_BPMSG1059_str:
-	.pasciz "ERROR: command has no effect here"
-
 	; BPMSG1064
 	.section .text.BPMSG1064, code
 	.global _BPMSG1064_str
@@ -1269,6 +1263,12 @@ _MSG_CLUTCH_DISENGAGED_str:
 	.global _MSG_CLUTCH_ENGAGED_str
 _MSG_CLUTCH_ENGAGED_str:
 	.pasciz "Clutch engaged!!!"
+
+	; MSG_COMMAND_HAS_NO_EFFECT
+	.section .text.MSG_COMMAND_HAS_NO_EFFECT, code
+	.global _MSG_COMMAND_HAS_NO_EFFECT_str
+_MSG_COMMAND_HAS_NO_EFFECT_str:
+	.pasciz "ERROR: command has no effect here"
 
 	; MSG_FINISH_SETUP_PROMPT
 	.section .text.MSG_FINISH_SETUP_PROMPT, code

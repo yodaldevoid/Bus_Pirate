@@ -425,30 +425,30 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
 };
 
 void null_operation_callback(void) {
-  BPMSG1059;
+  MSG_COMMAND_HAS_NO_EFFECT;
   command_error = true;
 }
 
 uint16_t null_send_callback(uint16_t data) {
-  BPMSG1059;
+  MSG_COMMAND_HAS_NO_EFFECT;
   command_error = true;
   return 0x100;
 }
 
 uint16_t null_data_read_callback(void) {
-  BPMSG1059;
+  MSG_COMMAND_HAS_NO_EFFECT;
   command_error = true;
   return 0;
 }
 
 bool null_bit_read_callback(void) {
-  BPMSG1059;
+  MSG_COMMAND_HAS_NO_EFFECT;
   command_error = true;
   return OFF;
 }
 
 void null_macro_callback(uint16_t value) {
-  BPMSG1059;
+  MSG_COMMAND_HAS_NO_EFFECT;
   command_error = true;
 }
 
@@ -466,5 +466,5 @@ void reset_mode_to_8_bits(void) {
   /* Sets the mode configuration to 8 bits. */
 
   mode_configuration.numbits = 8;
-  mode_configuration.int16 = 0;
+  mode_configuration.int16 = NO;
 }

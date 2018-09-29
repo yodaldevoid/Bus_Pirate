@@ -45,8 +45,6 @@ void BPMSG1051_str(void);
 #define BPMSG1051 bp_message_write_line(__builtin_tbladdress(BPMSG1051_str))
 void BPMSG1052_str(void);
 #define BPMSG1052 bp_message_write_line(__builtin_tbladdress(BPMSG1052_str))
-void BPMSG1059_str(void);
-#define BPMSG1059 bp_message_write_line(__builtin_tbladdress(BPMSG1059_str))
 void BPMSG1064_str(void);
 #define BPMSG1064 bp_message_write_line(__builtin_tbladdress(BPMSG1064_str))
 void BPMSG1066_str(void);
@@ -399,6 +397,8 @@ void MSG_CLUTCH_DISENGAGED_str(void);
 #define MSG_CLUTCH_DISENGAGED bp_message_write_line(__builtin_tbladdress(MSG_CLUTCH_DISENGAGED_str))
 void MSG_CLUTCH_ENGAGED_str(void);
 #define MSG_CLUTCH_ENGAGED bp_message_write_line(__builtin_tbladdress(MSG_CLUTCH_ENGAGED_str))
+void MSG_COMMAND_HAS_NO_EFFECT_str(void);
+#define MSG_COMMAND_HAS_NO_EFFECT bp_message_write_line(__builtin_tbladdress(MSG_COMMAND_HAS_NO_EFFECT_str))
 void MSG_FINISH_SETUP_PROMPT_str(void);
 #define MSG_FINISH_SETUP_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_FINISH_SETUP_PROMPT_str))
 void MSG_HEXADECIMAL_NUMBER_PREFIX_str(void);
