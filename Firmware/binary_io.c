@@ -68,7 +68,6 @@ static void send_binary_io_mode_identifier(void);
 
 void binSelfTest(bool jumper_test);
 void binReset(void);
-unsigned char getRXbyte(void);
 
 /*
 Bitbang is like a player piano or bitmap. The 1 and 0 represent the pins.
@@ -122,7 +121,7 @@ void binBB(void) {
 
   while (1) {
 
-    inByte = getRXbyte();
+    inByte = user_serial_read_byte();
 
     if ((inByte & 0b10000000) == 0) { // if command bit cleared, process command
       if (inByte == 0) {              // reset, send BB version
@@ -200,22 +199,22 @@ void binBB(void) {
         BP_AUX_RPOUT = OC5_IO; // setup pin
 
         // get one byte
-        i = getRXbyte();
+        i = user_serial_read_byte();
         if (i & 0b10)
           T2CONbits.TCKPS1 = 1; // set prescalers
         if (i & 0b1)
           T2CONbits.TCKPS0 = 1;
 
         // get two bytes
-        i = (getRXbyte() << 8);
-        i |= getRXbyte();
+        i = (user_serial_read_byte() << 8);
+        i |= user_serial_read_byte();
         OC5R = i; // Write duty cycle to both registers
         OC5RS = i;
         OC5CON = 0x6; // PWM mode on OC, Fault pin disabled
 
         // get two bytes
-        i = (getRXbyte() << 8);
-        i |= getRXbyte();
+        i = (user_serial_read_byte() << 8);
+        i |= user_serial_read_byte();
         PR2 = i; // write period
 
         T2CONbits.TON = 1; // Start Timer2
@@ -273,11 +272,6 @@ void binBB(void) {
     } // if
   }   // while
 } // function
-
-unsigned char getRXbyte(void) {
-  // JTR Not required while (UART1RXRdy() == 0); //wait for a byte
-  return user_serial_read_byte(); ///* JTR usb port; */ //grab it
-}
 
 void binReset(void) {
   bp_disable_3v3_pullup();
