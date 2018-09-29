@@ -273,7 +273,7 @@ void bp_write_formatted_integer(const uint16_t value) {
 
   switch (bus_pirate_configuration.display_mode) {
   case HEX:
-    if (mode_configuration.int16) {
+    if (mode_configuration.int16 == YES) {
       bp_write_hex_word(value);
     } else {
       bp_write_hex_byte(value);
@@ -281,7 +281,7 @@ void bp_write_formatted_integer(const uint16_t value) {
     break;
 
   case DEC:
-    if (mode_configuration.int16) {
+    if (mode_configuration.int16 == YES) {
       bp_write_dec_word(value);
     } else {
       bp_write_dec_byte(value);
@@ -289,15 +289,15 @@ void bp_write_formatted_integer(const uint16_t value) {
     break;
 
   case BIN:
-    if (mode_configuration.int16) {
-      bp_write_bin_byte(value);
+    if (mode_configuration.int16 == YES) {
+      bp_write_bin_byte(value >> 8);
       bpSP;
     }
-    bp_write_bin_byte(value);
+    bp_write_bin_byte(value & 0xFF);
     break;
 
   case RAW:
-    if (mode_configuration.int16) {
+    if (mode_configuration.int16 == YES) {
       user_serial_transmit_character(value >> 8);
     }
     user_serial_transmit_character(value & 0xFF);
