@@ -115,7 +115,7 @@ void binBB(void) {
   static unsigned char inByte;
   unsigned int i;
 
-  BP_LEDMODE = 1; // light MODE LED
+  bp_enable_mode_led();
   binReset();
   send_binary_io_mode_identifier();
 
@@ -256,7 +256,7 @@ void binBB(void) {
 //--- Added JM
 #ifdef BUSPIRATEV4
       } else if (inByte == 0b11000) { // XSVF Player to program CPLD
-        BP_VREGEN = 1;
+        bp_enable_voltage_regulator();
         MSG_XSV1_MODE_IDENTIFIER;
         jtag();
 #endif
@@ -364,14 +364,8 @@ void bp_binary_io_peripherals_set(unsigned char inByte) {
   bp_set_voltage_regulator_state((inByte & 0b00001000) == 0b00001000);
   bp_set_pullup_state((inByte & 0b00000100) == 0b00000100);
 
-  // AUX pin, high/low only
-  if (inByte & 0b10) {
-    BP_AUX0_DIR = 0; // aux output
-    BP_AUX0 = 1;     // aux high
-  } else {
-    BP_AUX0_DIR = 0; // aux output
-    BP_AUX0 = 0;     // aux low
-  }
+  BP_AUX0_DIR = OUTPUT;
+  BP_AUX0 = (inByte & 0b00000010) ? ON : OFF;
 
   // CS pin, follows HiZ setting
   if (inByte & 0b1) {
@@ -385,54 +379,52 @@ void bp_binary_io_peripherals_set(unsigned char inByte) {
     IOLAT &= (~CS); // BP_CS=0;
     IODIR &= (~CS); // CS output
   }
-
-  // UART1TX(1);//send 1/OK
 }
 
 #ifdef BUSPIRATEV4
 
 // checks if voltage is present on VUEXTERN
 bool bp_binary_io_pullup_control(uint8_t control_byte) {
-  bool result;
 
-  result = true;
-  if (mode_configuration.high_impedance == false) {
-    result = false;
-  } else {
-    /* Disable both pull-ups. */
+  if (mode_configuration.high_impedance == NO) {
+    return false;
+  }
+
+  /* Disable both pull-ups. */
+  bp_disable_3v3_pullup();
+  bp_delay_ms(2);
+
+  /* Turn on the ADC. */
+  bp_enable_adc();
+
+  /* Is there already an external voltage? */
+  bool has_voltage = bp_read_adc(BP_ADC_VPU) > 0x0100;
+
+  /* Turn off the ADC. */
+  bp_disable_adc();
+
+  if (has_voltage) {
+    return false;
+  }
+
+  switch (control_byte) {
+  case 0x51:
+    /* Turn on the +3.3v pull-up. */
+    bp_enable_3v3_pullup();
+    break;
+
+  case 0x52:
+    /* Turn on the +5v pull-up. */
+    bp_enable_5v0_pullup();
+    break;
+
+  default:
+    /* Turn off both pull-ups. */
     bp_disable_3v3_pullup();
-    bp_delay_ms(2);
-
-    /* Turn on the ADC. */
-    bp_enable_adc();
-    if (bp_read_adc(BP_ADC_VPU) > 0x100) {
-      /* Is there already an external voltage? */
-      result = false;
-    }
-    /* Turn off the ADC. */
-    bp_disable_adc();
+    break;
   }
 
-  if (result) {
-    switch (control_byte) {
-    case 0x51:
-      /* Turn on the +3.3v pull-up. */
-      bp_enable_3v3_pullup();
-      break;
-
-    case 0x52:
-      /* Turn on the +5v pull-up. */
-      bp_enable_5v0_pullup();
-      break;
-
-    default:
-      /* Turn off both pull-ups. */
-      bp_disable_3v3_pullup();
-      break;
-    }
-  }
-
-  return result;
+  return true;
 }
 
 #endif /* BUSPIRATEV4 */
