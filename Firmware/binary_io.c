@@ -170,7 +170,7 @@ void binBB(void) {
       } else if (inByte == 7) { // goto pic mode
         binReset();
 #ifdef BP_ENABLE_PIC_SUPPORT
-        binpic();
+        binary_io_enter_pic_mode();
 #endif /* BP_ENABLE_PIC_SUPPORT */
         binReset();
         send_binary_io_mode_identifier();

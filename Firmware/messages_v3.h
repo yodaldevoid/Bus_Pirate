@@ -59,24 +59,6 @@ void BPMSG1069_str(void);
 #define BPMSG1069 bp_message_write_buffer(__builtin_tbladdress(BPMSG1069_str))
 void BPMSG1070_str(void);
 #define BPMSG1070 bp_message_write_line(__builtin_tbladdress(BPMSG1070_str))
-void BPMSG1074_str(void);
-#define BPMSG1074 bp_message_write_buffer(__builtin_tbladdress(BPMSG1074_str))
-void BPMSG1075_str(void);
-#define BPMSG1075 bp_message_write_buffer(__builtin_tbladdress(BPMSG1075_str))
-void BPMSG1076_str(void);
-#define BPMSG1076 bp_message_write_line(__builtin_tbladdress(BPMSG1076_str))
-void BPMSG1077_str(void);
-#define BPMSG1077 bp_message_write_line(__builtin_tbladdress(BPMSG1077_str))
-void BPMSG1079_str(void);
-#define BPMSG1079 bp_message_write_line(__builtin_tbladdress(BPMSG1079_str))
-void BPMSG1080_str(void);
-#define BPMSG1080 bp_message_write_buffer(__builtin_tbladdress(BPMSG1080_str))
-void BPMSG1081_str(void);
-#define BPMSG1081 bp_message_write_buffer(__builtin_tbladdress(BPMSG1081_str))
-void BPMSG1082_str(void);
-#define BPMSG1082 bp_message_write_line(__builtin_tbladdress(BPMSG1082_str))
-void BPMSG1083_str(void);
-#define BPMSG1083 bp_message_write_line(__builtin_tbladdress(BPMSG1083_str))
 void BPMSG1084_str(void);
 #define BPMSG1084 bp_message_write_buffer(__builtin_tbladdress(BPMSG1084_str))
 void BPMSG1085_str(void);
@@ -459,12 +441,30 @@ void MSG_OPENOCD_MODE_IDENTIFIER_str(void);
 #define MSG_OPENOCD_MODE_IDENTIFIER bp_message_write_buffer(__builtin_tbladdress(MSG_OPENOCD_MODE_IDENTIFIER_str))
 void MSG_PIC_DELAY_PROMPT_str(void);
 #define MSG_PIC_DELAY_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_PIC_DELAY_PROMPT_str))
+void MSG_PIC_DEVICE_ID_str(void);
+#define MSG_PIC_DEVICE_ID bp_message_write_buffer(__builtin_tbladdress(MSG_PIC_DEVICE_ID_str))
+void MSG_PIC_EXIT_MODE_str(void);
+#define MSG_PIC_EXIT_MODE bp_message_write_line(__builtin_tbladdress(MSG_PIC_EXIT_MODE_str))
+void MSG_PIC_MACRO_MENU_str(void);
+#define MSG_PIC_MACRO_MENU bp_message_write_line(__builtin_tbladdress(MSG_PIC_MACRO_MENU_str))
+void MSG_PIC_MACRO_NOT_IMPLEMENTED_str(void);
+#define MSG_PIC_MACRO_NOT_IMPLEMENTED bp_message_write_line(__builtin_tbladdress(MSG_PIC_MACRO_NOT_IMPLEMENTED_str))
+void MSG_PIC_MODE_COMMAND_str(void);
+#define MSG_PIC_MODE_COMMAND bp_message_write_buffer(__builtin_tbladdress(MSG_PIC_MODE_COMMAND_str))
+void MSG_PIC_MODE_DATA_str(void);
+#define MSG_PIC_MODE_DATA bp_message_write_line(__builtin_tbladdress(MSG_PIC_MODE_DATA_str))
+void MSG_PIC_MODE_HEADER_str(void);
+#define MSG_PIC_MODE_HEADER bp_message_write_buffer(__builtin_tbladdress(MSG_PIC_MODE_HEADER_str))
 void MSG_PIC_MODE_IDENTIFIER_str(void);
 #define MSG_PIC_MODE_IDENTIFIER bp_message_write_buffer(__builtin_tbladdress(MSG_PIC_MODE_IDENTIFIER_str))
 void MSG_PIC_MODE_PROMPT_str(void);
 #define MSG_PIC_MODE_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_PIC_MODE_PROMPT_str))
+void MSG_PIC_NO_READ_str(void);
+#define MSG_PIC_NO_READ bp_message_write_line(__builtin_tbladdress(MSG_PIC_NO_READ_str))
 void MSG_PIC_PINS_STATE_str(void);
 #define MSG_PIC_PINS_STATE bp_message_write_line(__builtin_tbladdress(MSG_PIC_PINS_STATE_str))
+void MSG_PIC_REVISION_ID_str(void);
+#define MSG_PIC_REVISION_ID bp_message_write_buffer(__builtin_tbladdress(MSG_PIC_REVISION_ID_str))
 void MSG_PIC_UNKNOWN_MODE_str(void);
 #define MSG_PIC_UNKNOWN_MODE bp_message_write_line(__builtin_tbladdress(MSG_PIC_UNKNOWN_MODE_str))
 void MSG_PIN_OUTPUT_TYPE_PROMPT_str(void);

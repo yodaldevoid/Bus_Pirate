@@ -21,71 +21,134 @@
 
 #ifdef BP_ENABLE_PIC_SUPPORT
 
-#include "base.h"
-
 #include "aux_pin.h"
+#include "base.h"
 #include "binary_io.h"
 #include "bitbang.h"
 #include "core.h"
 #include "proc_menu.h"
 
+/**
+ * PIC opcode width in bits.
+ *
+ * @see pic_mode_t.opcode_bits
+ */
+typedef enum {
+  /**
+   * Opcodes are six bits wide.
+   */
+  PIC_MODE_6BITS = 0,
+
+  /**
+   * Opcodes are four bits wide.
+   */
+  PIC_MODE_4BITS
+} pic_mode_bits;
+
+/**
+ * Flag indicating that the Bus Pirate is not sending commands to the PIC chip.
+ *
+ * @see PIC_MODE_COMMAND
+ */
+#define PIC_MODE_DATA 0
+
+/**
+ * Flag indicating that the Bus Pirate is sending commands to the PIC chip.
+ *
+ * @see PIC_MODE_DATA
+ */
+#define PIC_MODE_COMMAND 1
+
+/**
+ * Structure that handles all needed information for the bus mode operations.
+ */
+typedef struct {
+  /**
+   * Flag indicating opcode bits width/
+   *
+   * @see PIC_MODE_6BITS
+   * @see PIC_MODE_4BITS
+   */
+  uint8_t opcode_bits : 1;
+
+  /**
+   * Delay to apply after each write, in milliseconds.
+   */
+  uint8_t delay : 2;
+
+  /**
+   * Operation mode, either command or data.
+   *
+   * @see PIC_MODE_COMMAND
+   * @see PIC_MODE_DATA
+   */
+  uint8_t mode : 1;
+
+  /**
+   * Reserved, should always be set to 0.
+   */
+  uint8_t reserved : 4;
+} pic_mode_t;
+
+/**
+ * Delay to apply after each pin state change, in microseconds.
+ */
+#define PIC_PIN_DELAY 100
+
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern bool command_error;
 
-static int picmode;
-static int piccmddelay;
+/**
+ * Mode operation information container.
+ */
+static pic_mode_t mode_info = {0};
 
-static void clock_out_zero(void);
-static void clock_out_data(const uint16_t data, const uint8_t bits);
-static uint16_t clock_in_data(const uint8_t bits);
+/**
+ * Writes a null byte to the bus.
+ */
+static void write_zero(void);
+
+/**
+ * Writes the given bits to the bus.
+ * 
+ * Bits are sent starting from LSB all the way to MSB.
+ * 
+ * @param data[in] the bits to send.
+ * @param bits[in] how many bits to send.
+ */
+static void write_bits(const uint16_t data, const uint8_t bits);
+
+/**
+ * Reads the given amount of bits from the bus.
+ * 
+ * Read bits are right-aligned.
+ * 
+ * @param bits[in] how many bits to read.
+ * 
+ * @return the bits read from the bus.
+ */
+static uint16_t read_bits(const uint8_t bits);
 
 void pic_setup_prepare(void) {
-  int interactive;
-
   consumewhitechars();
   int mode = getint();
   consumewhitechars();
   int delay = getint();
-  interactive = 0;
-
-  if (!((mode > 0) && (mode <= 2))) {
-    interactive = 1;
-  }
-
-  if ((delay > 0) && (delay <= 2)) {
-    piccmddelay = delay;
-  } else {
-    interactive = 1;
-  }
+  bool interactive =
+      !(((mode > 0) && (mode <= 2)) && ((delay >= 0) && (delay <= 3)));
 
   if (interactive) {
     command_error = false;
     MSG_PIC_MODE_PROMPT;
-    mode = getnumber(1, 1, 2, 0);
+    mode_info.opcode_bits = getnumber(1, 1, 2, 0) - 1;
     MSG_PIC_DELAY_PROMPT;
-    delay = getnumber(1, 1, 2, 0);
-  }
-
-  switch (mode) {
-  case 1:
-    picmode = PICMODE6;
-    break;
-
-  case 2:
-    picmode = PICMODE4;
-    break;
-
-  default:
-    break;
-  }
-  piccmddelay = delay;
-
-  if (!interactive) {
-    BPMSG1074;
-    bp_write_dec_byte(picmode);
+    mode_info.delay = getnumber(1, 0, 3, 0);
+  } else {
+    MSG_PIC_MODE_HEADER;
+    bp_write_dec_byte(mode_info.mode == PIC_MODE_6BITS ? 6 : 4);
     bpSP;
-    bp_write_dec_byte(piccmddelay);
+    bp_write_dec_byte(mode_info.delay);
     bp_write_line(")");
   }
 
@@ -94,66 +157,60 @@ void pic_setup_prepare(void) {
   mode_configuration.int16 = YES;
 
   /* Pull both pins low before applying Vcc and Vpp. */
-  bitbang_set_pins_low(MOSI | CLK, PICSPEED);
+  bitbang_set_pins_low(MOSI | CLK, PIC_PIN_DELAY);
 }
 
-void pics_setup_execute(void) { mode_configuration.int16 = YES; }
+void pic_setup_execute(void) { mode_configuration.int16 = YES; }
 
 void pic_cleanup(void) { mode_configuration.int16 = NO; }
 
 void pic_start(void) {
-  // command mode
-  picmode |= PICCMD;
-  // bpWstring("CMD");
-  BPMSG1075;
-  user_serial_transmit_character(
-      0x30 + (picmode & PICMODEMSK)); // display #commandbits
+  mode_info.mode = PIC_MODE_COMMAND;
+  MSG_PIC_MODE_COMMAND;
+  user_serial_transmit_character(mode_info.mode == PIC_MODE_6BITS ? '6' : '4');
   mode_configuration.int16 = NO;
   bpBR;
 }
 
 void pic_stop(void) {
-  // data mode
-  picmode &= PICMODEMSK;
+  mode_info.mode = PIC_MODE_DATA;
   mode_configuration.int16 = YES;
-  BPMSG1076;
+  MSG_PIC_MODE_DATA;
 }
 
-uint16_t clock_in_data(const uint8_t bits) {
+uint16_t read_bits(const uint8_t bits) {
   uint16_t data = 0;
 
   for (size_t index = 0; index < bits; index++) {
-    bitbang_set_pins_high(CLK, PICSPEED / 2);
+    bitbang_set_pins_high(CLK, PIC_PIN_DELAY / 2);
     data = (data >> 1) |
            ((bitbang_read_pin(MOSI) == HIGH ? 1 : 0) << (1 << (bits - 1)));
-    bitbang_set_pins_low(CLK, PICSPEED / 2);
+    bitbang_set_pins_low(CLK, PIC_PIN_DELAY / 2);
   }
 
-  bitbang_set_pins_high(CLK, PICSPEED / 2);
-  bitbang_set_pins_low(CLK, PICSPEED / 2);
-  bitbang_set_pins_low(MOSI, PICSPEED / 5);
+  bitbang_set_pins_high(CLK, PIC_PIN_DELAY / 2);
+  bitbang_set_pins_low(CLK, PIC_PIN_DELAY / 2);
+  bitbang_set_pins_low(MOSI, PIC_PIN_DELAY / 5);
 
   return data;
 }
 
 unsigned int pic_read(void) {
-  if (picmode & PICCMDMSK) {
-    BPMSG1077;
+  if (mode_info.mode == PIC_MODE_COMMAND) {
+    MSG_PIC_NO_READ;
     return 0;
   }
 
-  switch (picmode & PICMODEMSK) {
-  case PICMODE6:
-    // switch to input
+  switch (mode_info.opcode_bits) {
+  case PIC_MODE_6BITS:
     bitbang_read_pin(MOSI);
-    bitbang_set_pins_high(CLK, PICSPEED / 2);
-    bitbang_set_pins_low(CLK, PICSPEED / 2);
-    return clock_in_data(14);
+    bitbang_set_pins_high(CLK, PIC_PIN_DELAY / 2);
+    bitbang_set_pins_low(CLK, PIC_PIN_DELAY / 2);
+    return read_bits(14);
 
-  case PICMODE4:
-    // switch to input
+  case PIC_MODE_4BITS:
     bitbang_read_pin(MOSI);
-    return clock_in_data(16);
+    return read_bits(16);
 
   default:
     MSG_PIC_UNKNOWN_MODE;
@@ -161,34 +218,33 @@ unsigned int pic_read(void) {
   }
 }
 
-void clock_out_data(const uint16_t data, const uint8_t bits) {
+void write_bits(const uint16_t data, const uint8_t bits) {
   uint8_t mask = 1;
 
   for (size_t index = 0; index < bits; index++) {
-    bitbang_set_pins_high(CLK, PICSPEED / 4);
-    bitbang_set_pins((data & mask) == mask, MOSI, PICSPEED / 4);
-    bitbang_set_pins_low(CLK, PICSPEED / 4);
-    bitbang_set_pins_low(MOSI, PICSPEED / 4);
+    bitbang_set_pins_high(CLK, PIC_PIN_DELAY / 4);
+    bitbang_set_pins((data & mask) == mask, MOSI, PIC_PIN_DELAY / 4);
+    bitbang_set_pins_low(CLK, PIC_PIN_DELAY / 4);
+    bitbang_set_pins_low(MOSI, PIC_PIN_DELAY / 4);
     mask <<= 1;
   }
 }
 
-void clock_out_zero(void) {
-  bitbang_set_pins_high(CLK, PICSPEED / 4);
-  bitbang_set_pins_low(MOSI, PICSPEED / 4);
-  bitbang_set_pins_low(CLK, PICSPEED / 4);
-  bitbang_set_pins_low(CLK, PICSPEED / 4);
+void write_zero(void) {
+  bitbang_set_pins_high(CLK, PIC_PIN_DELAY / 4);
+  bitbang_set_pins_low(MOSI, PIC_PIN_DELAY / 4);
+  bitbang_set_pins_low(CLK, PIC_PIN_DELAY / 2);
 }
 
 uint16_t pic_write(const uint16_t value) {
-  if (picmode & PICCMDMSK) {
-    switch (picmode & PICMODEMSK) {
-    case PICMODE6:
-      clock_out_data(value, 6);
+  if (mode_info.mode == PIC_MODE_COMMAND) {
+    switch (mode_info.opcode_bits) {
+    case PIC_MODE_6BITS:
+      write_bits(value, 6);
       break;
 
-    case PICMODE4:
-      clock_out_data(value, 4);
+    case PIC_MODE_4BITS:
+      write_bits(value, 4);
       break;
 
     default:
@@ -196,17 +252,17 @@ uint16_t pic_write(const uint16_t value) {
       return 0;
     }
 
-    bp_delay_ms(piccmddelay);
+    bp_delay_ms(mode_info.delay);
   } else {
-    switch (picmode & PICMODEMSK) {
-    case PICMODE6:
-      clock_out_zero();
-      clock_out_data(value, 14);
-      clock_out_zero();
+    switch (mode_info.opcode_bits) {
+    case PIC_MODE_6BITS:
+      write_zero();
+      write_bits(value, 14);
+      write_zero();
       break;
 
-    case PICMODE4:
-      clock_out_data(value, 16);
+    case PIC_MODE_4BITS:
+      write_bits(value, 16);
       break;
 
     default:
@@ -215,48 +271,47 @@ uint16_t pic_write(const uint16_t value) {
     }
   }
 
-  return 0x100; // no data to display
+  /* No data to show. */
+  return 0x100;
 }
 
-void pic_run_macro(unsigned int macro) {
-  unsigned int temp;
-
+void pic_run_macro(const uint16_t macro) {
   switch (macro) {
-  case 0: // bpWline("(1) get devID");
-    BPMSG1079;
+  case 0:
+    MSG_PIC_MACRO_MENU;
     break;
 
   case 1:
-    switch (picmode & PICMODEMSK) {
-    case PICMODE6:
+    switch (mode_info.opcode_bits) {
+    case PIC_MODE_6BITS: {
       bus_pirate_configuration.quiet = YES;
       pic_start();
       pic_write(0);
       pic_stop();
-      pic_write(0); // advance to 0x2006 (devid)
+      /* Skip to device id. */
+      pic_write(0);
       pic_start();
       for (size_t index = 0; index < 6; index++) {
         pic_write(6);
       }
       pic_write(4);
       pic_stop();
-      temp = pic_read();
+      uint16_t temp = pic_read();
       bus_pirate_configuration.quiet = NO;
-      // bpWstring("DevID = ");
-      BPMSG1080;
+      MSG_PIC_DEVICE_ID;
       bp_write_hex_word(temp >> 5);
-      // bpWstring(" Rev = ");
-      BPMSG1081;
-      bp_write_hex_byte(temp & 0x1f);
+      MSG_PIC_REVISION_ID;
+      bp_write_hex_byte(temp & 0x1F);
       bpBR;
       break;
-
-    case PICMODE4:
-    default: // bpWline("Not implemented (yet)");
-      BPMSG1082;
     }
-    // bpWline("Please exit PIC programming mode");
-    BPMSG1083;
+
+    case PIC_MODE_4BITS:
+    default:
+      MSG_PIC_MACRO_NOT_IMPLEMENTED;
+    }
+
+    MSG_PIC_EXIT_MODE;
     break;
 
   default:
@@ -285,24 +340,25 @@ void pic_print_pins_state(void) { MSG_PIC_PINS_STATE; }
 
 */
 
-void binpic(void) {
-  int ok;
-  unsigned int temp;
-
+void binary_io_enter_pic_mode(void) {
   MSG_PIC_MODE_IDENTIFIER;
-  mode_configuration.high_impedance =
-      YES; // to allow different Vcc
-           // pull both pins to 0 before applying Vcc and Vpp
-  bitbang_set_pins_low(MOSI | CLK, PICSPEED);
-  picmode = PICMODE6;
-  piccmddelay = 2;
+  
+  /* Allow for different Vcc. */
+  mode_configuration.high_impedance = YES;
+
+  /* Pull both pins low before applying voltages. */
+  bitbang_set_pins_low(MOSI | CLK, PIC_PIN_DELAY);
+  mode_info.opcode_bits = PIC_MODE_6BITS;
+  mode_info.mode = PIC_MODE_DATA;
+  mode_info.delay = 2;
 
   for (;;) {
     uint8_t command = user_serial_read_byte();
+    bool ok = false;
 
     switch (command & 0xC0) {
     case 0x00:
-      ok = 1;
+      ok = true;
       switch (command & 0xF0) {
       case 0x00:
         switch (command) {
@@ -314,22 +370,22 @@ void binpic(void) {
           break;
 
         case 0x02:
-          picmode = PICMODE6;
+          mode_info.opcode_bits = PIC_MODE_6BITS;
           break;
 
         case 0x03:
-          picmode = PICMODE4;
+          mode_info.opcode_bits = PIC_MODE_4BITS;
           break;
 
         case 0x04:
         case 0x05:
         case 0x06:
         case 0x07:
-          piccmddelay = (command - 0x04);
+          mode_info.delay = (command - 4);
           break;
 
         default:
-          ok = 0;
+          ok = false;
         }
         break;
 
@@ -350,7 +406,7 @@ void binpic(void) {
         break;
 
       default:
-        ok = 0;
+        ok = false;
         break;
       }
 
@@ -359,31 +415,34 @@ void binpic(void) {
       break;
 
     case 0x40:
-      picmode |= PICCMD;
+      mode_info.mode = PIC_MODE_COMMAND;
       pic_write(command & 0x3F);
-      picmode &= PICMODEMSK;
-      user_serial_transmit_character(1);
+      mode_info.mode = PIC_MODE_DATA;
+      REPORT_IO_SUCCESS();
       break;
-    case 0x80:
-      picmode |= PICCMD;
+
+    case 0x80: {
+      mode_info.mode = PIC_MODE_COMMAND;
       pic_write(command & 0x3F);
-      picmode &= PICMODEMSK;
-      temp = user_serial_read_byte();
+      mode_info.mode = PIC_MODE_DATA;
+      uint16_t temp = user_serial_read_byte();
       temp <<= 8;
       temp |= user_serial_read_byte();
       pic_write(temp);
-      user_serial_transmit_character(1);
-      break;
-
-    case 0xC0:
-      picmode |= PICCMD;
-      pic_write(command & 0x3F);
-      picmode &= PICMODEMSK;
       REPORT_IO_SUCCESS();
-      temp = pic_read();
+      break;
+    }
+
+    case 0xC0: {
+      mode_info.mode = PIC_MODE_COMMAND;
+      pic_write(command & 0x3F);
+      mode_info.mode = PIC_MODE_DATA;
+      REPORT_IO_SUCCESS();
+      uint16_t temp = pic_read();
       user_serial_transmit_character(temp >> 8);
       user_serial_transmit_character(temp & 0x0FF);
       break;
+    }
     }
   }
 }

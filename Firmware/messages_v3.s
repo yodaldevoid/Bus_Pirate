@@ -172,60 +172,6 @@ _BPMSG1069_str:
 _BPMSG1070_str:
 	.pasciz "Searching I2C address space. Found devices at:"
 
-	; BPMSG1074
-	.section .text.BPMSG1074, code
-	.global _BPMSG1074_str
-_BPMSG1074_str:
-	.pasciz "PIC(mod dly)=("
-
-	; BPMSG1075
-	.section .text.BPMSG1075, code
-	.global _BPMSG1075_str
-_BPMSG1075_str:
-	.pasciz "CMD"
-
-	; BPMSG1076
-	.section .text.BPMSG1076, code
-	.global _BPMSG1076_str
-_BPMSG1076_str:
-	.pasciz "DTA"
-
-	; BPMSG1077
-	.section .text.BPMSG1077, code
-	.global _BPMSG1077_str
-_BPMSG1077_str:
-	.pasciz "no read"
-
-	; BPMSG1079
-	.section .text.BPMSG1079, code
-	.global _BPMSG1079_str
-_BPMSG1079_str:
-	.pasciz "(1) get devID"
-
-	; BPMSG1080
-	.section .text.BPMSG1080, code
-	.global _BPMSG1080_str
-_BPMSG1080_str:
-	.pasciz "DevID = "
-
-	; BPMSG1081
-	.section .text.BPMSG1081, code
-	.global _BPMSG1081_str
-_BPMSG1081_str:
-	.pasciz " Rev = "
-
-	; BPMSG1082
-	.section .text.BPMSG1082, code
-	.global _BPMSG1082_str
-_BPMSG1082_str:
-	.pasciz "Not implemented (yet)"
-
-	; BPMSG1083
-	.section .text.BPMSG1083, code
-	.global _BPMSG1083_str
-_BPMSG1083_str:
-	.pasciz "Please exit PIC programming mode"
-
 	; BPMSG1084
 	.section .text.BPMSG1084, code
 	.global _BPMSG1084_str
@@ -1372,6 +1318,48 @@ _MSG_OPENOCD_MODE_IDENTIFIER_str:
 _MSG_PIC_DELAY_PROMPT_str:
 	.pasciz "Delay?"
 
+	; MSG_PIC_DEVICE_ID
+	.section .text.MSG_PIC_DEVICE_ID, code
+	.global _MSG_PIC_DEVICE_ID_str
+_MSG_PIC_DEVICE_ID_str:
+	.pasciz "DevID = "
+
+	; MSG_PIC_EXIT_MODE
+	.section .text.MSG_PIC_EXIT_MODE, code
+	.global _MSG_PIC_EXIT_MODE_str
+_MSG_PIC_EXIT_MODE_str:
+	.pasciz "Please exit PIC programming mode"
+
+	; MSG_PIC_MACRO_MENU
+	.section .text.MSG_PIC_MACRO_MENU, code
+	.global _MSG_PIC_MACRO_MENU_str
+_MSG_PIC_MACRO_MENU_str:
+	.pasciz "(1) get devID"
+
+	; MSG_PIC_MACRO_NOT_IMPLEMENTED
+	.section .text.MSG_PIC_MACRO_NOT_IMPLEMENTED, code
+	.global _MSG_PIC_MACRO_NOT_IMPLEMENTED_str
+_MSG_PIC_MACRO_NOT_IMPLEMENTED_str:
+	.pasciz "Not implemented (yet)"
+
+	; MSG_PIC_MODE_COMMAND
+	.section .text.MSG_PIC_MODE_COMMAND, code
+	.global _MSG_PIC_MODE_COMMAND_str
+_MSG_PIC_MODE_COMMAND_str:
+	.pasciz "CMD"
+
+	; MSG_PIC_MODE_DATA
+	.section .text.MSG_PIC_MODE_DATA, code
+	.global _MSG_PIC_MODE_DATA_str
+_MSG_PIC_MODE_DATA_str:
+	.pasciz "DTA"
+
+	; MSG_PIC_MODE_HEADER
+	.section .text.MSG_PIC_MODE_HEADER, code
+	.global _MSG_PIC_MODE_HEADER_str
+_MSG_PIC_MODE_HEADER_str:
+	.pasciz "PIC(mod dly)=("
+
 	; MSG_PIC_MODE_IDENTIFIER
 	.section .text.MSG_PIC_MODE_IDENTIFIER, code
 	.global _MSG_PIC_MODE_IDENTIFIER_str
@@ -1384,11 +1372,23 @@ _MSG_PIC_MODE_IDENTIFIER_str:
 _MSG_PIC_MODE_PROMPT_str:
 	.pasciz "Commandmode?\r\n1. 6b/14b\r\n2. 4b/16b"
 
+	; MSG_PIC_NO_READ
+	.section .text.MSG_PIC_NO_READ, code
+	.global _MSG_PIC_NO_READ_str
+_MSG_PIC_NO_READ_str:
+	.pasciz "no read"
+
 	; MSG_PIC_PINS_STATE
 	.section .text.MSG_PIC_PINS_STATE, code
 	.global _MSG_PIC_PINS_STATE_str
 _MSG_PIC_PINS_STATE_str:
 	.pasciz "PGC\tPGD\t-\t-"
+
+	; MSG_PIC_REVISION_ID
+	.section .text.MSG_PIC_REVISION_ID, code
+	.global _MSG_PIC_REVISION_ID_str
+_MSG_PIC_REVISION_ID_str:
+	.pasciz " Rev = "
 
 	; MSG_PIC_UNKNOWN_MODE
 	.section .text.MSG_PIC_UNKNOWN_MODE, code

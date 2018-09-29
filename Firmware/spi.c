@@ -828,10 +828,12 @@ void spi_enter_binary_io(void) {
         uint16_t offset;
 
         /* How many bytes to send to the bus. */
-        bytes_to_write = (user_serial_read_byte() << 8) | user_serial_read_byte();
+        bytes_to_write =
+            (user_serial_read_byte() << 8) | user_serial_read_byte();
 
         /* How many bytes to read from the bus. */
-        bytes_to_read = (user_serial_read_byte() << 8) | user_serial_read_byte();
+        bytes_to_read =
+            (user_serial_read_byte() << 8) | user_serial_read_byte();
 
         /* Make sure data fits in the internal buffer. */
         if ((bytes_to_write > BP_TERMINAL_BUFFER_SIZE) ||
@@ -842,7 +844,8 @@ void spi_enter_binary_io(void) {
 
         /* Read data buffer from the serial port. */
         for (offset = 0; offset < bytes_to_write; offset++) {
-          bus_pirate_configuration.terminal_input[offset] = user_serial_read_byte();
+          bus_pirate_configuration.terminal_input[offset] =
+              user_serial_read_byte();
         }
 
         /* Update the CS line if needed. */
@@ -874,7 +877,8 @@ void spi_enter_binary_io(void) {
 
         /* Output read data to the serial port. */
         for (offset = 0; offset < bytes_to_read; offset++) {
-          user_serial_transmit_character(bus_pirate_configuration.terminal_input[offset]);
+          user_serial_transmit_character(
+              bus_pirate_configuration.terminal_input[offset]);
         }
 
         break;
@@ -986,10 +990,12 @@ void handle_extended_avr_command(void) {
 
     address = (uint32_t)((((uint32_t)user_serial_read_byte()) << 24) |
                          (((uint32_t)user_serial_read_byte()) << 16) |
-                         (((uint32_t)user_serial_read_byte()) << 8) | user_serial_read_byte());
+                         (((uint32_t)user_serial_read_byte()) << 8) |
+                         user_serial_read_byte());
     length = (uint32_t)((((uint32_t)user_serial_read_byte()) << 24) |
                         (((uint32_t)user_serial_read_byte()) << 16) |
-                        (((uint32_t)user_serial_read_byte()) << 8) | user_serial_read_byte());
+                        (((uint32_t)user_serial_read_byte()) << 8) |
+                        user_serial_read_byte());
 
     /* @todo: avoid (address + length) integer overflow. */
 
