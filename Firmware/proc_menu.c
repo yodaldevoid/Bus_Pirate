@@ -48,11 +48,9 @@ static const uint8_t READ_DISPLAY_BASE[] = {'x', 'd', 'b', 'w'};
 
 static uint8_t change_read_display(void);
 
-static void setDisplayMode(
-    void); // user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
-static void set_baud_rate(void); // configure user terminal side UART baud rate
-static void statusInfo(void);    // display properties of the current bus mode
-                              // (pullups, vreg, lsb, output type, etc)
+static void set_display_mode(void);
+static void set_baud_rate(void);
+static void print_status_info(void);
 
 /**
  * Outputs '0' to the serial port if the given value is zero, '1' otherwise.
@@ -76,7 +74,7 @@ static void print_pins_information(void);
  *
  * @param[in] pin the pin to use for printing signal direction.
  */
-static void print_pin_direction(uint16_t pin);
+static void print_pin_direction(const uint16_t pin);
 
 /**
  * Outputs the state (low/high) of the given pin to the serial port.
@@ -88,13 +86,12 @@ static void print_pin_direction(uint16_t pin);
  *
  * @param[in] pin the pin to use for printing signal state.
  */
-static void print_pin_state(uint16_t pin);
+static void print_pin_state(const uint16_t pin);
 
 #ifdef BUSPIRATEV4
-void setPullupVoltage(void); // onboard Vpu selection
-#endif                       /* BUSPIRATEV4 */
+void set_pullup_voltage(void);
+#endif /* BUSPIRATEV4 */
 
-// global vars    move to bpconfig structure?
 char cmdbuf[BP_COMMAND_BUFFER_SIZE] = {0};
 unsigned int cmdend;
 unsigned int cmdstart;
@@ -188,12 +185,6 @@ void serviceuser(void) {
             }
           }
         }
-
-#ifdef BUSPIRATEV4
-        if (!BP_BUTTON) { // button pressed
-        } else {          // button not pressed
-        }
-#endif /* BUSPIRATEV4 */
       }
 
       if (user_serial_check_overflow()) { // check for user terminal buffer
@@ -480,7 +471,7 @@ void serviceuser(void) {
           binmodecnt = 0; // no reset, cleanup manually
           goto bpv4reset; // versionInfo(); //and simulate reset for dependent
                           // apps (looking at you AVR dude!)
-#endif /* BUSPIRATEV4 */
+#endif                    /* BUSPIRATEV4 */
         }
         break;
 
@@ -560,7 +551,7 @@ void serviceuser(void) {
       case 'i':               // bpWline("-Status info");
         print_version_info(); // display hardware and firmware version string
         if (bus_pirate_configuration.bus_mode != BP_HIZ) {
-          statusInfo();
+          print_status_info();
         }
         break;
       case 'm': // bpWline("-mode change");
@@ -570,7 +561,7 @@ void serviceuser(void) {
         set_baud_rate();
         break;
       case 'o': // bpWline("-data output set");
-        setDisplayMode();
+        set_display_mode();
         break;
       case 'v': // bpWline("-check supply voltage");
         print_pins_information();
@@ -657,7 +648,7 @@ void serviceuser(void) {
         break;
 #ifdef BUSPIRATEV4
       case 'e':
-        setPullupVoltage();
+        set_pullup_voltage();
         break;
 #endif /* BUSPIRATEV4 */
       case '=':
@@ -1568,9 +1559,7 @@ again: // need to do it proper with whiles and ifs..
 // print version info (used in menu and at startup in main.c)
 
 void print_version_info(void) {
-  unsigned int i;
-
-#ifdef BUSPIRATEV3 // we can tell if it's v3a or v3b, show it here
+#ifdef BUSPIRATEV3
   bp_write_string(BP_VERSION_STRING);
   user_serial_transmit_character('.');
   user_serial_transmit_character(bus_pirate_configuration.hardware_version);
@@ -1586,39 +1575,40 @@ void print_version_info(void) {
   bp_write_string(BP_FIRMWARE_STRING);
 
   user_serial_transmit_character('[');
-  for (i = 0; i < ENABLED_PROTOCOLS_COUNT; i++) {
-    if (i)
+  for (size_t index = 0; index < ENABLED_PROTOCOLS_COUNT; index++) {
+    if (index) {
       bpSP;
-    bp_write_string(enabled_protocols[i].name);
+    }
+    bp_write_string(enabled_protocols[index].name);
   }
   user_serial_transmit_character(']');
 
-#ifndef BUSPIRATEV4
-  // bpWstring(" Bootloader v");
+#ifdef BUSPIRATEV3
   BPMSG1126;
-  i = bp_read_from_flash(0x0000, BL_ADDR_VER);
-  bp_write_dec_byte(i >> 8);
+  uint16_t bootloader_version = bp_read_from_flash(0x0000, BL_ADDR_VER);
+  bp_write_dec_byte(bootloader_version >> 8);
   user_serial_transmit_character('.');
-  bp_write_dec_byte(i);
-#endif /* !BUSPIRATEV4 */
+  bp_write_dec_byte(bootloader_version & 0xFF);
+#endif /* BUSPIRATEV3 */
   bpBR;
 
-  // bpWstring("DEVID:");
   BPMSG1117;
   bp_write_hex_word(bus_pirate_configuration.device_type);
 
-  // bpWstring(" REVID:");
   BPMSG1210;
   bp_write_hex_word(bus_pirate_configuration.device_revision);
 #ifdef BUSPIRATEV4
   MSG_CHIP_REVISION_ID_BEGIN;
   switch (bus_pirate_configuration.device_revision) {
+      
   case PIC_REV_A3:
     MSG_CHIP_REVISION_A3;
     break;
+    
   case PIC_REV_A5:
     MSG_CHIP_REVISION_A5;
     break;
+    
   default:
     MSG_CHIP_REVISION_UNKNOWN;
     break;
@@ -1633,18 +1623,23 @@ void print_version_info(void) {
   }
 
   switch (bus_pirate_configuration.device_revision) {
+      
   case PIC_REV_A3:
     MSG_CHIP_REVISION_A3;
     break;
+    
   case PIC_REV_B4:
     MSG_CHIP_REVISION_B4;
     break;
+    
   case PIC_REV_B5:
     MSG_CHIP_REVISION_B5;
     break;
+    
   case PIC_REV_B8:
     MSG_CHIP_REVISION_B8;
     break;
+    
   default:
     MSG_CHIP_REVISION_UNKNOWN;
     break;
@@ -1652,15 +1647,10 @@ void print_version_info(void) {
 #endif /* BUSPIRATEV4 */
 
   bp_write_line(")");
-  // bpWline("http://dangerousprototypes.com");
   BPMSG1118;
-  i = 0;
-} // versionInfo(void)
+}
 
-// display properties of the current bus mode (pullups, vreg, lsb, output type,
-// etc)
-
-void statusInfo(void) {
+void print_status_info(void) {
 #ifdef BUSPIRATEV4
   MSG_CFG0_FIELD;
   bp_write_hex_word(bp_read_from_flash(CFG_ADDR_UPPER, CFG_ADDR_0));
@@ -1690,8 +1680,7 @@ void statusInfo(void) {
   if (BP_PULLUP == 1)
     BPMSG1091;
   else
-    BPMSG1089; // bpWmessage(MSG_OPT_PULLUP_ON); else
-               // bpWmessage(MSG_OPT_PULLUP_OFF);
+    BPMSG1089;
   user_serial_transmit_character(',');
   bpSP;
 
@@ -1705,7 +1694,7 @@ void statusInfo(void) {
 #endif /* BUSPIRATEV4 */
 
   // open collector outputs?
-  if (mode_configuration.high_impedance == 1)
+  if (mode_configuration.high_impedance == YES)
     BPMSG1120;
   else
     BPMSG1121; // bpWmessage(MSG_STATUS_OUTPUT_HIZ); else
@@ -1727,13 +1716,12 @@ void statusInfo(void) {
   bpBR;
 
   // AUX pin setting
-#ifndef BUSPIRATEV4
+#ifdef BUSPIRATEV3
   if (mode_configuration.alternate_aux == 1)
     BPMSG1087;
   else
-    BPMSG1086; // bpWmessage(MSG_OPT_AUXPIN_CS); else
-               // bpWmessage(MSG_OPT_AUXPIN_AUX);
-#endif /* !BUSPIRATEV4 */
+    BPMSG1086;
+#endif /* BUSPIRATEV3 */
 
 #ifdef BUSPIRATEV4
   switch (mode_configuration.alternate_aux) {
@@ -1753,13 +1741,10 @@ void statusInfo(void) {
 #endif /* BUSPIRATEV4 */
 
   enabled_protocols[bus_pirate_configuration.bus_mode].print_settings();
-
-  // bpWline("*----------*");
   BPMSG1119;
-} // statusInfo(void)
+}
 
 void print_pins_information(void) {
-  // bpWline("Pinstates:");
   BPMSG1226;
 #ifdef BUSPIRATEV4
   BPMSG1256; // bpWstring("12.(RD)\t11.(BR)\t10.(BLK)\t9.(WT)\t8.(GR)\t7.(PU)\t6.(BL)\t5.(GN)\t4.(YW)\t3.(OR)\t2.(RD)\1.(BR)");
@@ -1850,60 +1835,43 @@ void print_pins_information(void) {
   bpBR;
 }
 
-void print_pin_direction(uint16_t pin) {
+void print_pin_direction(const uint16_t pin) {
   bp_write_string(IODIR & pin ? "I\t" : "O\t");
 }
 
-void print_pin_state(uint16_t pin) {
+void print_pin_state(const uint16_t pin) {
   bp_write_string(IOPOR & pin ? "H\t" : "L\t");
 }
 
-// user terminal number display mode dialog (eg HEX, DEC, BIN, RAW)
-
-void setDisplayMode(void) {
-  int mode;
-
+void set_display_mode(void) {
   cmdstart = (cmdstart + 1) & CMDLENMSK;
-
   consumewhitechars();
-  mode = getint();
+  int mode = getint();
 
   if ((mode > 0) && (mode <= 4)) {
     bus_pirate_configuration.display_mode = mode - 1;
   } else {
     command_error = false;
-    // bpWmessage(MSG_OPT_DISPLAYMODE); //show the display mode options message
     BPMSG1127;
-    //	bpConfig.displayMode=(bpUserNumberPrompt(1, 4, 1)-1); //get, store user
-    //reply
-    bus_pirate_configuration.display_mode =
-        getnumber(1, 1, 4, 0) - 1; // get, store user reply
+    bus_pirate_configuration.display_mode = getnumber(1, 1, 4, 0) - 1;
   }
-  // bpWmessage(MSG_OPT_DISPLAYMODESET);//show display mode update text
   BPMSG1128;
-} //
-
-// configure user terminal side UART baud rate
+}
 
 void set_baud_rate(void) {
-  unsigned char speed;
-  unsigned char brg = 0;
-
   cmdstart = (cmdstart + 1) & CMDLENMSK;
-
   consumewhitechars();
-  speed = getint();
+  int speed = getint();
 
   if ((speed > 0) && (speed <= 10)) {
     bus_pirate_configuration.terminal_speed = speed - 1;
   } else {
     command_error = false;
-    // bpWmessage(MSG_OPT_UART_BAUD); //show stored dialog
     BPMSG1133;
-    //	bpConfig.termSpeed=(bpUserNumberPrompt(1, 9, 9)-1);
     bus_pirate_configuration.terminal_speed = getnumber(9, 1, 10, 0) - 1;
   }
 
+  int brg = 0;
   if (bus_pirate_configuration.terminal_speed == 9) {
     consumewhitechars();
     brg = getint();
@@ -1915,19 +1883,17 @@ void set_baud_rate(void) {
     }
   }
 
-  // bpWmessage(MSG_OPT_TERMBAUD_ADJUST); //show 'adjust and press space dialog'
   BPMSG1134;
   BPMSG1251;
-  user_serial_wait_transmission_done(); // wait for TX to finish or reinit
-                                        // flushes part of prompt string from
-                                        // buffer
-
+  
+  /* Flush UART transmission queue. */
+  user_serial_wait_transmission_done();
   if (bus_pirate_configuration.terminal_speed == 9) {
     user_serial_set_baud_rate(brg);
   }
   user_serial_initialise();
 
-  // wait for space to prove valid baud rate switch
+  /* Wait for space to prove valid baud rate switch. */
   for (;;) {
     if (user_serial_read_byte() == ' ') {
       break;
@@ -1941,67 +1907,65 @@ void echo_state(const uint16_t value) {
 
 #ifdef BUSPIRATEV4
 
-void setPullupVoltage(void) {
-  int temp;
-
-  // don't allow pullups on some modules. also: V0a limitation of 2 resistors
-  if (bus_pirate_configuration.bus_mode ==
-      BP_HIZ) { // bpWmessage(MSG_ERROR_MODE);
+void set_pullup_voltage(void) {
+  if (bus_pirate_configuration.bus_mode == BP_HIZ) {
     BPMSG1088;
-    command_error = true; // raise error
+    command_error = true;
     return;
   }
-  if (mode_configuration.high_impedance ==
-      0) { // bpWmessage(MSG_ERROR_NOTHIZPIN);
+
+  if (mode_configuration.high_impedance == NO) {
     BPMSG1209;
-    command_error = true; // raise error
+    command_error = true;
     return;
   }
 
   bp_disable_3v3_pullup();
   bp_delay_ms(2);
   bp_enable_adc();
-  if (bp_read_adc(BP_ADC_VPU) > 0x100) { // is there already an external
-                                         // voltage?
-    /* Shouldn't this be an error? */
-    MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT;
-  }
+  bool has_voltage = (bp_read_adc(BP_ADC_VPU) > 0x100);
   bp_disable_adc();
+  if (has_voltage) {
+    MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT;
+    command_error = true;
+    return;
+  }
 
   cmdstart = (cmdstart + 1) & CMDLENMSK;
   consumewhitechars();
-
-  temp = getint();
-  if (command_error) // I think the user wants a menu
-  {
+  int temp = getint();  
+  if (command_error) {
     command_error = false;
-
     BPMSG1271;
-
     temp = getnumber(1, 1, 3, 0);
   }
+
   switch (temp) {
   case 1:
     bp_disable_3v3_pullup();
-    BPMSG1272; //;0;" on-board pullup voltage "
-    BPMSG1274; // 1;"disabled"
+    BPMSG1272;
+    BPMSG1274;
     break;
+
   case 2:
     bp_enable_3v3_pullup();
-    BPMSG1173; // 3.3v
-    BPMSG1272; //;0;" on-board pullup voltage "
-    BPMSG1273; // 1;"enabled"
+    BPMSG1173;
+    BPMSG1272;
+    BPMSG1273;
     break;
+
   case 3:
     bp_enable_5v0_pullup();
-    BPMSG1171; // 5v
-    BPMSG1272; //;0;" on-board pullup voltage "
-    BPMSG1273; // 1;"enabled"
+    BPMSG1171;
+    BPMSG1272;
+    BPMSG1273;
     break;
+
   default:
     bp_disable_3v3_pullup();
-    BPMSG1272; //;0;" on-board pullup voltage "
-    BPMSG1274; // 1;"disabled"
+    BPMSG1272;
+    BPMSG1274;
+    break;
   }
 }
 
