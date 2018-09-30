@@ -98,12 +98,6 @@ char cmdbuf[BP_COMMAND_BUFFER_SIZE] = {0};
 unsigned int cmdend;
 unsigned int cmdstart;
 
-/**
- * Flag indicating whether an error condition was detected in the previous
- * command execution.
- */
-bool command_error;
-
 static char user_macros[BP_USER_MACROS_COUNT][BP_USER_MACRO_MAX_LENGTH];
 static int user_macro;
 
@@ -132,7 +126,7 @@ void serviceuser(void) {
   tmphistcnt = 0;
   bus_pirate_configuration.bus_mode = BP_HIZ;
   temp2 = 0;
-  command_error = false;
+  mode_configuration.command_error = NO;
   binmodecnt = 0;
 
   stop = 0;
@@ -520,7 +514,7 @@ void serviceuser(void) {
     cmd = 0;
 
     stop = 0;
-    command_error = false;
+    mode_configuration.command_error = NO;
 
 #ifdef BP_ENABLE_BASIC_SUPPORT
     if (bus_pirate_configuration.basic) {
@@ -799,18 +793,18 @@ void serviceuser(void) {
         }
         break;
       case '<':
-        command_error = true;
+        mode_configuration.command_error = YES;
         temp = 1;
 
         while (cmdbuf[((cmdstart + temp) & CMDLENMSK)] != 0x00) {
           if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == '>')
-            command_error =
-                false; // clear error if we found a > before the command ends
+            mode_configuration.command_error = NO; // clear error if we found a > before the command ends
           temp++;
         }
-        if (temp >= (BP_USER_MACRO_MAX_LENGTH + 3))
-          command_error = true; // too long (avoid overflows)
-        if (!command_error) {
+        if (temp >= (BP_USER_MACRO_MAX_LENGTH + 3)) {
+          mode_configuration.command_error = YES; // too long (avoid overflows)
+        }
+        if (mode_configuration.command_error == NO) {
           cmdstart = (cmdstart + 1) & CMDLENMSK;
           temp = getint();
           if (cmdbuf[((cmdstart)&CMDLENMSK)] == '=') // assignment
@@ -828,7 +822,7 @@ void serviceuser(void) {
                 cmdstart = (cmdstart + 1) & CMDLENMSK;
               }
             } else {
-              command_error = true;
+              mode_configuration.command_error = YES;
             }
           } else {
             if (temp == 0) {
@@ -846,7 +840,7 @@ void serviceuser(void) {
               bpBR;
               user_macro = temp;
             } else {
-              command_error = true;
+              mode_configuration.command_error = YES;
             }
           }
         }
@@ -863,21 +857,21 @@ void serviceuser(void) {
           enabled_protocols[bus_pirate_configuration.bus_mode].run_macro(sendw);
           bpBR;
         } else {
-          command_error = true;
+          mode_configuration.command_error = YES;
         }
         break;
       case 0x22: // bpWline("-send string");
-        command_error = true;
+        mode_configuration.command_error = YES;
         temp = 1;
 
         while (cmdbuf[((cmdstart + temp) & CMDLENMSK)] != 0x00) {
           if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == 0x22)
-            command_error =
-                false; // clear error if we found a " before the command ends
+            mode_configuration.command_error =
+                NO; // clear error if we found a " before the command ends
           temp++;
         }
 
-        if (!command_error) {
+        if (mode_configuration.command_error == NO) {
           BPMSG1101;
           user_serial_transmit_character(0x22);
           while (cmdbuf[((++cmdstart) & CMDLENMSK)] != 0x22) {
@@ -1065,11 +1059,11 @@ void serviceuser(void) {
       case ',':
         break; // no match so it is an error
       default:
-        command_error = true;
+        mode_configuration.command_error = YES;
       } // switch(c)
       cmdstart = (cmdstart + 1) & CMDLENMSK;
 
-      if (command_error) { // bpWstring("Syntax error at char ");
+      if (mode_configuration.command_error == YES) { // bpWstring("Syntax error at char ");
         BPMSG1110;
         if (cmdstart > oldstart) // find error position :S
         {
@@ -1077,7 +1071,7 @@ void serviceuser(void) {
         } else {
           bp_write_dec_byte((BP_COMMAND_BUFFER_SIZE + cmdstart) - oldstart);
         }
-        command_error = false;
+        mode_configuration.command_error = NO;
         stop = 1;
         bpBR;
       }
@@ -1159,7 +1153,7 @@ int getint(void) // get int from user (accept decimal, hex (0x) or binairy (0b)
     }
   } else // how did we come here??
   {
-    command_error = true;
+    mode_configuration.command_error = YES;
     return 0;
   }
 
@@ -1230,7 +1224,7 @@ void changemode(void) {
     }
     // bpWline("x. exit(without change)");
     BPMSG1111;
-    command_error = false; // error is set because no number found, but it is no
+    mode_configuration.command_error = NO; // error is set because no number found, but it is no
                            // error here:S eeeh confusing right?
     busmode = getnumber(1, 1, ENABLED_PROTOCOLS_COUNT, 1) - 1;
     if ((busmode == -2) || (busmode == -1)) {
@@ -1588,15 +1582,15 @@ void print_version_info(void) {
 #ifdef BUSPIRATEV4
   MSG_CHIP_REVISION_ID_BEGIN;
   switch (bus_pirate_configuration.device_revision) {
-      
+
   case PIC_REV_A3:
     MSG_CHIP_REVISION_A3;
     break;
-    
+
   case PIC_REV_A5:
     MSG_CHIP_REVISION_A5;
     break;
-    
+
   default:
     MSG_CHIP_REVISION_UNKNOWN;
     break;
@@ -1611,23 +1605,23 @@ void print_version_info(void) {
   }
 
   switch (bus_pirate_configuration.device_revision) {
-      
+
   case PIC_REV_A3:
     MSG_CHIP_REVISION_A3;
     break;
-    
+
   case PIC_REV_B4:
     MSG_CHIP_REVISION_B4;
     break;
-    
+
   case PIC_REV_B5:
     MSG_CHIP_REVISION_B5;
     break;
-    
+
   case PIC_REV_B8:
     MSG_CHIP_REVISION_B8;
     break;
-    
+
   default:
     MSG_CHIP_REVISION_UNKNOWN;
     break;
@@ -1839,7 +1833,7 @@ void set_display_mode(void) {
   if ((mode > 0) && (mode <= 4)) {
     bus_pirate_configuration.display_mode = mode - 1;
   } else {
-    command_error = false;
+    mode_configuration.command_error = NO;
     BPMSG1127;
     bus_pirate_configuration.display_mode = getnumber(1, 1, 4, 0) - 1;
   }
@@ -1854,7 +1848,7 @@ void set_baud_rate(void) {
   if ((speed > 0) && (speed <= 10)) {
     bus_pirate_configuration.terminal_speed = speed - 1;
   } else {
-    command_error = false;
+    mode_configuration.command_error = NO;
     BPMSG1133;
     bus_pirate_configuration.terminal_speed = getnumber(9, 1, 10, 0) - 1;
   }
@@ -1865,7 +1859,7 @@ void set_baud_rate(void) {
     brg = getint();
 
     if (brg == 0) {
-      command_error = false;
+      mode_configuration.command_error = NO;
       MSG_RAW_BRG_VALUE_INPUT;
       brg = getnumber(34, 0, 32767, 0);
     }
@@ -1873,7 +1867,7 @@ void set_baud_rate(void) {
 
   BPMSG1134;
   BPMSG1251;
-  
+
   /* Flush UART transmission queue. */
   user_serial_wait_transmission_done();
   if (bus_pirate_configuration.terminal_speed == 9) {
@@ -1898,13 +1892,13 @@ void echo_state(const uint16_t value) {
 void set_pullup_voltage(void) {
   if (bus_pirate_configuration.bus_mode == BP_HIZ) {
     BPMSG1088;
-    command_error = true;
+    mode_configuration.command_error = YES;
     return;
   }
 
   if (mode_configuration.high_impedance == NO) {
     BPMSG1209;
-    command_error = true;
+    mode_configuration.command_error = YES;
     return;
   }
 
@@ -1915,15 +1909,15 @@ void set_pullup_voltage(void) {
   bp_disable_adc();
   if (has_voltage) {
     MSG_VOLTAGE_VPULLUP_ALREADY_PRESENT;
-    command_error = true;
+    mode_configuration.command_error = YES;
     return;
   }
 
   cmdstart = (cmdstart + 1) & CMDLENMSK;
   consumewhitechars();
-  int temp = getint();  
-  if (command_error) {
-    command_error = false;
+  int temp = getint();
+  if (mode_configuration.command_error == YES) {
+    mode_configuration.command_error = NO;
     BPMSG1271;
     temp = getnumber(1, 1, 3, 0);
   }

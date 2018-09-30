@@ -77,9 +77,9 @@ typedef struct {
   uint8_t write_with_read : 1;
 
   /**
-   * Reserved bit, keep it set to zero.
+   * The last command triggered an error.
    */
-  uint8_t reserved : 1;
+  uint8_t command_error : 1;
 
   uint8_t speed;
   uint8_t numbits;

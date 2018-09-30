@@ -96,7 +96,6 @@ static i2c_state_t i2c_state = {0};
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
-extern bool command_error;
 
 /**
  * Handles a pending acknowledgment by sending either an ACK or a NACK on the
@@ -330,7 +329,7 @@ void i2c_setup_prepare(void) {
   }
 
   if (speed == 0) {
-    command_error = false;
+    mode_configuration.command_error = NO;
 
 #ifdef BP_I2C_USE_HW_BUS
     BPMSG1064;

@@ -31,7 +31,6 @@
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
-extern bool command_error;
 
 /**
  * Raw 3 Wire mode chip select initial line state.
@@ -105,7 +104,7 @@ void raw3wire_setup_prepare(void) {
     cs_line = getnumber(2, 1, 2, 0) - 1;
     MSG_PIN_OUTPUT_TYPE_PROMPT;
     mode_configuration.high_impedance = (getnumber(1, 1, 2, 0) - 1) == 0;
-    command_error = false;
+    mode_configuration.command_error = NO;
   } else {
     mode_configuration.speed = speed - 1;
     cs_line = (cs_line_low - 1) != 0;

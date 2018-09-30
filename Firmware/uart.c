@@ -26,7 +26,6 @@
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
-extern bool command_error;
 
 #define UART_COMMON_BAUD_RATES_COUNT 15
 #define UART_BAUD_RATE_CALCULATION_SAMPLES 25
@@ -196,7 +195,7 @@ void uart_setup_prepare(void) {
   }
 
   if (speed == 0) {
-    command_error = false;
+    mode_configuration.command_error = NO;
 
     BPMSG1133;
 

@@ -42,7 +42,6 @@
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 extern bus_pirate_configuration_t bus_pirate_configuration;
-extern bool command_error;
 
 typedef enum {
   SPI_COMMAND_BASE = 0,
@@ -312,7 +311,7 @@ void spi_setup_prepare(void) {
                   ((spi_enabled > 0) && (spi_enabled <= 2)));
 
   if (user_prompt) {
-    command_error = false;
+    mode_configuration.command_error = NO;
 
     MSG_SPI_SPEED_PROMPT;
     mode_configuration.speed = getnumber(1, 1, 12, 0) - 1;

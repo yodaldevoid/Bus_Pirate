@@ -171,7 +171,7 @@ typedef struct {
   /**
    * The protocol name, as displayed in the user interface.
    */
-  char name[8];
+  const char name[8];
 } bus_pirate_protocol_t;
 
 /**

@@ -40,7 +40,6 @@ typedef enum {
 
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
-extern bool command_error;
 
 static const uint32_t DATA_UNIT_LENGTH_TABLE[14] = {
     128,   256,   512,   1024,   2048,   4096,   8192,
@@ -102,7 +101,7 @@ void raw2wire_setup_prepare(void) {
     mode_configuration.speed = getnumber(1, 1, 4, 0) - 1;
     MSG_PIN_OUTPUT_TYPE_PROMPT;
     mode_configuration.high_impedance = ~(getnumber(1, 1, 2, 0) - 1);
-    command_error = false;
+    mode_configuration.command_error = NO;
   } else {
     mode_configuration.speed = speed - 1;
     mode_configuration.high_impedance = (output - 1) == 0;

@@ -148,7 +148,6 @@ static void silent_null_operation_callback(void);
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
-extern bool command_error;
 
 bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
     {.start = null_operation_callback,
@@ -426,37 +425,39 @@ bus_pirate_protocol_t enabled_protocols[ENABLED_PROTOCOLS_COUNT] = {
 
 void null_operation_callback(void) {
   MSG_COMMAND_HAS_NO_EFFECT;
-  command_error = true;
+  mode_configuration.command_error = true;
 }
 
 uint16_t null_send_callback(uint16_t data) {
   MSG_COMMAND_HAS_NO_EFFECT;
-  command_error = true;
+  mode_configuration.command_error = true;
   return 0x100;
 }
 
 uint16_t null_data_read_callback(void) {
   MSG_COMMAND_HAS_NO_EFFECT;
-  command_error = true;
+  mode_configuration.command_error = true;
   return 0;
 }
 
 bool null_bit_read_callback(void) {
   MSG_COMMAND_HAS_NO_EFFECT;
-  command_error = true;
+  mode_configuration.command_error = true;
   return OFF;
 }
 
 void null_macro_callback(uint16_t value) {
   MSG_COMMAND_HAS_NO_EFFECT;
-  command_error = true;
+  mode_configuration.command_error = true;
 }
 
 void empty_print_settings_implementation(void) { bpBR; }
 
 #ifdef BP_ENABLE_DIO_SUPPORT
 
-void silent_null_operation_callback(void) { command_error = false; }
+void silent_null_operation_callback(void) {
+  mode_configuration.command_error = false;
+}
 
 #endif /* BP_ENABLE_DIO_SUPPORT */
 

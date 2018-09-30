@@ -97,7 +97,6 @@ typedef struct {
 
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
-extern bool command_error;
 
 /**
  * Mode operation information container.
@@ -139,7 +138,7 @@ void pic_setup_prepare(void) {
       !(((mode > 0) && (mode <= 2)) && ((delay >= 0) && (delay <= 3)));
 
   if (interactive) {
-    command_error = false;
+    mode_configuration.command_error = NO;
     MSG_PIC_MODE_PROMPT;
     mode_info.opcode_bits = getnumber(1, 1, 2, 0) - 1;
     MSG_PIC_DELAY_PROMPT;

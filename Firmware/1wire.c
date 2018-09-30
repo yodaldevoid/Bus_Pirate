@@ -730,7 +730,7 @@ void onewire_setup_prepare(void) {
   if ((speed > 0) && (speed <= 2)) {
     mode_configuration.speed = speed - 1;
   } else {
-    command_error = false;
+    mode_configuration.command_error = NO;
     MSG_1WIRE_SPEED_PROMPT;
     mode_configuration.speed = getnumber(1, 1, 2, 0) - 1;
   }

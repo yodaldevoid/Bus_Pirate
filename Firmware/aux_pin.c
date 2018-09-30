@@ -31,7 +31,6 @@
 #define AUXPIN_RPOUT BP_AUX_RPOUT
 
 extern mode_configuration_t mode_configuration;
-extern bool command_error;
 
 /**
  * @brief Possible modes for the AUX pins.
@@ -314,7 +313,7 @@ void bp_pwm_setup(void) {
                      ((pwm_period_float > 0) && (pwm_period_float < 100)));
 
   if (!valid_arguments) {
-    command_error = false;
+    mode_configuration.command_error = NO;
     BPMSG1029;
     BPMSG1030;
     pwm_frequency = getnumber(50, 1, 4000, 0);
@@ -1077,8 +1076,8 @@ void bp_servo_setup(void) {
   cmdstart = (cmdstart + 1) & CMDLENMSK;
   consumewhitechars();
   pwm_period = getint();
-  if (command_error || (pwm_period > 180)) {
-    command_error = false;
+  if ((mode_configuration.command_error == YES)|| (pwm_period > 180)) {
+    mode_configuration.command_error = NO;
     BPMSG1254;
     pwm_period = getnumber(90, 0, 180, 0);
     keep_asking = true;
