@@ -1,5 +1,6 @@
 /*
- * This file is part of the Bus Pirate project (http://code.google.com/p/the-bus-pirate/).
+ * This file is part of the Bus Pirate project
+ * (http://code.google.com/p/the-bus-pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -17,16 +18,16 @@
 #ifndef BP_PROC_MENU_H
 #define BP_PROC_MENU_H
 
-#define BELL	0x07
+#define BELL 0x07
 
-#define CMDLENMSK	(BP_COMMAND_BUFFER_SIZE-1)
+#define CMDLENMSK (BP_COMMAND_BUFFER_SIZE - 1)
 
 extern char cmdbuf[BP_COMMAND_BUFFER_SIZE];
 extern unsigned int cmdend;
 extern unsigned int cmdstart;
 extern bool command_error;
 
-void print_version_info(void); 
+void print_version_info(void);
 
 void serviceuser(void);
 
@@ -40,7 +41,7 @@ void changemode(void);
 int cmdhistory(void);
 #endif /* BP_ENABLE_COMMAND_HISTORY */
 
-int getnumber(int def, int min, int max, int x);	
+int getnumber(int def, int min, int max, int x);
 #ifdef BUSPIRATEV4
 long getlong(long def, int min, long max, int x);
 #endif /* BUSPIRATEV4 */
