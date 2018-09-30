@@ -88,6 +88,8 @@ static void print_pin_direction(const uint16_t pin);
  */
 static void print_pin_state(const uint16_t pin);
 
+static void convert_value(const bool reversed);
+
 #ifdef BUSPIRATEV4
 void set_pullup_voltage(void);
 #endif /* BUSPIRATEV4 */
@@ -651,29 +653,15 @@ void serviceuser(void) {
         set_pullup_voltage();
         break;
 #endif /* BUSPIRATEV4 */
+
       case '=':
-        cmdstart = (cmdstart + 1) & CMDLENMSK;
-        consumewhitechars();
-        temp = getint();
-        bp_write_hex_byte(temp);
-        MSG_BASE_CONVERTER_EQUAL_SIGN;
-        bp_write_dec_byte(temp);
-        MSG_BASE_CONVERTER_EQUAL_SIGN;
-        bp_write_bin_byte(temp);
-        bpBR;
+        convert_value(NO);
         break;
+
       case '|':
-        cmdstart = (cmdstart + 1) & CMDLENMSK;
-        consumewhitechars();
-        temp = getint();
-        temp = bp_reverse_integer((uint8_t)temp, mode_configuration.numbits);
-        bp_write_hex_byte(temp);
-        MSG_BASE_CONVERTER_EQUAL_SIGN;
-        bp_write_dec_byte(temp);
-        MSG_BASE_CONVERTER_EQUAL_SIGN;
-        bp_write_bin_byte(temp);
-        bpBR;
+        convert_value(YES);
         break;
+
       case '~':
         if (bus_pirate_configuration.bus_mode == BP_HIZ) {
           perform_selftest(true, true);
@@ -1970,3 +1958,18 @@ void set_pullup_voltage(void) {
 }
 
 #endif /* BUSPIRATEV4 */
+
+void convert_value(const bool reversed) {
+  cmdstart = (cmdstart + 1) & CMDLENMSK;
+  consumewhitechars();
+  int value = getint();
+  if (reversed) {
+    value = bp_reverse_integer(value, mode_configuration.numbits);
+  }
+  bp_write_hex_byte(reversed);
+  MSG_BASE_CONVERTER_EQUAL_SIGN;
+  bp_write_dec_byte(reversed);
+  MSG_BASE_CONVERTER_EQUAL_SIGN;
+  bp_write_bin_byte(reversed);
+  bpBR;
+}
