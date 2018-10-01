@@ -54,8 +54,14 @@
  * activated) this structure is cleared.
  */
 typedef struct {
-  uint8_t buf[16];
+  uint8_t speed;
+  uint8_t numbits;
+
+  /**
+   * Which pin is currently used as the `AUX` I/O.
+   */
   uint8_t alternate_aux : 2;
+  
   uint8_t periodicService : 1;
 
   /**
@@ -64,6 +70,9 @@ typedef struct {
    */
   uint8_t little_endian : 1;
 
+  /**
+   * The device is in high impedance mode.
+   */
   uint8_t high_impedance : 1;
 
   /**
@@ -81,8 +90,6 @@ typedef struct {
    */
   uint8_t command_error : 1;
 
-  uint8_t speed;
-  uint8_t numbits;
 } __attribute__((packed)) mode_configuration_t;
 
 typedef struct {
