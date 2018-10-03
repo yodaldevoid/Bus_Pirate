@@ -66,8 +66,34 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
  */
 static void send_binary_io_mode_identifier(void);
 
-void binSelfTest(bool jumper_test);
-void binReset(void);
+enum {
+  PICUNK = 0,
+  PIC416,
+  PIC424,
+  PIC614,
+};
+
+static void PIC24NOP(void);
+static void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath);
+static void PIC614Read(unsigned char c);
+static void PIC416Read(unsigned char c);
+static void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath);
+static void PIC424Write_internal(unsigned long cmd, unsigned char pn);
+static void PIC424Write(unsigned char *cmd, unsigned char pn);
+static void PIC424Read(void);
+
+#define R3WMOSI_TRIS BP_MOSI_DIR
+#define R3WCLK_TRIS BP_CLK_DIR
+#define R3WMISO_TRIS BP_MISO_DIR
+#define R3WCS_TRIS BP_CS_DIR
+
+#define R3WMOSI BP_MOSI
+#define R3WCLK BP_CLK
+#define R3WMISO BP_MISO
+#define R3WCS BP_CS
+
+static void binSelfTest(bool jumper_test);
+static void binReset(void);
 
 /*
 Bitbang is like a player piano or bitmap. The 1 and 0 represent the pins.
@@ -429,27 +455,6 @@ bool bp_binary_io_pullup_control(uint8_t control_byte) {
 
 #endif /* BUSPIRATEV4 */
 
-void PIC24NOP(void);
-
-void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath);
-void PIC614Read(unsigned char c);
-
-void PIC416Read(unsigned char c);
-void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath);
-void PIC424Write_internal(unsigned long cmd, unsigned char pn);
-void PIC424Write(unsigned char *cmd, unsigned char pn);
-void PIC424Read(void);
-
-#define R3WMOSI_TRIS BP_MOSI_DIR
-#define R3WCLK_TRIS BP_CLK_DIR
-#define R3WMISO_TRIS BP_MISO_DIR
-#define R3WCS_TRIS BP_CS_DIR
-
-#define R3WMOSI BP_MOSI
-#define R3WCLK BP_CLK
-#define R3WMISO BP_MISO
-#define R3WCS BP_CS
-
 /*
  * 00000000 � Enter raw bitbang mode, reset to raw bitbang mode
  * 00000001 � Mode version string (RAW1)
@@ -479,13 +484,6 @@ void PIC424Read(void);
  voltage) Lowest possible value is 512 = 0b0010 0000
 
  */
-
-enum {
-  PICUNK = 0,
-  PIC416,
-  PIC424,
-  PIC614,
-};
 
 void binwire(void) {
   static unsigned char inByte, rawCommand, i, c, wires, picMode = PIC614;
