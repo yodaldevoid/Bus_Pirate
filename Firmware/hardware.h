@@ -140,4 +140,9 @@ static inline void bp_set_mode_led_state(const bool state) {
   }
 }
 
+static inline void bp_toggle_mode_led(void) {
+  BP_LEDMODE_DIR = OUTPUT;
+  BP_LEDMODE ^= ON;
+}
+
 #endif /* !BP_HARDWARE_H */

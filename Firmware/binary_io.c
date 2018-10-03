@@ -19,40 +19,44 @@
 
 /* Binary access modes for Bus Pirate scripting */
 
-#include "configuration.h"
-
+#include "aux_pin.h"
 #include "base.h"
+#include "binary_io.h"
 #include "bitbang.h"
+#include "configuration.h"
+#include "core.h"
 #include "selftest.h"
 
 #ifdef BP_ENABLE_SPI_SUPPORT
 #include "spi.h"
 #endif /* BP_ENABLE_SPI_SUPPORT */
+
 #ifdef BP_ENABLE_I2C_SUPPORT
 #include "i2c.h"
 #endif /* BP_ENABLE_I2C_SUPPORT */
+
 #ifdef BP_ENABLE_UART_SUPPORT
 #include "uart.h"
 #endif /* BP_ENABLE_UART_SUPPORT */
+
 #ifdef BP_ENABLE_1WIRE_SUPPORT
 #include "1wire.h"
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
+
 #ifdef BP_ENABLE_PIC_SUPPORT
 #include "pic.h"
 #endif /* BP_ENABLE_PIC_SUPPORT */
+
 #ifdef BP_ENABLE_JTAG_SUPPORT
 #include "jtag.h"
 #ifdef BP_JTAG_OPENOCD_SUPPORT
 #include "openocd.h"
 #endif /* BP_JTAG_OPENOCD_SUPPORT */
 #endif /* BP_ENABLE_JTAG_SUPPORT */
+
 #ifdef BP_ENABLE_SMPS_SUPPORT
 #include "smps.h"
 #endif /* BP_ENABLE_SMPS_SUPPORT */
-
-#include "aux_pin.h"
-#include "binary_io.h"
-#include "core.h"
 
 extern mode_configuration_t mode_configuration;
 extern bus_pirate_configuration_t bus_pirate_configuration;
@@ -67,16 +71,16 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
 static void send_binary_io_mode_identifier(void);
 
 typedef enum {
-  IO_COMMAND_GROUP_GENERIC = 0,
-  IO_COMMAND_GROUP_BULK_TRANSFER,
-  IO_COMMAND_GROUP_BULK_CLOCK_TICKS,
-  IO_COMMAND_GROUP_BULK_BITS,
-  IO_COMMAND_GROUP_CONFIGURE_PERIPHERALS,
-  IO_COMMAND_GROUP_BULK_READ,
-  IO_COMMAND_GROUP_SET_SPEED,
-  IO_COMMAND_GROUP_CONFIGURATION = 8,
-  IO_COMMAND_GROUP_PIC = 10,
-  IO_COMMAND_GROUP_SMPS = 15
+  IO_COMMAND_GROUP_GENERIC = 0b0000,
+  IO_COMMAND_GROUP_BULK_TRANSFER = 0b0001,
+  IO_COMMAND_GROUP_BULK_CLOCK_TICKS = 0b0010,
+  IO_COMMAND_GROUP_BULK_BITS = 0b0011,
+  IO_COMMAND_GROUP_CONFIGURE_PERIPHERALS = 0b0100,
+  IO_COMMAND_GROUP_SET_PULLUP = 0b0101,
+  IO_COMMAND_GROUP_SET_SPEED = 0b0110,
+  IO_COMMAND_GROUP_CONFIGURATION = 0b1000,
+  IO_COMMAND_GROUP_PIC = 0b1010,
+  IO_COMMAND_GROUP_SMPS = 0b1111
 } io_command_group;
 
 typedef enum {
@@ -146,8 +150,19 @@ static void PIC424Read(void);
 #define R3WMISO BP_MISO
 #define R3WCS BP_CS
 
-static void binSelfTest(bool jumper_test);
+static void binary_io_self_test(bool jumper_test);
 static void binReset(void);
+
+#define BINARY_IO_2_WIRES 0
+#define BINARY_IO_3_WIRES 1
+
+typedef struct {
+  uint8_t wires : 1;
+  uint8_t pic_mode : 2;
+  uint8_t reserved : 5;
+} binary_io_state_t;
+
+static binary_io_state_t io_state = {0};
 
 /*
 Bitbang is like a player piano or bitmap. The 1 and 0 represent the pins.
@@ -266,9 +281,9 @@ void binBB(void) {
 #endif
         // self test is only for v2go and v3
       } else if (inByte == 0b10000) { // short self test
-        binSelfTest(0);
+        binary_io_self_test(0);
       } else if (inByte == 0b10001) { // full self test with jumpers
-        binSelfTest(1);
+        binary_io_self_test(1);
       } else if (inByte == 0b10010) { // setup PWM
 
         // cleanup timers from FREQ measure
@@ -355,7 +370,7 @@ void binBB(void) {
 
 void binReset(void) {
   bp_disable_3v3_pullup();
-  bitbang_pin_direction_set(0xff); // pins to input on start
+  bitbang_pin_direction_set(0xFF); // pins to input on start
   bitbang_pin_state_set(0);        // startup everything off, pins at ground
 }
 
@@ -408,33 +423,30 @@ uint8_t bitbang_pin_state_set(const uint8_t state_mask) {
          ((BP_CS == HIGH) ? 0b00000001 : 0b00000000);
 }
 
-void binSelfTest(bool jumper_test) {
-  static volatile unsigned int tick = 0;
-  unsigned char errors, inByte;
+void binary_io_self_test(const bool jumper_test) {
+  volatile uint16_t tick = 0;
 
-  errors = perform_selftest(false, jumper_test); // silent self-test
-  if (errors)
-    BP_LEDMODE = 1;                       // light MODE LED if errors
-  user_serial_transmit_character(errors); // reply with number of errors
+  uint8_t errors = perform_selftest(false, jumper_test);
+  bp_set_mode_led_state(errors > 0);
+  user_serial_transmit_character(errors);
 
-  while (1) {
-    // echo incoming bytes + errors
-    // tests FTDI chip, UART, retrieves results of test
+  for (;;) {
     if (user_serial_ready_to_read()) {
-      inByte = user_serial_read_byte(); // check input
-      if (inByte != 0xff) {
-        user_serial_transmit_character(inByte + errors);
+      uint8_t input_byte = user_serial_read_byte();
+      if (input_byte != 0xFF) {
+        user_serial_transmit_character(input_byte + errors);
       } else {
         user_serial_transmit_character(0x01);
-        return; // exit if we get oxff, else send back byte+errors
+        return;
       }
     }
 
-    if (!errors) {
+    if (errors == 0) {
       if (tick == 0) {
         tick = 0xFFFF;
-        BP_LEDMODE ^= 1; // toggle LED
+        bp_toggle_mode_led();
       }
+
       tick--;
     }
   }
@@ -541,17 +553,6 @@ bool bp_binary_io_pullup_control(uint8_t control_byte) {
 
  */
 
-#define BINARY_IO_2_WIRES 0
-#define BINARY_IO_3_WIRES 1
-
-typedef struct {
-  uint8_t wires : 1;
-  uint8_t pic_mode : 2;
-  uint8_t reserved : 5;
-} binary_io_state_t;
-
-static binary_io_state_t io_state = {0};
-
 void binwire(void) {
   mode_configuration.high_impedance = YES;
   mode_configuration.little_endian = NO;
@@ -600,52 +601,38 @@ void binwire(void) {
 
     case IO_COMMAND_GROUP_PIC:
       handle_pic_command(input_byte);
-
       break;
 
-      // case 0b0101: //# 0101xxxx - Bulk read, read 1-16bytes (0=1byte!)
-
-    case 0b0100: // configure peripherals w=power, x=pullups, y=AUX, z=CS
-      bp_binary_io_peripherals_set(input_byte);
-      user_serial_transmit_character(1); // send 1/OK
-      break;
-
-#ifdef BUSPIRATEV4
-    case 0b0101:
+    case IO_COMMAND_GROUP_SET_PULLUP:
+#if defined(BUSPIRATEV4)
       user_serial_transmit_character(bp_binary_io_pullup_control(input_byte));
+#else
+      REPORT_IO_FAILURE();
+#endif /* BUSPIRATEV4 */
       break;
-#endif
 
-    case 0b0110:                   // set speed
-      input_byte &= (~0b11111100); // clear command portion
-      mode_configuration.speed = input_byte;
+    case IO_COMMAND_GROUP_CONFIGURE_PERIPHERALS:
+      bp_binary_io_peripherals_set(input_byte);
+      REPORT_IO_SUCCESS();
+      break;
+
+    case IO_COMMAND_GROUP_SET_SPEED:
+      mode_configuration.speed = input_byte & 0b00000011;
       bitbang_setup(io_state.wires == BINARY_IO_2_WIRES ? 2 : 3,
                     mode_configuration.speed);
-      bitbang_set_cs(1); // takes care of custom HiZ settings too
-      user_serial_transmit_character(1);
+      bitbang_set_cs(HIGH);
+      REPORT_IO_SUCCESS();
       break;
 
-    case 0b1000: // set config
-      // wxyz //w=HiZ(0)/3.3v(1), x=3wireenable, y=lsb, z=n/a
-      mode_configuration.high_impedance = 0;
-      if ((input_byte & 0b1000) == 0)
-        mode_configuration.high_impedance = 1; // hiz output if this bit is 1
-      io_state.wires = BINARY_IO_2_WIRES;
-      if (input_byte & 0b100)
-        io_state.wires = BINARY_IO_3_WIRES;
-
-      mode_configuration.little_endian = NO;
-      if (input_byte & 0b10)
-        mode_configuration.little_endian = YES; // lsb/msb, bit order
-
-      // if(inByte&0b1) //bit unused
-
-      bitbang_setup(
-          io_state.wires == BINARY_IO_2_WIRES ? 2 : 3,
-          mode_configuration.speed); // setup the bitbang library, must
-                                     // be done before calling bbCS below
-      bitbang_set_cs(1);             // takes care of custom HiZ settings too
-      user_serial_transmit_character(1); // send 1/OK
+    case IO_COMMAND_GROUP_CONFIGURATION:
+      mode_configuration.high_impedance = (input_byte & 0b00001000) ? YES : NO;
+      io_state.wires =
+          (input_byte & 0b00000100) ? BINARY_IO_3_WIRES : BINARY_IO_2_WIRES;
+      mode_configuration.little_endian = (input_byte & 0b00000010) ? YES : NO;
+      bitbang_setup(io_state.wires == BINARY_IO_2_WIRES ? 2 : 3,
+                    mode_configuration.speed);
+      bitbang_set_cs(HIGH);
+      REPORT_IO_SUCCESS();
       break;
 
 #ifdef BP_ENABLE_SMPS_SUPPORT
@@ -1135,7 +1122,7 @@ void handle_pic_command_write_and_read_commands(void) {
         break;
 
       case PIC_MODE_416:
-        PIC614Read(bus_pirate_configuration.terminal_input[index + 1]);
+        PIC416Read(bus_pirate_configuration.terminal_input[index + 1]);
         index += 2;
         break;
 
