@@ -66,6 +66,43 @@ extern bus_pirate_configuration_t bus_pirate_configuration;
  */
 static void send_binary_io_mode_identifier(void);
 
+typedef enum {
+  IO_COMMAND_GROUP_GENERIC = 0,
+  IO_COMMAND_GROUP_BULK_TRANSFER,
+  IO_COMMAND_GROUP_BULK_CLOCK_TICKS,
+  IO_COMMAND_GROUP_BULK_BITS,
+  IO_COMMAND_GROUP_CONFIGURE_PERIPHERALS,
+  IO_COMMAND_GROUP_BULK_READ,
+  IO_COMMAND_GROUP_SET_SPEED,
+  IO_COMMAND_GROUP_CONFIGURATION = 8,
+  IO_COMMAND_GROUP_PIC = 10,
+  IO_COMMAND_GROUP_SMPS = 15
+} io_command_group;
+
+typedef enum {
+  IO_COMMAND_EXIT = 0,
+  IO_COMMAND_REPORT_ID_STRING,
+  IO_COMMAND_SEND_I2C_START_BIT,
+  IO_COMMAND_SEND_I2C_STOP_BIT,
+  IO_COMMAND_CS_LOW,
+  IO_COMMAND_CS_HIGH,
+  IO_COMMAND_BITBANG_READ_BYTE,
+  IO_COMMAND_BITBANG_READ_BIT,
+  IO_COMMAND_PEEK_INPUT_BIT,
+  IO_COMMAND_CLOCK_TICK,
+  IO_COMMAND_CLOCK_LOW,
+  IO_COMMAND_CLOCK_HIGH,
+  IO_COMMAND_DATA_LOW,
+  IO_COMMAND_DATA_HIGH
+} binary_io_command;
+
+static inline bool handle_binary_io_command(const binary_io_command command,
+                                            const size_t wires);
+static inline void handle_bulk_transfer(const uint8_t command,
+                                        const size_t wires);
+static inline void handle_bulk_clock_ticks(const uint8_t command);
+static inline void handle_bulk_bits(const uint8_t command);
+
 enum {
   PICUNK = 0,
   PIC416,
@@ -74,10 +111,12 @@ enum {
 };
 
 static void PIC24NOP(void);
-static void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath);
+static void PIC614Write(unsigned char cmd, unsigned char datl,
+                        unsigned char dath);
 static void PIC614Read(unsigned char c);
 static void PIC416Read(unsigned char c);
-static void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath);
+static void PIC416Write(unsigned char cmd, unsigned char datl,
+                        unsigned char dath);
 static void PIC424Write_internal(unsigned long cmd, unsigned char pn);
 static void PIC424Write(unsigned char *cmd, unsigned char pn);
 static void PIC424Read(void);
@@ -470,7 +509,9 @@ bool bp_binary_io_pullup_control(uint8_t control_byte) {
  * 00001011 - Clock high
  * 00001100 - Data low
  * 00001101 - Data high
+ *
  * 0001xxxx � Bulk transfer, send 1-16 bytes (0=1byte!)
+ *
  * 0010xxxx - Bulk clock ticks, send 1-16 ticks
  * 0011xxxx - Bulk bits, send 1-8 bits of the next byte (0=1bit!)
  * 0100wxyz � Configure peripherals, w=power, x=pullups, y=AUX, z=CS
@@ -486,13 +527,10 @@ bool bp_binary_io_pullup_control(uint8_t control_byte) {
  */
 
 void binwire(void) {
-  static unsigned char inByte, rawCommand, i, c, wires, picMode = PIC614;
+  static unsigned char i, c, wires, picMode = PIC614;
   static unsigned int cmds, cmdw, cmdr, j;
 
-  mode_configuration.high_impedance =
-      1; // yes, always hiz (bbio uses this setting, should be changed to a
-         // setup variable because stringing the modeconfig struct everyhwere is
-         // getting ugly!)
+  mode_configuration.high_impedance = YES;
   mode_configuration.little_endian = NO;
   mode_configuration.speed = 1;
   mode_configuration.numbits = 8;
@@ -506,140 +544,39 @@ void binwire(void) {
   // clock output, low
   // MISO input
   // CS output, high
-  R3WMOSI_TRIS = 0;
-  R3WCLK_TRIS = 0;
-  R3WMISO_TRIS = 1;
-  bitbang_set_cs(1); // takes care of custom HiZ settings too
+  R3WMOSI_TRIS = OUTPUT;
+  R3WCLK_TRIS = OUTPUT;
+  R3WMISO_TRIS = INPUT;
+  bitbang_set_cs(HIGH); // takes care of custom HiZ settings too
 
   MSG_RAW_MODE_IDENTIFIER;
 
-  while (1) {
+  bool keep_looping = true;
 
-    inByte = user_serial_read_byte(); // /* JTR usb port; */; //grab it
-    rawCommand = (inByte >> 4);       // get command bits in seperate variable
+  while (keep_looping) {
+    uint8_t input_byte = user_serial_read_byte();
 
-    switch (rawCommand) {
-    case 0: // reset/setup/config commands
-      switch (inByte) {
-      case 0: // 0, reset exit
-        // cleanup!!!!!!!!!!
-        return; // exit
-        break;
-      case 1: // id reply string
-        MSG_RAW_MODE_IDENTIFIER;
-        break;
-      case 2: // start bit
-        bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT);
-        user_serial_transmit_character(1);
-        break;
-      case 3: // stop bit
-        bitbang_i2c_stop();
-        user_serial_transmit_character(1);
-        break;
-      case 4: // cs low
-        bitbang_set_cs(0);
-        user_serial_transmit_character(1);
-        break;
-      case 5: // cs high
-        bitbang_set_cs(1);
-        user_serial_transmit_character(1);
-        break;
-      case 6: // read byte
-        if (wires == 2) {
-          i = bitbang_read_value();
-        } else {
-          i = bitbang_read_with_write(0xff);
-        }
-        if (mode_configuration.little_endian == YES) {
-          i = bp_reverse_integer(i, mode_configuration.numbits);
-        }
-        user_serial_transmit_character(i);
-        break;
-      case 7: // read bit
-        user_serial_transmit_character(bitbang_read_bit());
-        break;
-      case 8: // peek bit
-        user_serial_transmit_character(bitbang_read_miso());
-        break;
-      case 9: // clock tick
-        bitbang_advance_clock_ticks(1);
-        user_serial_transmit_character(1);
-        break;
-      case 10: // clock low
-        bitbang_set_clk(0);
-        user_serial_transmit_character(1);
-        break;
-      case 11: // clock high
-        bitbang_set_clk(1);
-        user_serial_transmit_character(1);
-        break;
-      case 12: // data low
-        bitbang_set_mosi(0);
-        user_serial_transmit_character(1);
-        break;
-      case 13: // data high
-        bitbang_set_mosi(1);
-        user_serial_transmit_character(1);
-        break;
-      default:
-        user_serial_transmit_character(0);
-        break;
-      }
+    switch ((io_command_group)(input_byte >> 4)) {
+    case IO_COMMAND_GROUP_GENERIC:
+      keep_looping =
+          handle_binary_io_command((binary_io_command)input_byte, wires);
+      continue;
+
+    case IO_COMMAND_GROUP_BULK_TRANSFER:
+      handle_bulk_transfer(input_byte, wires);
       break;
 
-    case 0b0001:                         // get x+1 bytes
-      inByte &= (~0b11110000);           // clear command portion
-      inByte++;                          // increment by 1, 0=1byte
-      user_serial_transmit_character(1); // send 1/OK
-
-      for (i = 0; i < inByte; i++) {
-        c = user_serial_read_byte(); // /* JTR usb port; */;
-        if (mode_configuration.little_endian == YES) {
-          c = bp_reverse_integer(c, mode_configuration.numbits);
-        }
-        if (wires == 2) {         // 2 wire, send 1
-          bitbang_write_value(c); // send byte
-          user_serial_transmit_character(1);
-        } else {                          // 3 wire, return read byte
-          c = bitbang_read_with_write(c); // send byte
-          if (mode_configuration.little_endian == YES) {
-            c = bp_reverse_integer(c, mode_configuration.numbits);
-          }
-          user_serial_transmit_character(c);
-        }
-      }
-
+    case IO_COMMAND_GROUP_BULK_CLOCK_TICKS:
+      handle_bulk_clock_ticks(input_byte);
       break;
 
-    case 0b0010:               // bulk clock ticks
-      inByte &= (~0b11110000); // clear command portion
-      inByte++;                // increment by 1, 0=1byte
-      bitbang_advance_clock_ticks(inByte);
-      user_serial_transmit_character(1); // send 1/OK
+    case IO_COMMAND_GROUP_BULK_BITS:
+      handle_bulk_bits(input_byte);
       break;
 
-    case 0b0011: //# 0011xxxx - Bulk bits, send 1-8 bits of the next byte
-                 //(0=1bit!)
-      inByte &= (~0b11110000);           // clear command portion
-      inByte++;                          // increment by 1, 0=1byte
-      user_serial_transmit_character(1); // send 1/OK
+    case IO_COMMAND_GROUP_PIC:
 
-      rawCommand =
-          user_serial_read_byte(); //  //get byte, reuse rawCommand variable
-      for (i = 0; i < inByte; i++) {
-        if (rawCommand & 0b10000000) { // send 1
-          bitbang_write_bit(1);        // send bit
-        } else {                       // send 0
-          bitbang_write_bit(0);        // send bit
-        }
-        rawCommand = rawCommand << 1; // pop the MSB off
-      }
-      user_serial_transmit_character(1);
-      break;
-
-    case 0b1010: // PIC commands
-
-      switch (inByte) {
+      switch (input_byte) {
       case 0b10100000:
 
         picMode = user_serial_read_byte(); // /* JTR usb port; */; //get byte
@@ -713,7 +650,7 @@ void binwire(void) {
         break;
       case 0b10100101: // write x bit command, read x bits and return in 2 bytes
         switch (picMode) {
-        case PIC416:
+        case PIC416: {
 
           // get the number of commands that will follow
           cmds =
@@ -721,11 +658,11 @@ void binwire(void) {
           // cmds=cmds; //make sure an int
           // get teh command to send on each read....
 
-          rawCommand = user_serial_read_byte(); // /* JTR usb port; */;
+          uint8_t command = user_serial_read_byte(); // /* JTR usb port; */;
 
           for (j = 0; j < cmds; j++) {
             // write command
-            c = rawCommand; // temporary varaible
+            c = command; // temporary varaible
             for (i = 0; i < 4; i++) {
               if (c & 0b1) {          // send 1
                 bitbang_write_bit(1); // send bit
@@ -738,6 +675,7 @@ void binwire(void) {
             user_serial_transmit_character(bitbang_read_value());
           }
           break;
+        }
         case PIC424:
           // get the number of commands that will follow
           cmds =
@@ -828,19 +766,19 @@ void binwire(void) {
       // case 0b0101: //# 0101xxxx - Bulk read, read 1-16bytes (0=1byte!)
 
     case 0b0100: // configure peripherals w=power, x=pullups, y=AUX, z=CS
-      bp_binary_io_peripherals_set(inByte);
+      bp_binary_io_peripherals_set(input_byte);
       user_serial_transmit_character(1); // send 1/OK
       break;
 
 #ifdef BUSPIRATEV4
     case 0b0101:
-      user_serial_transmit_character(bp_binary_io_pullup_control(inByte));
+      user_serial_transmit_character(bp_binary_io_pullup_control(input_byte));
       break;
 #endif
 
-    case 0b0110:               // set speed
-      inByte &= (~0b11111100); // clear command portion
-      mode_configuration.speed = inByte;
+    case 0b0110:                   // set speed
+      input_byte &= (~0b11111100); // clear command portion
+      mode_configuration.speed = input_byte;
       bitbang_setup(wires, mode_configuration.speed);
       bitbang_set_cs(1); // takes care of custom HiZ settings too
       user_serial_transmit_character(1);
@@ -849,15 +787,15 @@ void binwire(void) {
     case 0b1000: // set config
       // wxyz //w=HiZ(0)/3.3v(1), x=3wireenable, y=lsb, z=n/a
       mode_configuration.high_impedance = 0;
-      if ((inByte & 0b1000) == 0)
+      if ((input_byte & 0b1000) == 0)
         mode_configuration.high_impedance = 1; // hiz output if this bit is 1
 
       wires = 2;
-      if (inByte & 0b100)
+      if (input_byte & 0b100)
         wires = 3; // 3wire/2wire toggle
 
       mode_configuration.little_endian = NO;
-      if (inByte & 0b10)
+      if (input_byte & 0b10)
         mode_configuration.little_endian = YES; // lsb/msb, bit order
 
       // if(inByte&0b1) //bit unused
@@ -896,10 +834,10 @@ void binwire(void) {
 #endif /* BP_ENABLE_SMPS_SUPPORT */
 
     default:
-      user_serial_transmit_character(0x00); // send 0/Error
+      REPORT_IO_FAILURE();
       break;
-    } // command switch
-  }   // while loop
+    }
+  }
 }
 
 void PIC614Read(unsigned char c) {
@@ -1049,4 +987,127 @@ void PIC424Read(void) {
   // ALWAYS POST nop TWICE after a read
   PIC24NOP();
   PIC24NOP();
+}
+
+bool handle_binary_io_command(const binary_io_command command,
+                              const size_t wires) {
+  switch (command) {
+  case IO_COMMAND_EXIT:
+    /* @todo: Cleanup? */
+    return false;
+
+  case IO_COMMAND_REPORT_ID_STRING:
+    MSG_RAW_MODE_IDENTIFIER;
+    break;
+
+  case IO_COMMAND_SEND_I2C_START_BIT:
+    bitbang_i2c_start(BITBANG_I2C_START_ONE_SHOT);
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_SEND_I2C_STOP_BIT:
+    bitbang_i2c_stop();
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_CS_LOW:
+    bitbang_set_cs(LOW);
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_CS_HIGH:
+    bitbang_set_cs(HIGH);
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_BITBANG_READ_BYTE: {
+    uint16_t value =
+        (wires == 2) ? bitbang_read_value() : bitbang_read_with_write(0xFF);
+    if (mode_configuration.little_endian == YES) {
+      value = bp_reverse_integer(value, mode_configuration.numbits);
+    }
+    user_serial_transmit_character(value & 0xFF);
+    break;
+  }
+
+  case IO_COMMAND_BITBANG_READ_BIT:
+    user_serial_transmit_character(bitbang_read_bit());
+    break;
+
+  case IO_COMMAND_PEEK_INPUT_BIT:
+    user_serial_transmit_character(bitbang_read_miso());
+    break;
+
+  case IO_COMMAND_CLOCK_TICK:
+    bitbang_advance_clock_ticks(1);
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_CLOCK_LOW:
+    bitbang_set_clk(LOW);
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_CLOCK_HIGH:
+    bitbang_set_clk(HIGH);
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_DATA_LOW:
+    bitbang_set_mosi(LOW);
+    REPORT_IO_SUCCESS();
+    break;
+
+  case IO_COMMAND_DATA_HIGH:
+    bitbang_set_mosi(HIGH);
+    REPORT_IO_SUCCESS();
+    break;
+
+  default:
+    REPORT_IO_FAILURE();
+    break;
+  }
+
+  return true;
+}
+
+void handle_bulk_transfer(const uint8_t command, const size_t wires) {
+  size_t bytes = (command & 0x0F) + 1;
+  REPORT_IO_SUCCESS();
+
+  for (size_t counter = 0; counter < bytes; counter++) {
+    uint16_t value = user_serial_read_byte();
+    if (mode_configuration.little_endian == YES) {
+      value = bp_reverse_integer(value, mode_configuration.numbits);
+    }
+
+    if (wires == 2) {
+      bitbang_write_value(value & 0xFF);
+      REPORT_IO_SUCCESS();
+    } else {
+      value = bitbang_read_with_write(value & 0xFF);
+      if (mode_configuration.little_endian == YES) {
+        value = bp_reverse_integer(value, mode_configuration.numbits);
+      }
+      bitbang_write_value(value & 0xFF);
+    }
+  }
+}
+
+void handle_bulk_clock_ticks(const uint8_t command) {
+  bitbang_advance_clock_ticks((command & 0x0F) + 1);
+  REPORT_IO_SUCCESS();
+}
+
+void handle_bulk_bits(const uint8_t command) {
+  size_t bits = (command & 0x0F) + 1;
+  REPORT_IO_SUCCESS();
+
+  uint8_t byte = user_serial_read_byte();
+  for (size_t counter = 0; counter < bits; counter++) {
+    bitbang_write_bit((command & 0x80) ? HIGH : LOW);
+    byte <<= 1;
+  }
+
+  REPORT_IO_SUCCESS();
 }
