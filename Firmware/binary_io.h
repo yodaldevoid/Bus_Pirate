@@ -112,6 +112,4 @@ void bp_binary_io_peripherals_set(uint8_t input_byte);
 bool bp_binary_io_pullup_control(uint8_t control_byte);
 #endif /* BUSPIRATEV4 */
 
-void binwire(void);
-
 #endif /* !BP_BINARY_IO_H */

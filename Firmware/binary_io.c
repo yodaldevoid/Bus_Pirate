@@ -72,9 +72,9 @@ static void send_binary_io_mode_identifier(void);
 
 typedef enum {
   IO_COMMAND_GROUP_GENERIC = 0b0000,
-  IO_COMMAND_GROUP_BULK_TRANSFER = 0b0001,
-  IO_COMMAND_GROUP_BULK_CLOCK_TICKS = 0b0010,
-  IO_COMMAND_GROUP_BULK_BITS = 0b0011,
+  IO_COMMAND_GROUP_BULK_BYTE_TRANSFER = 0b0001,
+  IO_COMMAND_GROUP_BULK_CLOCK_TICKS_ADVANCE = 0b0010,
+  IO_COMMAND_GROUP_BULK_BIT_TRANSFER = 0b0011,
   IO_COMMAND_GROUP_CONFIGURE_PERIPHERALS = 0b0100,
   IO_COMMAND_GROUP_SET_PULLUP = 0b0101,
   IO_COMMAND_GROUP_SET_SPEED = 0b0110,
@@ -98,7 +98,7 @@ typedef enum {
   IO_COMMAND_CLOCK_HIGH,
   IO_COMMAND_DATA_LOW,
   IO_COMMAND_DATA_HIGH
-} binary_io_command;
+} wire_generic_command;
 
 typedef enum {
   PIC_MODE_INVALID = 0,
@@ -126,10 +126,108 @@ typedef enum {
   SMPS_COMMAND_START = 0xF2
 } smps_command;
 
-static inline bool handle_binary_io_command(const binary_io_command command);
-static inline void handle_bulk_transfer(const uint8_t command);
-static inline void handle_bulk_clock_ticks(const uint8_t command);
-static inline void handle_bulk_bits(const uint8_t command);
+/**
+ * @brief Raw wire command handler.
+ *
+ * Commands are split in two halves, the first four bits from MSB being the
+ * command category and the last four bits being the command parameter (or,
+ * [7:4] and [3:0], respectively).
+ *
+ * Currently available commands are as follows:
+ *
+ * <table>
+ * <thead>
+ * <tr><th>Binary</th><th>Hexadecimal</th><th>Description</th></tr>
+ * </thead>
+ * <tbody>
+ * <tr><td><tt>0b0000xxxx</tt></td><td><tt>0x0x</tt></td><td>Generic</td></tr>
+ * <tr><td><tt>0b0001xxxx</tt></td><td><tt>0x1x</tt></td><td>Bulk byte
+ * transfer</td></tr>
+ * <tr><td><tt>0b0010xxxx</tt></td><td><tt>0x2x</tt></td><td>Bulk clock ticks
+ * advance</td></tr>
+ * <tr><td><tt>0b0011xxxx</tt></td><td><tt>0x3x</tt></td><td>Bulk bit
+ * transfer</td></tr>
+ * <tr><td><tt>0b0100xxxx</tt></td><td><tt>0x4x</tt></td><td>Peripherals
+ * configuration</td></tr>
+ * <tr><td><tt>0b0101xxxx</tt></td><td><tt>0x5x</tt></td><td>Pullup
+ * configuration</td></tr>
+ * <tr><td><tt>0b0110xxxx</tt></td><td><tt>0x6x</tt></td><td>Set speed</td></tr>
+ * <tr><td><tt>0b1000xxxx</tt></td><td><tt>0x8x</tt></td><td>Mode
+ * configuration</td></tr>
+ * <tr><td><tt>0b1010xxxx</tt></td><td><tt>0xAx</tt></td><td>PIC
+ * programming</td></tr>
+ * <tr><td><tt>0b1111xxxx</tt></td><td><tt>0xFx</tt></td><td>SMPS</td></tr>
+ * </tbody>
+ * </table>
+ *
+ * @see handle_wire_generic_command
+ * @see handle_bulk_byte_transfer
+ * @see handle_bulk_clock_ticks_advance
+ * @see handle_bulk_bit_transfer
+ * @see handle_set_pullup
+ * @see handle_configure_peripherals
+ * @see handle_set_speed
+ * @see handle_configuration
+ * @see handle_pic_command
+ * @see handle_smps_command
+ * @see io_command_group
+ */
+static inline void binary_io_raw_wire_mode_handler(void);
+
+/**
+ * @brief Processes a generic category command obtained by
+ * binary_io_raw_wire_mode_handler.
+ *
+ * Currently available commands are as follows:
+ *
+ * <table>
+ * <thead>
+ * <tr><th>Binary</th><th>Hexadecimal</th><th>Description</th></tr>
+ * </thead>
+ * <tbody>
+ * <tr><td><tt>0b00000000</tt></td><td><tt>0x00</tt></td><td>Exit raw wire
+ * mode.</td></tr>
+ * <tr><td><tt>0b00000001</tt></td><td><tt>0x01</tt></td><td>Report mode
+ * identifier.</td></tr>
+ * <tr><td><tt>0b00000010</tt></td><td><tt>0x02</tt></td><td>Send I2C start
+ * bit.</td></tr> <tr><td><tt>0b00000011</tt></td><td><tt>0x03</tt></td><td>Send
+ * I2C stop bit.</td></tr>
+ * <tr><td><tt>0b00000100</tt></td><td><tt>0x04</tt></td><td>Pull CS
+ * low.</td></tr> <tr><td><tt>0b00000101</tt></td><td><tt>0x05</tt></td><td>Set
+ * CS high.</td></tr>
+ * <tr><td><tt>0b00000110</tt></td><td><tt>0x06</tt></td><td>Read a byte in raw
+ * wire mode.</td></tr>
+ * <tr><td><tt>0b00000111</tt></td><td><tt>0x07</tt></td><td>Read a bit in raw
+ * wire mode.</td></tr>
+ * <tr><td><tt>0b00001000</tt></td><td><tt>0x08</tt></td><td>Peek at the bit
+ * state.</td></tr>
+ * <tr><td><tt>0b00001001</tt></td><td><tt>0x09</tt></td><td>Advance clock
+ * tick.</td></tr>
+ * <tr><td><tt>0b00001010</tt></td><td><tt>0x0A</tt></td><td>Pull CLK
+ * low.</td></tr> <tr><td><tt>0b00001011</tt></td><td><tt>0x0B</tt></td><td>Set
+ * CLK high.</td></tr>
+ * <tr><td><tt>0b00001100</tt></td><td><tt>0x03</tt></td><td>Pull DATA
+ * low.</td></tr> <tr><td><tt>0b00001101</tt></td><td><tt>0x03</tt></td><td>Set
+ * DATA high.</td></tr>
+ * </tbody>
+ * </table>
+ *
+ * Any commands that are not in the above list will trigger a failure result
+ * code being sent over the serial port.
+ *
+ * @param[in] command the command to process.
+ * @return true if binary_io_raw_wire_mode_handler should accept more commands,
+ * false if binary raw wire mode handling should end.
+ *
+ * @see binary_io_raw_wire_mode_handler
+ * @see wire_generic_command
+ */
+static inline bool
+handle_wire_generic_command(const wire_generic_command command);
+
+static inline void handle_bulk_byte_transfer(const uint8_t command);
+static inline void handle_bulk_clock_ticks_advance(const uint8_t command);
+static inline void handle_bulk_bit_transfer(const uint8_t command);
 static inline void handle_set_pullup(const uint8_t command);
 static inline void handle_configure_peripherals(const uint8_t command);
 static inline void handle_set_speed(const uint8_t command);
@@ -262,7 +360,7 @@ void binBB(void) {
         send_binary_io_mode_identifier();
       } else if (inByte == 5) { // goto RAW WIRE mode
         binReset();
-        binwire();
+        binary_io_raw_wire_mode_handler();
         binReset();
         send_binary_io_mode_identifier();
       } else if (inByte == 6) { // goto OpenOCD mode
@@ -532,39 +630,7 @@ bool bp_binary_io_pullup_control(uint8_t control_byte) {
 
 #endif /* BUSPIRATEV4 */
 
-/*
- * 00000000 � Enter raw bitbang mode, reset to raw bitbang mode
- * 00000001 � Mode version string (RAW1)
- * 00000010 - I2C style start bit
- * 00000011 - I2C style stop bit
- * 00000100 - CS low (0) (respects hiz setting)
- * 00000101 - CS high (1)
- * 00000110 - Read byte
- * 00000111 - Read bit
- * 00001000 - Peek at input pin
- * 00001001 - Clock tick
- * 00001010 - Clock low
- * 00001011 - Clock high
- * 00001100 - Data low
- * 00001101 - Data high
- *
- * 0001xxxx � Bulk transfer, send 1-16 bytes (0=1byte!)
- *
- * 0010xxxx - Bulk clock ticks, send 1-16 ticks
- * 0011xxxx - Bulk bits, send 1-8 bits of the next byte (0=1bit!)
- * 0100wxyz � Configure peripherals, w=power, x=pullups, y=AUX, z=CS
- * 0101xxxx - Bulk read, read 1-16bytes (0=1byte!)
- * 0110000x � Set speed
- * 1000wxyz � Config, w=output type, x=3wire, y=lsb, z=n/a
- ****************** BPv4 Specific Instructions *********************
- * 11110000 - Return SMPS output voltage
- * 11110001 - Stop SMPS operation
- * 1111xxxx - Start SMPS operation (xxxx and next byte give requested output
- voltage) Lowest possible value is 512 = 0b0010 0000
-
- */
-
-void binwire(void) {
+void binary_io_raw_wire_mode_handler(void) {
   mode_configuration.high_impedance = YES;
   mode_configuration.little_endian = NO;
   mode_configuration.speed = 1;
@@ -573,18 +639,11 @@ void binwire(void) {
   io_state.wires = BINARY_IO_2_WIRES;
   io_state.pic_mode = PIC_MODE_614;
 
-  // configure for raw3wire mode
-  bitbang_setup(2, BITBANG_SPEED_MAXIMUM); // setup the bitbang library, must be
-                                           // done before calling bbCS below
-  // setup pins (pins are input/low when we start)
-  // MOSI output, low
-  // clock output, low
-  // MISO input
-  // CS output, high
+  bitbang_setup(2, BITBANG_SPEED_MAXIMUM);
   R3WMOSI_TRIS = OUTPUT;
   R3WCLK_TRIS = OUTPUT;
   R3WMISO_TRIS = INPUT;
-  bitbang_set_cs(HIGH); // takes care of custom HiZ settings too
+  bitbang_set_cs(HIGH);
 
   MSG_RAW_MODE_IDENTIFIER;
 
@@ -595,23 +654,24 @@ void binwire(void) {
 
     switch ((io_command_group)(input_byte >> 4)) {
     case IO_COMMAND_GROUP_GENERIC:
-      keep_looping = handle_binary_io_command((binary_io_command)input_byte);
+      keep_looping =
+          handle_wire_generic_command((wire_generic_command)input_byte);
       continue;
 
-    case IO_COMMAND_GROUP_BULK_TRANSFER:
-      handle_bulk_transfer(input_byte);
+    case IO_COMMAND_GROUP_BULK_BYTE_TRANSFER:
+      handle_bulk_byte_transfer(input_byte);
       break;
 
-    case IO_COMMAND_GROUP_BULK_CLOCK_TICKS:
-      handle_bulk_clock_ticks(input_byte);
+    case IO_COMMAND_GROUP_BULK_CLOCK_TICKS_ADVANCE:
+      handle_bulk_clock_ticks_advance(input_byte);
       break;
 
-    case IO_COMMAND_GROUP_BULK_BITS:
-      handle_bulk_bits(input_byte);
+    case IO_COMMAND_GROUP_BULK_BIT_TRANSFER:
+      handle_bulk_bit_transfer(input_byte);
       break;
 
     case IO_COMMAND_GROUP_PIC:
-      handle_pic_command(input_byte);
+      handle_pic_command((pic_command)input_byte);
       break;
 
     case IO_COMMAND_GROUP_SET_PULLUP:
@@ -631,7 +691,7 @@ void binwire(void) {
       break;
 
     case IO_COMMAND_GROUP_SMPS:
-      handle_smps_command(input_byte);
+      handle_smps_command((smps_command)input_byte);
       break;
 
     default:
@@ -790,7 +850,7 @@ void PIC424Read(void) {
   PIC24NOP();
 }
 
-bool handle_binary_io_command(const binary_io_command command) {
+bool handle_wire_generic_command(const wire_generic_command command) {
   switch (command) {
   case IO_COMMAND_EXIT:
     /* @todo: Cleanup? */
@@ -872,7 +932,7 @@ bool handle_binary_io_command(const binary_io_command command) {
   return true;
 }
 
-void handle_bulk_transfer(const uint8_t command) {
+void handle_bulk_byte_transfer(const uint8_t command) {
   size_t bytes = (command & 0x0F) + 1;
   REPORT_IO_SUCCESS();
 
@@ -895,12 +955,12 @@ void handle_bulk_transfer(const uint8_t command) {
   }
 }
 
-void handle_bulk_clock_ticks(const uint8_t command) {
+void handle_bulk_clock_ticks_advance(const uint8_t command) {
   bitbang_advance_clock_ticks((command & 0x0F) + 1);
   REPORT_IO_SUCCESS();
 }
 
-void handle_bulk_bits(const uint8_t command) {
+void handle_bulk_bit_transfer(const uint8_t command) {
   size_t bits = (command & 0x0F) + 1;
   REPORT_IO_SUCCESS();
 
@@ -1167,8 +1227,10 @@ void handle_smps_command(const smps_command command) {
     REPORT_IO_SUCCESS();
     break;
 
-    /* SMPS_COMMAND_START is used here as an alias to the first value that can
-     * trigger a switch on event for the SMPS board. */
+    /*
+     * SMPS_COMMAND_START is used here as an alias to the first value that can
+     * trigger a switch on event for the SMPS board.
+     */
   case SMPS_COMMAND_START:
   default: {
     uint16_t output_voltage = ((((uint16_t)((uint8_t)command) & 0x0F)) << 8) |
