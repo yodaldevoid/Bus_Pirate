@@ -109,8 +109,8 @@ typedef enum {
 } pic_mode;
 
 typedef enum {
-  PIC_USER_COMMAND_READ = 1,
-  PIC_USER_COMMAND_WRITE
+  PIC_USER_COMMAND_WRITE = 1,
+  PIC_USER_COMMAND_READ
 } pic_command_type;
 
 typedef enum {
@@ -120,14 +120,25 @@ typedef enum {
   PIC_COMMAND_WRITE_AND_READ_COMMANDS = 0xA7
 } pic_command;
 
+typedef enum {
+  SMPS_COMMAND_GET_OUTPUT_VOLTAGE = 0xF0,
+  SMPS_COMMAND_STOP = 0xF1,
+  SMPS_COMMAND_START = 0xF2
+} smps_command;
+
 static inline bool handle_binary_io_command(const binary_io_command command);
 static inline void handle_bulk_transfer(const uint8_t command);
 static inline void handle_bulk_clock_ticks(const uint8_t command);
 static inline void handle_bulk_bits(const uint8_t command);
+static inline void handle_set_pullup(const uint8_t command);
+static inline void handle_configure_peripherals(const uint8_t command);
+static inline void handle_set_speed(const uint8_t command);
+static inline void handle_configuration(const uint8_t command);
 static inline void handle_pic_command_write_and_read_commands(void);
 static inline void handle_pic_command_write_and_read_bits(void);
 static inline void handle_pic_command_write(void);
 static inline void handle_pic_command(const pic_command command);
+static inline void handle_smps_command(const smps_command command);
 
 static void PIC24NOP(void);
 static void PIC614Write(unsigned char cmd, unsigned char datl,
@@ -604,62 +615,24 @@ void binwire(void) {
       break;
 
     case IO_COMMAND_GROUP_SET_PULLUP:
-#if defined(BUSPIRATEV4)
-      user_serial_transmit_character(bp_binary_io_pullup_control(input_byte));
-#else
-      REPORT_IO_FAILURE();
-#endif /* BUSPIRATEV4 */
+      handle_set_pullup(input_byte);
       break;
 
     case IO_COMMAND_GROUP_CONFIGURE_PERIPHERALS:
-      bp_binary_io_peripherals_set(input_byte);
-      REPORT_IO_SUCCESS();
+      handle_configure_peripherals(input_byte);
       break;
 
     case IO_COMMAND_GROUP_SET_SPEED:
-      mode_configuration.speed = input_byte & 0b00000011;
-      bitbang_setup(io_state.wires == BINARY_IO_2_WIRES ? 2 : 3,
-                    mode_configuration.speed);
-      bitbang_set_cs(HIGH);
-      REPORT_IO_SUCCESS();
+      handle_set_speed(input_byte);
       break;
 
     case IO_COMMAND_GROUP_CONFIGURATION:
-      mode_configuration.high_impedance = (input_byte & 0b00001000) ? YES : NO;
-      io_state.wires =
-          (input_byte & 0b00000100) ? BINARY_IO_3_WIRES : BINARY_IO_2_WIRES;
-      mode_configuration.little_endian = (input_byte & 0b00000010) ? YES : NO;
-      bitbang_setup(io_state.wires == BINARY_IO_2_WIRES ? 2 : 3,
-                    mode_configuration.speed);
-      bitbang_set_cs(HIGH);
-      REPORT_IO_SUCCESS();
+      handle_configuration(input_byte);
       break;
 
-#ifdef BP_ENABLE_SMPS_SUPPORT
-#ifdef BUSPIRATEV4
-    case 0b1111: // SMPS commands
-      switch (inByte) {
-      case 0xf0:
-        smps_adc(); // Send raw ADC reading
-        break;
-      case 0xf1:
-        smps_stop();                       // Stop SMPS operation
-        user_serial_transmit_character(1); // Send 1/OK
-        break;
-      default: {
-        unsigned int V_out;
-
-        V_out = inByte & 0x0f;
-        V_out <<= 8;
-        V_out |= user_serial_read_byte();
-        smps_start(V_out);
-        user_serial_transmit_character(1); // Send 1/OK
-        break;
-      }
-      }
+    case IO_COMMAND_GROUP_SMPS:
+      handle_smps_command(input_byte);
       break;
-#endif /* BUSPIRATEV4 */
-#endif /* BP_ENABLE_SMPS_SUPPORT */
 
     default:
       REPORT_IO_FAILURE();
@@ -940,6 +913,38 @@ void handle_bulk_bits(const uint8_t command) {
   REPORT_IO_SUCCESS();
 }
 
+void handle_set_pullup(const uint8_t command) {
+#if defined(BUSPIRATEV4)
+  user_serial_transmit_character(bp_binary_io_pullup_control(command));
+#else
+  REPORT_IO_FAILURE();
+#endif /* BUSPIRATEV4 */
+}
+
+void handle_configure_peripherals(const uint8_t command) {
+  bp_binary_io_peripherals_set(command);
+  REPORT_IO_SUCCESS();
+}
+
+void handle_set_speed(const uint8_t command) {
+  mode_configuration.speed = command & 0b00000011;
+  bitbang_setup(io_state.wires == BINARY_IO_2_WIRES ? 2 : 3,
+                mode_configuration.speed);
+  bitbang_set_cs(HIGH);
+  REPORT_IO_SUCCESS();
+}
+
+void handle_configuration(const uint8_t command) {
+  mode_configuration.high_impedance = (command & 0b00001000) ? YES : NO;
+  io_state.wires =
+      (command & 0b00000100) ? BINARY_IO_3_WIRES : BINARY_IO_2_WIRES;
+  mode_configuration.little_endian = (command & 0b00000010) ? YES : NO;
+  bitbang_setup(io_state.wires == BINARY_IO_2_WIRES ? 2 : 3,
+                mode_configuration.speed);
+  bitbang_set_cs(HIGH);
+  REPORT_IO_SUCCESS();
+}
+
 void handle_pic_command(const pic_command command) {
   switch (command) {
 
@@ -1086,7 +1091,7 @@ void handle_pic_command_write_and_read_commands(void) {
   size_t index = 0;
   while (index < commands) {
     switch (bus_pirate_configuration.terminal_input[index]) {
-    case PIC_USER_COMMAND_READ:
+    case PIC_USER_COMMAND_WRITE:
       switch (io_state.pic_mode) {
       case PIC_MODE_614:
         PIC614Write(bus_pirate_configuration.terminal_input[index + 1],
@@ -1109,12 +1114,13 @@ void handle_pic_command_write_and_read_commands(void) {
         break;
 
       default:
+        /* Should be already covered by an earlier check. */
         REPORT_IO_FAILURE();
         return;
       }
       break;
 
-    case PIC_USER_COMMAND_WRITE:
+    case PIC_USER_COMMAND_READ:
       switch (io_state.pic_mode) {
       case PIC_MODE_614:
         PIC614Read(bus_pirate_configuration.terminal_input[index + 1]);
@@ -1132,6 +1138,7 @@ void handle_pic_command_write_and_read_commands(void) {
         break;
 
       default:
+        /* Should be already covered by an earlier check. */
         REPORT_IO_FAILURE();
         return;
       }
@@ -1146,4 +1153,33 @@ void handle_pic_command_write_and_read_commands(void) {
   if (read_commands == 0) {
     REPORT_IO_SUCCESS();
   }
+}
+
+void handle_smps_command(const smps_command command) {
+#if defined(BP_ENABLE_SMPS_SUPPORT)
+  switch (command) {
+  case SMPS_COMMAND_GET_OUTPUT_VOLTAGE:
+    smps_adc();
+    break;
+
+  case SMPS_COMMAND_STOP:
+    smps_stop();
+    REPORT_IO_SUCCESS();
+    break;
+
+    /* SMPS_COMMAND_START is used here as an alias to the first value that can
+     * trigger a switch on event for the SMPS board. */
+  case SMPS_COMMAND_START:
+  default: {
+    uint16_t output_voltage = ((((uint16_t)((uint8_t)command) & 0x0F)) << 8) |
+                              ((uint16_t)user_serial_read_byte());
+    smps_start(output_voltage);
+    REPORT_IO_SUCCESS();
+    break;
+  }
+  }
+#else
+  (void)command;
+  REPORT_IO_FAILURE();
+#endif /* BP_ENABLE_SMPS_SUPPORT */
 }

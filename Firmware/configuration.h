@@ -504,6 +504,16 @@
 
 #endif /* BP_ENABLE_JTAG_SUPPORT */
 
+/* SMPS module configuration definitions. */
+
+#ifdef BP_ENABLE_SMPS_SUPPORT
+
+#ifndef BUSPIRATEV4
+#error "SMPS support is not available on Bus Pirate v3"
+#endif /* !BUSPIRATEV4 */
+
+#endif /* BP_ENABLE_SMPS_SUPPORT */
+
 /* Module-agnostic configuration definitions. */
 
 /**
