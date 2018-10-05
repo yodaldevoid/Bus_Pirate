@@ -147,6 +147,19 @@ typedef enum {
 } bitbang_command;
 
 /**
+ * Write and read bits payload for PIC24 SIX commands.
+ *
+ * Original data is 0xBA0B96, 0xBADB86, 0xBAD3D6, 0xBA0B86.
+ *
+ * This version is the preprocessed version of those words (from LSB to MSB and
+ * bit-reversed).
+ */
+static const uint8_t PIC24_WRITE_AND_READ_PAYLOAD[3 * 4] = {
+    0x69, 0xD0, 0x5D, 0x6D, 0xDB, 0x5D, 0x6B, 0xCB, 0x5D, 0x69, 0xD0, 0x5D};
+
+static const uint8_t PIC24_NOP_PAYLOAD[3] = {0};
+
+/**
  * @brief Raw wire command handler.
  *
  * Commands are split in two halves, the first four bits from MSB being the
@@ -267,16 +280,16 @@ static inline void handle_bitbang_command(const bitbang_command command);
 
 static void read_and_transmit_adc_measurement(void);
 
-static void PIC24NOP(void);
-static void PIC614Write(unsigned char cmd, unsigned char datl,
-                        unsigned char dath);
-static void PIC614Read(unsigned char c);
-static void PIC416Read(unsigned char c);
-static void PIC416Write(const uint8_t command, const uint8_t data_low,
-                        const uint8_t data_high);
-static void PIC424Write_internal(unsigned long cmd, unsigned char pn);
-static void PIC424Write(unsigned char *cmd, unsigned char pn);
-static void PIC424Read(void);
+static void pic24_send_six_payload(const uint8_t *payload);
+static inline void pic24_send_nop_opcode(void);
+static inline void pic614_read(const uint8_t value);
+static inline void pic614_write(const uint8_t command, const uint8_t data_low,
+                                const uint8_t data_high);
+static inline void pic416_read(const uint8_t value);
+static void pic416_write(const uint8_t command, const uint8_t data_low,
+                         const uint8_t data_high);
+static void pic424_read(void);
+static void pic424_write(const uint8_t *payload, const size_t nops);
 
 #define R3WMOSI_TRIS BP_MOSI_DIR
 #define R3WCLK_TRIS BP_CLK_DIR
@@ -711,55 +724,49 @@ void binary_io_raw_wire_mode_handler(void) {
   }
 }
 
-void PIC614Read(unsigned char c) {
-  unsigned char i;
+void pic614_read(const uint8_t value) {
+  uint8_t bits = value;
 
-  for (i = 0; i < 6; i++) {
-    bitbang_write_bit(c & 0b1); // send bit
-    c = c >> 1;                 // pop the LSB off
+  for (size_t i = 0; i < 6; i++) {
+    bitbang_write_bit((bits & 0x01) ? HIGH : LOW);
+    bits >>= 1;
   }
 
   user_serial_transmit_character(bitbang_read_value());
   user_serial_transmit_character(bitbang_read_value());
 }
 
-void PIC614Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
-  unsigned char i, nodata;
+void pic614_write(const uint8_t command, const uint8_t data_low,
+                  const uint8_t data_high) {
+  uint8_t bits = command;
 
-  // MSB tells that there is no data output
-  nodata = cmd & 0x80;
-
-  for (i = 0; i < 6; i++) {
-    bitbang_write_bit(cmd & 0b1); // send bit
-    cmd = cmd >> 1;               // pop the LSB off
+  for (size_t index = 0; index < 6; index++) {
+    bitbang_write_bit((bits & 0x01) ? HIGH : LOW);
+    bits >>= 1;
   }
 
-  if (nodata)
-    return;
-
-  bitbang_write_value(datl); // send byte
-  bitbang_write_value(dath); // send byte
+  if ((command & 0x80) == 0x00) {
+    bitbang_write_value(data_low);
+    bitbang_write_value(data_high);
+  }
 }
 
-void PIC416Read(unsigned char c) {
-  unsigned char i;
+void pic416_read(const uint8_t value) {
+  uint8_t bits = value;
 
-  for (i = 0; i < 4; i++) {
-    if (c & 0b1) {          // send 1
-      bitbang_write_bit(1); // send bit
-    } else {                // send 0
-      bitbang_write_bit(0); // send bit
-    }
-    c = c >> 1; // pop the LSB off
+  for (size_t index = 0; index < 4; index++) {
+    bitbang_write_bit(bits & 0x01 ? HIGH : LOW);
+    bits >>= 1;
   }
 
   bitbang_read_value();
   user_serial_transmit_character(bitbang_read_value());
 }
 
-void PIC416Write(const uint8_t command, const uint8_t data_low,
-                 const uint8_t data_high) {
+void pic416_write(const uint8_t command, const uint8_t data_low,
+                  const uint8_t data_high) {
   uint8_t delay = (command >> 6) & 0b00000011;
+  uint8_t id = command;
 
   for (size_t index = 0; index < 4; index++) {
     if (index == 3 && (delay > 0)) {
@@ -769,87 +776,56 @@ void PIC416Write(const uint8_t command, const uint8_t data_low,
       continue;
     }
 
-    bitbang_write_bit((command & 0x01) ? HIGH : LOW);
-    command >>= 1;
+    bitbang_write_bit((id & 0x01) ? HIGH : LOW);
+    id >>= 1;
   }
 
   bitbang_write_value(data_low);
   bitbang_write_value(data_high);
 }
 
-void PIC24NOP(void) {
-  // send four bit SIX command (write)
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
+void pic24_send_six_payload(const uint8_t *payload) {
+  /* Send SIX command. */
+  bitbang_write_bit(LOW);
+  bitbang_write_bit(LOW);
+  bitbang_write_bit(LOW);
+  bitbang_write_bit(LOW);
 
-  // send data payload
-  bitbang_write_value(0x00); // send byte
-  bitbang_write_value(0x00); // send byte
-  bitbang_write_value(0x00); // send byte
+  /* Send payload. */
+  bitbang_write_value(*payload++);
+  bitbang_write_value(*payload++);
+  bitbang_write_value(*payload++);
 }
 
-void PIC424Write(unsigned char *cmd, unsigned char pn) {
-  // send four bit SIX command (write)
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
+void pic24_send_nop_opcode(void) {
+  pic24_send_six_payload(&PIC24_NOP_PAYLOAD[0]);
+}
 
-  // send data payload
-  bitbang_write_value(cmd[0]); // send byte
-  bitbang_write_value(cmd[1]); // send byte
-  bitbang_write_value(cmd[2]); // send byte
+void pic424_write(const uint8_t *payload, const size_t nops) {
+  pic24_send_six_payload(payload);
 
-  // do any post instruction NOPs
-  pn &= 0x0F;
-  while (pn--) {
-    PIC24NOP();
+  /* Insert NOPs. */
+  for (size_t counter = 0; counter < nops; counter++) {
+    pic24_send_nop_opcode();
   }
 }
 
-void PIC424Write_internal(unsigned long cmd, unsigned char pn) {
-  unsigned char i;
-  // send four bit SIX command (write)
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
+void pic424_read(void) {
+  /* Send REGOUT command. */
+  bitbang_write_bit(HIGH);
+  bitbang_write_bit(LOW);
+  bitbang_write_bit(LOW);
+  bitbang_write_bit(LOW);
 
-  // send data payload 0xBA0B96 0xBADBB6 0xBA0BB6
-  bitbang_write_value(bp_reverse_byte(cmd & 0xFF));
-  bitbang_write_value(bp_reverse_byte((cmd >> 8) & 0xFF));
-  bitbang_write_value(bp_reverse_byte((cmd >> 16) & 0xFF));
+  bitbang_write_value(0x00);
 
-  // do any post instruction NOPs
-  pn &= 0x0F;
-  for (i = 0; i < pn; i++) {
-    PIC24NOP();
-  }
-}
-
-void PIC424Read(void) {
-  unsigned char c;
-
-  // send four bit REGOUT command (read)
-  bitbang_write_bit(1); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-  bitbang_write_bit(0); // send bit
-
-  // one byte output
-  bitbang_write_value(0x00); // send byte
-
-  // read 2 bytes
-  // return bytes in little endian format
-  c = bitbang_read_value();
+  uint8_t value = bitbang_read_value();
   user_serial_transmit_character(bitbang_read_value());
-  user_serial_transmit_character(c);
+  user_serial_transmit_character(value);
 
-  // ALWAYS POST nop TWICE after a read
-  PIC24NOP();
-  PIC24NOP();
+  /* Send two NOPs after a read. */
+  pic24_send_nop_opcode();
+  pic24_send_nop_opcode();
 }
 
 bool handle_wire_generic_command(const wire_generic_command command) {
@@ -1055,9 +1031,9 @@ void handle_pic_command_write(void) {
 
   if (io_state.pic_mode == PIC_MODE_416) {
     for (size_t offset = 0; offset < commands_count; offset += 3) {
-      PIC416Write(bus_pirate_configuration.terminal_input[offset],
-                  bus_pirate_configuration.terminal_input[offset + 1],
-                  bus_pirate_configuration.terminal_input[offset + 2]);
+      pic416_write(bus_pirate_configuration.terminal_input[offset],
+                   bus_pirate_configuration.terminal_input[offset + 1],
+                   bus_pirate_configuration.terminal_input[offset + 2]);
     }
 
     REPORT_IO_SUCCESS();
@@ -1065,22 +1041,10 @@ void handle_pic_command_write(void) {
   }
 
   for (size_t offset = 0; offset < commands_count; offset += 4) {
-    bitbang_write_bit(LOW);
-    bitbang_write_bit(LOW);
-    bitbang_write_bit(LOW);
-    bitbang_write_bit(LOW);
-
-    bitbang_write_value(bus_pirate_configuration.terminal_input[offset]);
-    bitbang_write_value(bus_pirate_configuration.terminal_input[offset + 1]);
-    bitbang_write_value(bus_pirate_configuration.terminal_input[offset + 2]);
-
-    bus_pirate_configuration.terminal_input[offset + 3] &= 0x0F;
-    for (size_t nop_count = 0;
-         nop_count < bus_pirate_configuration.terminal_input[offset + 3];
-         nop_count++) {
-      PIC24NOP();
-    }
+    pic424_write(&bus_pirate_configuration.terminal_input[offset],
+                 bus_pirate_configuration.terminal_input[offset + 3]);
   }
+
   REPORT_IO_SUCCESS();
 }
 
@@ -1100,7 +1064,7 @@ void handle_pic_command_write_and_read_bits(void) {
       uint8_t value = command;
 
       for (size_t bits = 0; bits < 4; bits++) {
-        bitbang_write_bit(value & 0x01 ? HIGH : LOW);
+        bitbang_write_bit((value & 0x01) ? HIGH : LOW);
         value >>= 1;
       }
 
@@ -1112,13 +1076,16 @@ void handle_pic_command_write_and_read_bits(void) {
   }
 
   for (size_t counter = 0; counter < commands_count; counter++) {
-    PIC424Write_internal(0xBA0B96, 2);
-    PIC424Read();
-    PIC424Write_internal(0xBADBB6, 2);
-    PIC424Write_internal(0xBAD3D6, 2);
-    PIC424Read();
-    PIC424Write_internal(0xBA0BB6, 2);
-    PIC424Read();
+    const uint8_t *payload_pointer = &PIC24_WRITE_AND_READ_PAYLOAD[0];
+
+    pic424_write(payload_pointer, 2);
+    pic424_read();
+    pic424_write(payload_pointer + 3, 2);
+
+    pic424_write(payload_pointer + 6, 2);
+    pic424_read();
+    pic424_write(payload_pointer + 9, 2);
+    pic424_read();
   }
 }
 
@@ -1156,22 +1123,22 @@ void handle_pic_command_write_and_read_commands(void) {
     case PIC_USER_COMMAND_WRITE:
       switch (io_state.pic_mode) {
       case PIC_MODE_614:
-        PIC614Write(bus_pirate_configuration.terminal_input[index + 1],
-                    bus_pirate_configuration.terminal_input[index + 2],
-                    bus_pirate_configuration.terminal_input[index + 3]);
+        pic614_write(bus_pirate_configuration.terminal_input[index + 1],
+                     bus_pirate_configuration.terminal_input[index + 2],
+                     bus_pirate_configuration.terminal_input[index + 3]);
         index += 4;
         break;
 
       case PIC_MODE_416:
-        PIC416Write(bus_pirate_configuration.terminal_input[index + 1],
-                    bus_pirate_configuration.terminal_input[index + 2],
-                    bus_pirate_configuration.terminal_input[index + 3]);
+        pic416_write(bus_pirate_configuration.terminal_input[index + 1],
+                     bus_pirate_configuration.terminal_input[index + 2],
+                     bus_pirate_configuration.terminal_input[index + 3]);
         index += 4;
         break;
 
       case PIC_MODE_424:
-        PIC424Write(&bus_pirate_configuration.terminal_input[index + 1],
-                    bus_pirate_configuration.terminal_input[index + 4]);
+        pic424_write(&bus_pirate_configuration.terminal_input[index + 1],
+                     bus_pirate_configuration.terminal_input[index + 4] & 0x0F);
         index += 5;
         break;
 
@@ -1185,17 +1152,17 @@ void handle_pic_command_write_and_read_commands(void) {
     case PIC_USER_COMMAND_READ:
       switch (io_state.pic_mode) {
       case PIC_MODE_614:
-        PIC614Read(bus_pirate_configuration.terminal_input[index + 1]);
+        pic614_read(bus_pirate_configuration.terminal_input[index + 1]);
         index += 2;
         break;
 
       case PIC_MODE_416:
-        PIC416Read(bus_pirate_configuration.terminal_input[index + 1]);
+        pic416_read(bus_pirate_configuration.terminal_input[index + 1]);
         index += 2;
         break;
 
       case PIC_MODE_424:
-        PIC424Read();
+        pic424_read();
         index++;
         break;
 
