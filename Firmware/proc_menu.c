@@ -462,7 +462,7 @@ void serviceuser(void) {
       case 0x00:
         binmodecnt++;
         if (binmodecnt == 20) {
-          binBB();
+          enter_binary_bitbang_mode();
 #ifdef BUSPIRATEV4
           binmodecnt = 0; // no reset, cleanup manually
           goto bpv4reset; // versionInfo(); //and simulate reset for dependent

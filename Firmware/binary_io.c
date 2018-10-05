@@ -126,6 +126,26 @@ typedef enum {
   SMPS_COMMAND_START = 0xF2
 } smps_command;
 
+typedef enum {
+  BITBANG_COMMAND_RESET = 0x00,
+  BITBANG_COMMAND_SPI,
+  BITBANG_COMMAND_I2C,
+  BITBANG_COMMAND_UART,
+  BITBANG_COMMAND_1WIRE,
+  BITBANG_COMMAND_RAW_WIRE,
+  BITBANG_COMMAND_OPENOCD,
+  BITBANG_COMMAND_PIC,
+  BITBANG_COMMAND_RETURN_TO_TERMINAL = 0x0F,
+  BITBANG_COMMAND_SHORT_SELF_TEST,
+  BITBANG_COMMAND_FULL_SELF_TEST,
+  BITBANG_COMMAND_SETUP_PWM,
+  BITBANG_COMMAND_CLEAR_PWM,
+  BITBANG_COMMAND_ADC_ONE_SHOT,
+  BITBANG_COMMAND_ADC_CONTINUOUS,
+  BITBANG_COMMAND_FREQUENCY_COUNT,
+  BITBANG_COMMAND_JTAG_XSVF = 0x18
+} bitbang_command;
+
 /**
  * @brief Raw wire command handler.
  *
@@ -238,13 +258,22 @@ static inline void handle_pic_command_write(void);
 static inline void handle_pic_command(const pic_command command);
 static inline void handle_smps_command(const smps_command command);
 
+static inline void handle_setup_pwm(void);
+static inline void handle_clear_pwm(void);
+static inline void handle_read_adc_one_shot(void);
+static inline void handle_read_adc_continuously(void);
+static inline void handle_frequency_measurement(void);
+static inline void handle_bitbang_command(const bitbang_command command);
+
+static void read_and_transmit_adc_measurement(void);
+
 static void PIC24NOP(void);
 static void PIC614Write(unsigned char cmd, unsigned char datl,
                         unsigned char dath);
 static void PIC614Read(unsigned char c);
 static void PIC416Read(unsigned char c);
-static void PIC416Write(unsigned char cmd, unsigned char datl,
-                        unsigned char dath);
+static void PIC416Write(const uint8_t command, const uint8_t data_low,
+                        const uint8_t data_high);
 static void PIC424Write_internal(unsigned long cmd, unsigned char pn);
 static void PIC424Write(unsigned char *cmd, unsigned char pn);
 static void PIC424Read(void);
@@ -260,7 +289,7 @@ static void PIC424Read(void);
 #define R3WCS BP_CS
 
 static void binary_io_self_test(bool jumper_test);
-static void binReset(void);
+static void reset_state(void);
 
 #define BINARY_IO_2_WIRES 0
 #define BINARY_IO_3_WIRES 1
@@ -315,172 +344,153 @@ Commands:
 
 void send_binary_io_mode_identifier(void) { MSG_BBIO_MODE_IDENTIFIER; }
 
-void binBB(void) {
-  static unsigned char inByte;
-  unsigned int i;
-
+void enter_binary_bitbang_mode(void) {
   bp_enable_mode_led();
-  binReset();
+  reset_state();
   send_binary_io_mode_identifier();
 
-  while (1) {
+  for (;;) {
+    uint8_t input_byte = user_serial_read_byte();
 
-    inByte = user_serial_read_byte();
+    if ((input_byte & 0b10000000) == 0) {
+      handle_bitbang_command((bitbang_command)input_byte);
+    } else {
+      user_serial_transmit_character(bitbang_pin_state_set(input_byte));
+    }
+  }
+}
 
-    if ((inByte & 0b10000000) == 0) { // if command bit cleared, process command
-      if (inByte == 0) {              // reset, send BB version
-        send_binary_io_mode_identifier();
-      } else if (inByte == 1) { // goto SPI mode
-        binReset();
-#ifdef BP_ENABLE_SPI_SUPPORT
-        spi_enter_binary_io(); // go into rawSPI loop
-#endif                         /* BP_ENABLE_SPI_SUPPORT */
-        binReset();
-        send_binary_io_mode_identifier();
-      } else if (inByte == 2) { // goto I2C mode
-        binReset();
-#ifdef BP_ENABLE_I2C_SUPPORT
-        binary_io_enter_i2c_mode();
+void handle_bitbang_command(const bitbang_command command) {
+  switch (command) {
+  case BITBANG_COMMAND_RESET:
+    send_binary_io_mode_identifier();
+    break;
+
+  case BITBANG_COMMAND_SPI:
+#if defined(BP_ENABLE_SPI_SUPPORT)
+    reset_state();
+    spi_enter_binary_io();
+#endif /* BP_ENABLE_SPI_SUPPORT */
+    reset_state();
+    send_binary_io_mode_identifier();
+    break;
+
+  case BITBANG_COMMAND_I2C:
+#if defined(BP_ENABLE_I2C_SUPPORT)
+    reset_state();
+    binary_io_enter_i2c_mode();
 #endif /* BP_ENABLE_I2C_SUPPORT */
-        binReset();
-        send_binary_io_mode_identifier();
-      } else if (inByte == 3) { // goto UART mode
-        binReset();
-#ifdef BP_ENABLE_UART_SUPPORT
-        binUART();
-#endif
-        binReset();
-        send_binary_io_mode_identifier();
-      } else if (inByte == 4) { // goto 1WIRE mode
-        binReset();
-#ifdef BP_ENABLE_1WIRE_SUPPORT
-        binary_io_enter_1wire_mode();
+    reset_state();
+    send_binary_io_mode_identifier();
+    break;
+
+  case BITBANG_COMMAND_UART:
+#if defined(BP_ENABLE_UART_SUPPORT)
+    reset_state();
+    binUART();
+#endif /* BP_ENABLE_UART_SUPPORT */
+    reset_state();
+    send_binary_io_mode_identifier();
+    break;
+
+  case BITBANG_COMMAND_1WIRE:
+#if defined(BP_ENABLE_1WIRE_SUPPORT)
+    reset_state();
+    binary_io_enter_1wire_mode();
 #endif /* BP_ENABLE_1WIRE_SUPPORT */
-        binReset();
-        send_binary_io_mode_identifier();
-      } else if (inByte == 5) { // goto RAW WIRE mode
-        binReset();
-        binary_io_raw_wire_mode_handler();
-        binReset();
-        send_binary_io_mode_identifier();
-      } else if (inByte == 6) { // goto OpenOCD mode
-        binReset();
-#ifdef BP_JTAG_OPENOCD_SUPPORT
-        binOpenOCD();
+    reset_state();
+    send_binary_io_mode_identifier();
+    break;
+
+  case BITBANG_COMMAND_RAW_WIRE:
+    reset_state();
+    binary_io_raw_wire_mode_handler();
+    reset_state();
+    send_binary_io_mode_identifier();
+    break;
+
+  case BITBANG_COMMAND_OPENOCD:
+#if defined(BP_JTAG_OPENOCD_SUPPORT)
+    reset_state();
+    binOpenOCD();
 #endif /* BP_JTAG_OPENOCD_SUPPORT */
-        binReset();
-        send_binary_io_mode_identifier();
-      } else if (inByte == 7) { // goto pic mode
-        binReset();
-#ifdef BP_ENABLE_PIC_SUPPORT
-        binary_io_enter_pic_mode();
+    reset_state();
+    send_binary_io_mode_identifier();
+    break;
+
+  case BITBANG_COMMAND_PIC:
+#if defined(BP_ENABLE_PIC_SUPPORT)
+    reset_state();
+    binary_io_enter_pic_mode();
 #endif /* BP_ENABLE_PIC_SUPPORT */
-        binReset();
-        send_binary_io_mode_identifier();
-      } else if (inByte == 0b1111) { // return to terminal
-        user_serial_transmit_character(1);
-        BP_LEDMODE = 0;                       // light MODE LED
-        user_serial_wait_transmission_done(); // wait untill TX finishes
-#ifndef BUSPIRATEV4
-        __asm volatile("RESET");
-#endif
-#ifdef BUSPIRATEV4 // cannot use ASM reset on BPv4
-        binReset();
-        return;
-#endif
-        // self test is only for v2go and v3
-      } else if (inByte == 0b10000) { // short self test
-        binary_io_self_test(0);
-      } else if (inByte == 0b10001) { // full self test with jumpers
-        binary_io_self_test(1);
-      } else if (inByte == 0b10010) { // setup PWM
+    reset_state();
+    send_binary_io_mode_identifier();
+    break;
 
-        // cleanup timers from FREQ measure
-        T2CON = 0; // 16 bit mode
-        T4CON = 0;
-        OC5CON = 0; // clear PWM settings
+  case BITBANG_COMMAND_RETURN_TO_TERMINAL:
+    REPORT_IO_SUCCESS();
+    bp_disable_mode_led();
+    user_serial_wait_transmission_done();
+#if defined(BUSPIRATEV4)
+    reset_state();
+    return;
+#else
+    __asm volatile("RESET");
+#endif /* BUSPIRATEV4 */
+    break;
 
-        BP_AUX_RPOUT = OC5_IO; // setup pin
+  case BITBANG_COMMAND_SHORT_SELF_TEST:
+    binary_io_self_test(false);
+    break;
 
-        // get one byte
-        i = user_serial_read_byte();
-        if (i & 0b10)
-          T2CONbits.TCKPS1 = 1; // set prescalers
-        if (i & 0b1)
-          T2CONbits.TCKPS0 = 1;
+  case BITBANG_COMMAND_FULL_SELF_TEST:
+    binary_io_self_test(true);
+    break;
 
-        // get two bytes
-        i = (user_serial_read_byte() << 8);
-        i |= user_serial_read_byte();
-        OC5R = i; // Write duty cycle to both registers
-        OC5RS = i;
-        OC5CON = 0x6; // PWM mode on OC, Fault pin disabled
+  case BITBANG_COMMAND_SETUP_PWM:
+    handle_setup_pwm();
+    break;
 
-        // get two bytes
-        i = (user_serial_read_byte() << 8);
-        i |= user_serial_read_byte();
-        PR2 = i; // write period
+  case BITBANG_COMMAND_CLEAR_PWM:
+    handle_clear_pwm();
+    break;
 
-        T2CONbits.TON = 1; // Start Timer2
-        user_serial_transmit_character(1);
-      } else if (inByte == 0b10011) { // clear PWM
-        T2CON = 0;                    // stop Timer2
-        OC5CON = 0;
-        BP_AUX_RPOUT = 0; // remove output from AUX pin
-        user_serial_transmit_character(1);
-        // ADC only for v1, v2, v3
-      } else if (inByte == 0b10100) {  // ADC reading (x/1024)*6.6volts
-        AD1CON1bits.ADON = 1;          // turn ADC ON
-        i = bp_read_adc(BP_ADC_PROBE); // take measurement
-        AD1CON1bits.ADON = 0;          // turn ADC OFF
-        user_serial_transmit_character((i >> 8)); // send upper 8 bits
-        user_serial_transmit_character(i);        // send lower 8 bits
-      } else if (inByte == 0b10101) { // ADC reading (x/1024)*6.6volts
-        AD1CON1bits.ADON = 1;         // turn ADC ON
-        while (1) {
-          i = bp_read_adc(BP_ADC_PROBE); // take measurement
-          user_serial_wait_transmission_done();
-          user_serial_transmit_character((i >> 8)); // send upper 8 bits
-          // while(UART1TXRdy==0);
-          user_serial_transmit_character(i); // send lower 8 bits
+  case BITBANG_COMMAND_ADC_ONE_SHOT:
+    handle_read_adc_one_shot();
+    break;
 
-          if (user_serial_ready_to_read() == 1) { // any key pressed, exit
-            i = user_serial_read_byte();          // /* JTR usb port; */;
-            break;
-          }
-        }
-        AD1CON1bits.ADON = 0;         // turn ADC OFF
-      } else if (inByte == 0b10110) { // binary frequency count access
-        unsigned long l;
-        l = bp_measure_frequency();
-        user_serial_transmit_character((l >> (8 * 3)));
-        user_serial_transmit_character((l >> (8 * 2)));
-        user_serial_transmit_character((l >> (8 * 1)));
-        user_serial_transmit_character((l));
-//--- Added JM
+  case BITBANG_COMMAND_ADC_CONTINUOUS:
+    handle_read_adc_continuously();
+    break;
+
+  case BITBANG_COMMAND_FREQUENCY_COUNT:
+    handle_frequency_measurement();
+    break;
+
+  case BITBANG_COMMAND_JTAG_XSVF:
 #ifdef BUSPIRATEV4
-      } else if (inByte == 0b11000) { // XSVF Player to program CPLD
-        bp_enable_voltage_regulator();
-        MSG_XSV1_MODE_IDENTIFIER;
-        jtag();
-#endif
-        //--- End added JM
-      } else if ((inByte >> 5) & 0b010) { // set pin direction, return read
-        user_serial_transmit_character(bitbang_pin_direction_set(inByte));
-      } else { // unknown command, error
-        user_serial_transmit_character(0);
-      }
+    bp_enable_voltage_regulator();
+    MSG_XSV1_MODE_IDENTIFIER;
+    jtag();
+#else
+    REPORT_IO_FAILURE();
+#endif /* BUSPIRATEV4 */
+    break;
 
-    } else { // data for pins
-      user_serial_transmit_character(bitbang_pin_state_set(inByte));
-    } // if
-  }   // while
-} // function
+  default:
+    if ((command & 0b11100000) == 0b01000000) {
+      user_serial_transmit_character(bitbang_pin_direction_set(command));
+    } else {
+      REPORT_IO_FAILURE();
+    }
+    break;
+  }
+}
 
-void binReset(void) {
+void reset_state(void) {
   bp_disable_3v3_pullup();
-  bitbang_pin_direction_set(0xFF); // pins to input on start
-  bitbang_pin_state_set(0);        // startup everything off, pins at ground
+  bitbang_pin_direction_set(0xFF);
+  bitbang_pin_state_set(0x00);
 }
 
 uint8_t bitbang_pin_direction_set(const uint8_t direction_mask) {
@@ -570,8 +580,8 @@ void bp_binary_io_peripherals_set(unsigned char inByte) {
 
   // CS pin, follows HiZ setting
   if (inByte & 0b1) {
-    if (mode_configuration.high_impedance == 1) {
-      IODIR |= CS; // CS iput in open drain mode
+    if (mode_configuration.high_impedance == YES) {
+      IODIR |= CS; // CS input in open drain mode
     } else {
       IOLAT |= CS;    // CS high
       IODIR &= (~CS); // CS output
@@ -582,7 +592,7 @@ void bp_binary_io_peripherals_set(unsigned char inByte) {
   }
 }
 
-#ifdef BUSPIRATEV4
+#if defined(BUSPIRATEV4)
 
 // checks if voltage is present on VUEXTERN
 bool bp_binary_io_pullup_control(uint8_t control_byte) {
@@ -743,36 +753,28 @@ void PIC416Read(unsigned char c) {
     c = c >> 1; // pop the LSB off
   }
 
-  bitbang_read_value(); // dummy byte, setup input
+  bitbang_read_value();
   user_serial_transmit_character(bitbang_read_value());
 }
 
-void PIC416Write(unsigned char cmd, unsigned char datl, unsigned char dath) {
-  unsigned char i, delay;
+void PIC416Write(const uint8_t command, const uint8_t data_low,
+                 const uint8_t data_high) {
+  uint8_t delay = (command >> 6) & 0b00000011;
 
-  // use upper 2 bits of pic[0] to determine a delay, if any.
-  delay = cmd >> 6;
-
-  for (i = 0; i < 4; i++) {
-
-    // hold data for write time
-    if (i == 3 && (delay > 0)) {
-      bitbang_set_clk(1);
+  for (size_t index = 0; index < 4; index++) {
+    if (index == 3 && (delay > 0)) {
+      bitbang_set_clk(HIGH);
       bp_delay_ms(delay);
-      bitbang_set_clk(0);
+      bitbang_set_clk(LOW);
       continue;
     }
 
-    if (cmd & 0b1) {        // send 1
-      bitbang_write_bit(1); // send bit
-    } else {                // send 0
-      bitbang_write_bit(0); // send bit
-    }
-    cmd = cmd >> 1; // pop the LSB off
+    bitbang_write_bit((command & 0x01) ? HIGH : LOW);
+    command >>= 1;
   }
 
-  bitbang_write_value(datl); // send byte
-  bitbang_write_value(dath); // send byte
+  bitbang_write_value(data_low);
+  bitbang_write_value(data_high);
 }
 
 void PIC24NOP(void) {
@@ -1244,4 +1246,195 @@ void handle_smps_command(const smps_command command) {
   (void)command;
   REPORT_IO_FAILURE();
 #endif /* BP_ENABLE_SMPS_SUPPORT */
+}
+
+void handle_clear_pwm(void) {
+  /*
+   * T2CON - TIMER 2 CONTROL REGISTER
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +---- TCS:   External clock from pin.
+   * | |      ||+------ T32:   TIMER2 is not bound with TIMER3 for 32 bit mode.
+   * | |      ++------- TCKPS: 1:1 Prescaler.
+   * | +--------------- TSIDL: Continue module operation in idle mode.
+   * +----------------- TON:   Timer OFF.
+   */
+  T2CON = 0x0000;
+
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1 - OUTPUT COMPARE 5 CONTROL REGISTER 1
+   *
+   * MSB
+   * --0000--0--00000
+   *   ||||  |  |||||
+   *   ||||  |  ||+++--- OCM:      Output compare is disabled.
+   *   ||||  |  |+------ TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------- OCFLT0:   No PWM fault condition.
+   *   ||||  +---------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------- OCTSEL:   Output compare with Timer 2.
+   *   +---------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#else
+  /*
+   * OC5CON - OUTPUT COMPARE 5 CONTROL REGISTER
+   *
+   * MSB
+   * --0--------00000
+   *   |        |||||
+   *   |        ||+++--- OCM:    Output compare is disabled.
+   *   |        |+------ OCTSEL: Output compare with Timer 2.
+   *   |        +------- OCFLT:  No PWM fault condition.
+   *   +---------------- OCSIDL: Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#endif /* BUSPIRATEV4 */
+
+  /* Remove output from AUX pin. */
+  BP_AUX_RPOUT = 0x00;
+
+  REPORT_IO_SUCCESS();
+}
+
+void read_and_transmit_adc_measurement(void) {
+  uint16_t value = bp_read_adc(BP_ADC_PROBE);
+  user_serial_transmit_character((value >> 8) & 0xFF);
+  user_serial_transmit_character(value & 0xFF);
+}
+
+void handle_read_adc_one_shot(void) {
+  bp_enable_adc();
+  read_and_transmit_adc_measurement();
+  bp_disable_adc();
+}
+
+void handle_read_adc_continuously(void) {
+  bool should_loop = true;
+
+  bp_enable_adc();
+  do {
+    read_and_transmit_adc_measurement();
+    if (user_serial_ready_to_read()) {
+      user_serial_read_byte();
+      should_loop = false;
+    }
+  } while (should_loop);
+  bp_disable_adc();
+}
+
+void handle_frequency_measurement(void) {
+  uint32_t frequency = bp_measure_frequency();
+
+  user_serial_transmit_character((frequency >> 24) & 0xFF);
+  user_serial_transmit_character((frequency >> 16) & 0xFF);
+  user_serial_transmit_character((frequency >> 8) & 0xFF);
+  user_serial_transmit_character(frequency & 0xFF);
+}
+
+void handle_setup_pwm(void) {
+  /*
+   * T2CON - TIMER 2 CONTROL REGISTER
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +---- TCS:   External clock from pin.
+   * | |      ||+------ T32:   TIMER2 is not bound with TIMER3 for 32 bit mode.
+   * | |      ++------- TCKPS: 1:1 Prescaler.
+   * | +--------------- TSIDL: Continue module operation in idle mode.
+   * +----------------- TON:   Timer OFF.
+   */
+  T2CON = 0x0000;
+
+  /*
+   * T4CON - TIMER 4 CONTROL REGISTER
+   *
+   * MSB
+   * 0-0------000-0-
+   * | |      ||| |
+   * | |      ||| +---- TCS:   External clock from pin.
+   * | |      ||+------ T32:   TIMER4 is not bound with TIMER5 for 32 bit mode.
+   * | |      ++------- TCKPS: 1:1 Prescaler.
+   * | +--------------- TSIDL: Continue module operation in idle mode.
+   * +----------------- TON:   Timer OFF.
+   */
+  T4CON = 0x0000;
+
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1 - OUTPUT COMPARE 5 CONTROL REGISTER 1
+   *
+   * MSB
+   * --0000--0--00000
+   *   ||||  |  |||||
+   *   ||||  |  ||+++--- OCM:      Output compare is disabled.
+   *   ||||  |  |+------ TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------- OCFLT0:   No PWM fault condition.
+   *   ||||  +---------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------- OCTSEL:   Output compare with Timer 2.
+   *   +---------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#else
+  /*
+   * OC5CON - OUTPUT COMPARE 5 CONTROL REGISTER
+   *
+   * MSB
+   * --0--------00000
+   *   |        |||||
+   *   |        ||+++--- OCM:    Output compare is disabled.
+   *   |        |+------ OCTSEL: Output compare with Timer 2.
+   *   |        +------- OCFLT:  No PWM fault condition.
+   *   +---------------- OCSIDL: Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0000;
+#endif /* BUSPIRATEV4 */
+
+  BP_AUX_RPOUT = OC5_IO;
+  T2CONbits.TCKPS = user_serial_read_byte() & 0b00000011;
+
+  uint16_t duty_cycle = user_serial_read_byte();
+  duty_cycle = (duty_cycle << 8) | user_serial_read_byte();
+  OC5R = duty_cycle;
+  OC5RS = duty_cycle;
+
+#if defined(BUSPIRATEV4)
+  /*
+   * OC5CON1 - OUTPUT COMPARE 5 CONTROL REGISTER 1
+   *
+   * MSB
+   * --0000--0--00110
+   *   ||||  |  |||||
+   *   ||||  |  ||+++--- OCM:      PWM ON, Fault pin, OCF5 disabled.
+   *   ||||  |  |+------ TRIGMODE: TRIGSTAT is only cleared by software.
+   *   ||||  |  +------- OCFLT0:   No PWM fault condition.
+   *   ||||  +---------- ENFLT0:   Fault 0 input disabled.
+   *   |+++------------- OCTSEL:   Output compare with Timer 2.
+   *   +---------------- OCSIDL:   Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0006;
+#else
+  /*
+   * OC5CON - OUTPUT COMPARE 5 CONTROL REGISTER
+   *
+   * MSB
+   * --0--------00110
+   *   |        |||||
+   *   |        ||+++--- OCM:    PWM ON, Fault pin, OCF5 disabled.
+   *   |        |+------ OCTSEL: Output compare with Timer 2.
+   *   |        +------- OCFLT:  No PWM fault condition.
+   *   +---------------- OCSIDL: Output Compare continues in CPU idle mode.
+   */
+  OC5CON = 0x0006;
+#endif /* BUSPIRATEV4 */
+
+  uint16_t period = user_serial_read_byte();
+  period = (period << 8) | user_serial_read_byte();
+  PR2 = period;
+
+  T2CONbits.TON = ON;
+  REPORT_IO_SUCCESS();
 }

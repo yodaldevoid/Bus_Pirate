@@ -50,7 +50,7 @@
     user_serial_transmit_character(BP_BINARY_IO_RESULT_FAILURE);               \
   } while (0)
 
-void binBB(void);
+void enter_binary_bitbang_mode(void);
 
 /**
  * Sets the direction of the various I/O pins.
