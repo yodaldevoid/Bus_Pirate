@@ -280,6 +280,8 @@ static inline void handle_bitbang_command(const bitbang_command command);
 
 static void read_and_transmit_adc_measurement(void);
 
+static void send_bits(const uint8_t value, const size_t count);
+
 static void pic24_send_six_payload(const uint8_t *payload);
 static inline void pic24_send_nop_opcode(void);
 static inline void pic614_read(const uint8_t value);
@@ -724,13 +726,17 @@ void binary_io_raw_wire_mode_handler(void) {
   }
 }
 
-void pic614_read(const uint8_t value) {
+void send_bits(const uint8_t value, const size_t count) {
   uint8_t bits = value;
 
-  for (size_t i = 0; i < 6; i++) {
+  for (size_t index = 0; index < count; index++) {
     bitbang_write_bit((bits & 0x01) ? HIGH : LOW);
     bits >>= 1;
   }
+}
+
+void pic614_read(const uint8_t value) {
+  send_bits(value, 6);
 
   user_serial_transmit_character(bitbang_read_value());
   user_serial_transmit_character(bitbang_read_value());
@@ -738,12 +744,7 @@ void pic614_read(const uint8_t value) {
 
 void pic614_write(const uint8_t command, const uint8_t data_low,
                   const uint8_t data_high) {
-  uint8_t bits = command;
-
-  for (size_t index = 0; index < 6; index++) {
-    bitbang_write_bit((bits & 0x01) ? HIGH : LOW);
-    bits >>= 1;
-  }
+  send_bits(command, 6);
 
   if ((command & 0x80) == 0x00) {
     bitbang_write_value(data_low);
@@ -752,12 +753,7 @@ void pic614_write(const uint8_t command, const uint8_t data_low,
 }
 
 void pic416_read(const uint8_t value) {
-  uint8_t bits = value;
-
-  for (size_t index = 0; index < 4; index++) {
-    bitbang_write_bit(bits & 0x01 ? HIGH : LOW);
-    bits >>= 1;
-  }
+  send_bits(value, 4);
 
   bitbang_read_value();
   user_serial_transmit_character(bitbang_read_value());
@@ -1061,12 +1057,7 @@ void handle_pic_command_write_and_read_bits(void) {
     uint8_t command = user_serial_read_byte();
 
     for (size_t counter = 0; counter < commands_count; counter++) {
-      uint8_t value = command;
-
-      for (size_t bits = 0; bits < 4; bits++) {
-        bitbang_write_bit((value & 0x01) ? HIGH : LOW);
-        value >>= 1;
-      }
+      send_bits(command, 4);
 
       bitbang_read_value();
       user_serial_transmit_character(bitbang_read_value());
