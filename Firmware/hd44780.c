@@ -95,7 +95,6 @@
 //configuration structure
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
-extern bool command_error;
 
 struct _HD44780_interface {
         unsigned char EN:1; //clock, active high
@@ -212,7 +211,7 @@ void LCDmacro(unsigned int c)
         //cmdstart&=CMDLENMSK;
         consumewhitechars();
         input=getint();
-        command_error=false;
+        mode_configuration.command_error=false;
 
         switch(c)
         {       case 0://menu
