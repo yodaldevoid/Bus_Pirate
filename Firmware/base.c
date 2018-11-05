@@ -569,7 +569,7 @@ void bp_initialise_delay_timer(void) {
   T1CON = 0x0010;
 
   /* Reset Timer #1 counter. */
-  T1CON = 0x0000;
+  TMR1 = 0x0000;
 
   /* Free-running Timer #1. */
   PR1 = 0xFFFF;
