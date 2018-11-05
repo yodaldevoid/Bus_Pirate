@@ -570,4 +570,9 @@
  */
 #define BP_TERMINAL_BUFFER_SIZE 4096
 
+/**
+ * Use a hardware timer to calculate delays instead of a NOP-based busy loop.
+ */
+#define BP_USE_HARDWARE_DELAY_TIMER
+
 #endif /* !BP_CONFIGURATION_H */

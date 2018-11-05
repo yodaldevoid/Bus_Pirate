@@ -61,7 +61,7 @@ typedef struct {
    * Which pin is currently used as the `AUX` I/O.
    */
   uint8_t alternate_aux : 2;
-  
+
   uint8_t periodicService : 1;
 
   /**
@@ -162,6 +162,8 @@ void bp_adc_continuous_probe(void);
  */
 void bp_write_formatted_integer(const uint16_t value);
 
+#ifndef BP_USE_HARDWARE_DELAY_TIMER
+
 /**
  * @brief Pauses execution for the given amount of milliseconds.
  *
@@ -175,6 +177,24 @@ void bp_write_formatted_integer(const uint16_t value);
  * @param[in] microseconds the amount of microseconds to wait.
  */
 #define bp_delay_us(microseconds) __delay_us(microseconds)
+
+#else
+
+/**
+ * @brief Pauses execution for the given amount of milliseconds.
+ *
+ * @param[in] milliseconds the amount of milliseconds to wait.
+ */
+void bp_delay_ms(uint16_t milliseconds);
+
+/**
+ * @brief Pauses execution for the given amount of microseconds.
+ *
+ * @param[in] microseconds the amount of microseconds to wait.
+ */
+void bp_delay_us(uint16_t microseconds);
+
+#endif /* !BP_USE_HARDWARE_DELAY_TIMER */
 
 /**
  * @brief Writes the given buffer to the serial port.
@@ -274,6 +294,12 @@ uint16_t bp_read_from_flash(const uint16_t page, const uint16_t address);
  * @param[in] value the value to write into the ringbuffer.
  */
 void bp_write_hex_byte_to_ringbuffer(const uint8_t value);
+
+/**
+ * @brief Initialises the hardware timer used to calculate delays, if the
+ * current configuration requests its usage.
+ */
+void bp_initialise_delay_timer(void);
 
 /**
  * @brief Shortcut for writing an empty line to the user-facing serial port.
