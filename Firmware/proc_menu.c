@@ -940,7 +940,7 @@ void serviceuser(void) {
               enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
           bpSP;
           if (mode_configuration.write_with_read) { // bpWmessage(MSG_READ);
-            BPMSG1102;
+            MSG_READ_HEADER;
             if (mode_configuration.little_endian == YES) {
               received =
                   bp_reverse_integer(received, mode_configuration.numbits);
@@ -953,7 +953,7 @@ void serviceuser(void) {
         break;
       case 'r': // bpWline("-Read");
         // bpWmessage(MSG_READ);
-        BPMSG1102;
+        MSG_READ_HEADER;
         // newDmode = 0;
         newDmode = change_read_display();
         repeat = getrepeat() + 1;
@@ -1849,7 +1849,7 @@ void set_baud_rate(void) {
     bus_pirate_configuration.terminal_speed = speed - 1;
   } else {
     mode_configuration.command_error = NO;
-    BPMSG1133;
+    MSG_UART_SET_PORT_SPEED;
     bus_pirate_configuration.terminal_speed = getnumber(9, 1, 10, 0) - 1;
   }
 
