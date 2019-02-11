@@ -507,16 +507,13 @@ void spi_setup(const uint8_t spi_speed) {
    * SPI1STAT - SPI1 STATUS REGISTER
    *
    * MSB
-   * 0-0------0----??
+   * 1-0------0----??
    * | |      |
    * | |      +--------- SPIROV:  Overflow flag cleared.
    * | +---------------- SPISIDL: Continue module operation in idle mode.
-   * +------------------ SPIEN:   Module disabled.
+   * +------------------ SPIEN:   Module enabled.
    */
-  SPI1STAT = 0x0000;
-
-  /* Enable the interface. */
-  SPI1STATbits.SPIEN = ON;
+  SPI1STAT = _SPI1STAT_SPIEN_MASK;
 }
 
 void spi_disable_interface(void) {
