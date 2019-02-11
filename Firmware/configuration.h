@@ -452,6 +452,16 @@
  */
 #define BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
 
+/**
+ * Enable experimental UART streaming read support.
+ */
+#undef BP_SPI_ENABLE_STREAMING_READ
+
+/**
+ * Enable experimental UART streaming write support.
+ */
+#undef BP_SPI_ENABLE_STREAMING_WRITE
+
 #endif /* BP_ENABLE_SPI_SUPPORT */
 
 /* SMPS module configuration definitions. */

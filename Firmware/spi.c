@@ -1,6 +1,6 @@
 /*
  * This file is part of the Bus Pirate project
- * (http://code.google.com/p/the-bus-pirate/).
+ * (https://github.com/BusPirate/Bus_Pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -145,6 +145,31 @@ static void spi_sniffer(bool trigger, bool terminal_mode);
  *                            subsequent read operation or not.
  */
 static void engage_spi_cs(bool write_with_read);
+
+/**
+ * Performs the bulk of the I/O work for binary-mode commands involving SPI
+ * reads and writes.
+ *
+ * @param[in] engage_cs flag indicating whether CS must be held down when
+ * performing an SPI write operation.
+ */
+static void spi_read_write_io(const bool engage_cs);
+
+/**
+ * Writes to the SPI bus the data read from the user-facing serial port.
+ *
+ * @param[in] bytes_to_write how many bytes should be read from the serial port
+ * and written to the SPI bus.
+ */
+static void spi_write_from_uart(const size_t bytes_to_write);
+
+/**
+ * Writes to the user-facing serial port the data read from the SPI bus.
+ *
+ * @param[in] bytes_to_read how many bytes should be read from the SPI bus
+ * and written to the user-facing serial port.
+ */
+static void spi_read_to_uart(const size_t bytes_to_read);
 
 #ifdef BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
 
@@ -821,67 +846,10 @@ void spi_enter_binary_io(void) {
         break;
 
       case SPI_BASE_COMMAND_WRITE_AND_READ_WITH_CS:
-      case SPI_BASE_COMMAND_WRITE_AND_READ_WITHOUT_CS: {
-        uint16_t bytes_to_write;
-        uint16_t bytes_to_read;
-        uint16_t offset;
-
-        /* How many bytes to send to the bus. */
-        bytes_to_write =
-            (user_serial_read_byte() << 8) | user_serial_read_byte();
-
-        /* How many bytes to read from the bus. */
-        bytes_to_read =
-            (user_serial_read_byte() << 8) | user_serial_read_byte();
-
-        /* Make sure data fits in the internal buffer. */
-        if ((bytes_to_write > BP_TERMINAL_BUFFER_SIZE) ||
-            (bytes_to_read > BP_TERMINAL_BUFFER_SIZE)) {
-          REPORT_IO_FAILURE();
-          break;
-        }
-
-        /* Read data buffer from the serial port. */
-        for (offset = 0; offset < bytes_to_write; offset++) {
-          bus_pirate_configuration.terminal_input[offset] =
-              user_serial_read_byte();
-        }
-
-        /* Update the CS line if needed. */
-        if (input_byte == SPI_BASE_COMMAND_WRITE_AND_READ_WITH_CS) {
-          SPICS = LOW;
-        }
-
-        /* Writes data to the SPI bus. */
-        for (offset = 0; offset < bytes_to_write; offset++) {
-          spi_write_byte(bus_pirate_configuration.terminal_input[offset]);
-        }
-
-        /* Wait for the bus to settle. */
-        bp_delay_us(1);
-
-        /* Read data from the SPI bus. */
-        for (offset = 0; offset < bytes_to_read; offset++) {
-          bus_pirate_configuration.terminal_input[offset] =
-              spi_write_byte(0xFF);
-        }
-
-        /* Update the CS line if needed. */
-        if (input_byte == SPI_BASE_COMMAND_WRITE_AND_READ_WITH_CS) {
-          SPICS = HIGH;
-        }
-
-        /* Report success. */
-        REPORT_IO_SUCCESS();
-
-        /* Output read data to the serial port. */
-        for (offset = 0; offset < bytes_to_read; offset++) {
-          user_serial_transmit_character(
-              bus_pirate_configuration.terminal_input[offset]);
-        }
-
+      case SPI_BASE_COMMAND_WRITE_AND_READ_WITHOUT_CS:
+        spi_read_write_io(input_byte ==
+                          SPI_BASE_COMMAND_WRITE_AND_READ_WITH_CS);
         break;
-      }
 
 #ifdef BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
 
@@ -960,6 +928,105 @@ void spi_enter_binary_io(void) {
       REPORT_IO_FAILURE();
       break;
     }
+  }
+}
+
+void spi_write_from_uart(const size_t bytes_to_write) {
+#ifdef BP_SPI_ENABLE_STREAMING_WRITE
+  /* Writes data to the SPI bus as soon as read from the serial port. */
+  for (uint16_t counter = 0; counter < bytes_to_write; counter++) {
+    spi_write_byte(user_serial_read_byte());
+  }
+#else
+
+  /* Read data buffer from the serial port. */
+  for (uint16_t offset = 0; offset < bytes_to_write; offset++) {
+    bus_pirate_configuration.terminal_input[offset] = user_serial_read_byte();
+  }
+
+  /* Writes data to the SPI bus. */
+  for (uint16_t offset = 0; offset < bytes_to_write; offset++) {
+    spi_write_byte(bus_pirate_configuration.terminal_input[offset]);
+  }
+#endif /* BP_SPI_ENABLE_STREAMING_WRITE */
+}
+
+void spi_read_to_uart(const size_t bytes_to_read) {
+#ifdef BP_SPI_ENABLE_STREAMING_READ
+  /* Start streaming data. */
+  REPORT_IO_SUCCESS();
+
+  /* Writes data to the serial port as soon as read from the SPI bus. */
+  for (uint16_t counter = 0; counter < bytes_to_read; counter++) {
+    user_serial_transmit_character(spi_write_byte(0xFF));
+  }
+
+#else
+
+  /* Read data from the SPI bus. */
+  for (uint16_t offset = 0; offset < bytes_to_read; offset++) {
+    bus_pirate_configuration.terminal_input[offset] = spi_write_byte(0xFF);
+  }
+
+  /* Report success. */
+  REPORT_IO_SUCCESS();
+
+  /* Output read data to the serial port. */
+  for (uint16_t offset = 0; offset < bytes_to_read; offset++) {
+    user_serial_transmit_character(
+        bus_pirate_configuration.terminal_input[offset]);
+  }
+#endif /* BP_SPI_ENABLE_STREAMING_READ */
+}
+
+void spi_read_write_io(const bool engage_cs) {
+
+  /* How many bytes to send to the bus. */
+  uint16_t bytes_to_write = user_serial_read_big_endian_word();
+
+  /* How many bytes to read from the bus. */
+  uint16_t bytes_to_read = user_serial_read_big_endian_word();
+
+#ifndef BP_SPI_ENABLE_STREAMING_WRITE
+  /* Make sure data fits in the internal buffer. */
+  if (bytes_to_write > BP_TERMINAL_BUFFER_SIZE) {
+    REPORT_IO_FAILURE();
+    return;
+  }
+#endif /* !BP_SPI_ENABLE_STREAMING_WRITE */
+
+#ifndef BP_SPI_ENABLE_STREAMING_READ
+  /* Make sure data fits in the internal buffer. */
+  if (bytes_to_write > BP_TERMINAL_BUFFER_SIZE) {
+    REPORT_IO_FAILURE();
+    return;
+  }
+#endif /* !BP_SPI_ENABLE_STREAMING_READ */
+
+  if ((bytes_to_write == 0) && (bytes_to_read == 0)) {
+    REPORT_IO_FAILURE();
+    return;
+  }
+
+  /* Update the CS line if needed. */
+  if (engage_cs == true) {
+    SPICS = LOW;
+  }
+
+  if (bytes_to_write > 0) {
+    spi_write_from_uart(bytes_to_write);
+
+    /* Wait for the bus to settle. */
+    bp_delay_us(1);
+  }
+
+  if (bytes_to_read > 0) {
+    spi_read_to_uart(bytes_to_read);
+  }
+
+  /* Reset the CS line if needed. */
+  if (engage_cs == true) {
+    SPICS = HIGH;
   }
 }
 
