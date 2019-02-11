@@ -193,7 +193,14 @@ static void spi_read_to_uart(const size_t bytes_to_read);
  */
 #define BINARY_IO_SPI_AVR_SUPPORT_VERSION 0x0001
 
+/**
+ * AVR Fetch data command low byte.
+ */
 #define AVR_FETCH_LOW_BYTE_COMMAND 0x20
+
+/**
+ * AVR Fetch data command high byte.
+ */
 #define AVR_FETCH_HIGH_BYTE_COMMAND 0x28
 
 /**
@@ -462,6 +469,8 @@ void spi_setup(const uint8_t spi_speed) {
   SPIMOSI_TRIS = OUTPUT;
 
   /*
+   * SPI1CON1 - SPI1 CONTROL REGISTER 1
+   *
    * MSB
    * ---000xx0x1xxxxx
    *    |||||||||||||
@@ -484,6 +493,8 @@ void spi_setup(const uint8_t spi_speed) {
       (MASKBOTTOM8(spi_state.data_sample_timing, 1) << _SPI1CON1_SMP_POSITION);
 
   /*
+   * SPI1CON2 - SPI1 CONTROL REGISTER 2
+   *
    * MSB
    * 000-----------0-
    * |||           |
@@ -495,6 +506,8 @@ void spi_setup(const uint8_t spi_speed) {
   SPI1CON2 = 0x0000;
 
   /*
+   * SPI1STAT - SPI1 STATUS REGISTER
+   *
    * MSB
    * 0-0------0----??
    * | |      |
@@ -609,6 +622,8 @@ restart:
       }
 
       /*
+       * SPI1STAT - SPI1 STATUS REGISTER
+       *
        * MSB
        * 0-0------0----??
        * | |      |
@@ -619,6 +634,8 @@ restart:
       SPI1STAT = 0x0000;
 
       /*
+       * SPI2STAT - SPI2 STATUS REGISTER
+       *
        * MSB
        * 0-0------0----??
        * | |      |
@@ -673,8 +690,10 @@ void spi_slave_enable(void) {
   /* Prepare SPI interfaces first. */
 
   /*
+   * SPI1CON1 - SPI1 CONTROL REGISTER 1
+   *
    * MSB
-   * ---0000x0x0xxxxx
+   * ---0000C0B0AAAAA
    *    |||||||||||||
    *    |||||||||||++--- PPRE:   Primary prescale bits.
    *    ||||||||+++----- SPRE:   Secondary prescale bits.
@@ -694,6 +713,8 @@ void spi_slave_enable(void) {
       (MASKBOTTOM8(spi_state.clock_edge, 1) << _SPI1CON1_CKE_POSITION);
 
   /*
+   * SPI1CON2 - SPI1 CONTROL REGISTER 2
+   *
    * MSB
    * 000-----------0-
    * |||           |
@@ -705,6 +726,8 @@ void spi_slave_enable(void) {
   SPI1CON2 = 0x0000;
 
   /*
+   * SPI1STAT - SPI1 STATUS REGISTER
+   *
    * MSB
    * 0-0------0----??
    * | |      |
@@ -715,8 +738,10 @@ void spi_slave_enable(void) {
   SPI1STAT = 0x0000;
 
   /*
+   * SPI2CON1 - SPI2 CONTROL REGISTER 1
+   *
    * MSB
-   * ---0000x0x0xxxxx
+   * ---0000C0B0AAAAA
    *    |||||||||||||
    *    |||||||||||++--- PPRE:   Primary prescale bits.
    *    ||||||||+++----- SPRE:   Secondary prescale bits.
@@ -736,6 +761,8 @@ void spi_slave_enable(void) {
       (MASKBOTTOM8(spi_state.clock_edge, 1) << _SPI2CON1_CKE_POSITION);
 
   /*
+   * SPI2CON2 - SPI2 CONTROL REGISTER 2
+   *
    * MSB
    * 000-----------0-
    * |||           |
@@ -747,6 +774,8 @@ void spi_slave_enable(void) {
   SPI2CON2 = 0x0000;
 
   /*
+   * SPI2STAT - SPI2 STATUS REGISTER
+   *
    * MSB
    * 0-0------0----??
    * | |      |
