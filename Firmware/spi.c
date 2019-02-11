@@ -1080,19 +1080,8 @@ void handle_extended_avr_command(void) {
     break;
 
   case BINARY_IO_SPI_AVR_COMMAND_BULK_READ: {
-    uint32_t address;
-    uint32_t length;
-
-    address = (uint32_t)((((uint32_t)user_serial_read_byte()) << 24) |
-                         (((uint32_t)user_serial_read_byte()) << 16) |
-                         (((uint32_t)user_serial_read_byte()) << 8) |
-                         user_serial_read_byte());
-    length = (uint32_t)((((uint32_t)user_serial_read_byte()) << 24) |
-                        (((uint32_t)user_serial_read_byte()) << 16) |
-                        (((uint32_t)user_serial_read_byte()) << 8) |
-                        user_serial_read_byte());
-
-    /* @todo: avoid (address + length) integer overflow. */
+    uint32_t address = user_serial_read_big_endian_long_word();
+    uint32_t length = user_serial_read_big_endian_long_word();
 
     if ((address > 0xFFFF) || (length > 0xFFFF) ||
         ((address + length) > 0xFFFF)) {

@@ -907,3 +907,15 @@ void user_serial_set_baud_rate(const uint16_t rate __attribute__((unused))) {}
 bool user_serial_transmit_done(void) { return YES; }
 
 #endif /* BUSPIRATEV4 */
+
+uint16_t user_serial_read_big_endian_word(void) {
+  uint16_t value = ((uint16_t)user_serial_read_byte()) << 8;
+
+  return value | ((uint16_t)user_serial_read_byte());
+}
+
+uint32_t user_serial_read_big_endian_long_word(void) {
+  uint32_t value = ((uint32_t)user_serial_read_big_endian_word()) << 16;
+
+  return value | ((uint32_t)user_serial_read_big_endian_word());
+}

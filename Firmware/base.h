@@ -388,6 +388,26 @@ void user_serial_wait_transmission_done(void);
 uint8_t user_serial_read_byte(void);
 
 /**
+ * @brief Blocks execution until two bytes arrive on the user-facing serial port
+ * and returns said value.
+ *
+ * The 16-bits value is read in big-endian format (MSB first).
+ *
+ * @return the word read from the serial port.
+ */
+uint16_t user_serial_read_big_endian_word(void);
+
+/**
+ * @brief Blocks execution until four bytes arrive on the user-facing serial
+ * port and returns said value.
+ *
+ * The 32-bits value is read in big-endian format (MSB first).
+ *
+ * @return the long word read from the serial port.
+ */
+uint32_t user_serial_read_big_endian_long_word(void);
+
+/**
  * @brief Writes the first available byte from the transmission queue into the
  * serial port transmission buffer register.
  */
