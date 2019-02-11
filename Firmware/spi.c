@@ -291,9 +291,7 @@ void spi_stop(void) {
 inline uint16_t spi_read(void) { return spi_write_byte(0xFF); }
 
 uint16_t spi_write(const uint16_t value) {
-  uint8_t data;
-
-  data = spi_write_byte(value);
+  uint8_t data = spi_write_byte(value);
   return mode_configuration.write_with_read ? data : 0;
 }
 
@@ -538,8 +536,6 @@ void spi_disable_interface(void) {
 }
 
 uint8_t spi_write_byte(const uint8_t value) {
-  uint8_t result;
-
   /* Put the value on the bus. */
   SPI1BUF = value;
 
@@ -548,7 +544,7 @@ uint8_t spi_write_byte(const uint8_t value) {
   }
 
   /* Get the byte read from the bus. */
-  result = SPI1BUF;
+  uint8_t result = SPI1BUF;
 
   /* Free the SPI interface. */
   IFS0bits.SPI1IF = OFF;
@@ -828,9 +824,6 @@ void spi_slave_disable(void) {
 }
 
 void spi_enter_binary_io(void) {
-  uint8_t input_byte;
-  uint8_t command;
-
   mode_configuration.speed = 1;
   spi_state.clock_polarity = SPI_CLOCK_IDLE_LOW;
   spi_state.clock_edge = SPI_TRANSITION_FROM_ACTIVE_TO_IDLE;
@@ -840,8 +833,8 @@ void spi_enter_binary_io(void) {
   MSG_SPI_MODE_IDENTIFIER;
 
   for (;;) {
-    input_byte = user_serial_read_byte();
-    command = input_byte >> 4;
+    uint8_t input_byte = user_serial_read_byte();
+    uint8_t command = input_byte >> 4;
 
     switch (command) {
     case SPI_COMMAND_BASE:
@@ -896,12 +889,9 @@ void spi_enter_binary_io(void) {
       break;
 
     case SPI_COMMAND_READ_DATA: {
-      uint8_t bytes_to_read;
-      uint8_t count;
-
-      bytes_to_read = (input_byte & 0x0F) + 1;
+      uint8_t bytes_to_read = (input_byte & 0x0F) + 1;
       REPORT_IO_SUCCESS();
-      for (count = 0; count < bytes_to_read; count++) {
+      for (size_t count = 0; count < bytes_to_read; count++) {
         user_serial_transmit_character(spi_write_byte(user_serial_read_byte()));
       }
       break;
@@ -921,9 +911,7 @@ void spi_enter_binary_io(void) {
 #endif /* BUSPIRATEV4 */
 
     case SPI_COMMAND_SET_SPEED: {
-      uint8_t speed;
-
-      speed = input_byte & 0x0F;
+      uint8_t speed = input_byte & 0x0F;
       if (speed > sizeof(spi_bus_speed)) {
         REPORT_IO_FAILURE();
         break;
@@ -1062,12 +1050,10 @@ void spi_read_write_io(const bool engage_cs) {
 #ifdef BP_SPI_ENABLE_AVR_EXTENDED_COMMANDS
 
 void handle_extended_avr_command(void) {
-  uint8_t command;
-
   /* Acknowledge extended command. */
   REPORT_IO_SUCCESS();
 
-  command = user_serial_read_byte();
+  uint8_t command = user_serial_read_byte();
   switch (command) {
   case BINARY_IO_SPI_AVR_COMMAND_NOOP:
     REPORT_IO_SUCCESS();
