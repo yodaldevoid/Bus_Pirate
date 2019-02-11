@@ -446,13 +446,13 @@ void spi_setup(const uint8_t spi_speed) {
 
   /* Set SPI to open drain if high impedance is on. */
   if (mode_configuration.high_impedance == ON) {
-    SPIMOSI_ODC = ON;
-    SPICLK_ODC = ON;
-    SPICS_ODC = ON;
+    SPIMOSI_ODC = OPEN_DRAIN;
+    SPICLK_ODC = OPEN_DRAIN;
+    SPICS_ODC = OPEN_DRAIN;
   } else {
-    SPIMOSI_ODC = OFF;
-    SPICLK_ODC = OFF;
-    SPICS_ODC = OFF;
+    SPIMOSI_ODC = PUSH_PULL;
+    SPICLK_ODC = PUSH_PULL;
+    SPICS_ODC = PUSH_PULL;
   }
 
   /* Assign pins routing. */
@@ -530,9 +530,9 @@ void spi_disable_interface(void) {
   BP_CLK_RPOUT = 0b00000;
 
   /* Disable open drain. */
-  SPIMOSI_ODC = OFF;
-  SPICLK_ODC = OFF;
-  SPICS_ODC = OFF;
+  SPIMOSI_ODC = PUSH_PULL;
+  SPICLK_ODC = PUSH_PULL;
+  SPICS_ODC = PUSH_PULL;
 }
 
 uint8_t spi_write_byte(const uint8_t value) {
