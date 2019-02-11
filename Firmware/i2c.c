@@ -98,7 +98,7 @@ extern mode_configuration_t mode_configuration;
 extern command_t last_command;
 
 /**
- * Handles a pending acknowledgment by sending either an ACK or a NACK on the
+ * Handles a pending acknowledgement by sending either an ACK or a NACK on the
  * bus.
  *
  * @param[in] bus_bit false for sending an ACK, true for sending a NACK.
@@ -114,12 +114,10 @@ static void handle_pending_ack(const bool bus_bit);
  * Frequency constants for the hardware I2C baud rate generator circuitry.
  */
 static const uint8_t HARDWARE_I2C_BRG_SPEEDS[] = {
-    /** 100 kHz. */
-    157,
-    /** 400 kHz. */
-    37,
-    /** 1000 kHz. */
-    13};
+    157, /* 100 kHz. */
+    37,  /* 400 kHz. */
+    13,  /* 1000 kHz. */
+};
 
 /**
  * Performs hardware initialisation on the chosen hardware I2C interface.
@@ -240,7 +238,7 @@ unsigned int i2c_write(unsigned int c) {
 }
 
 void i2c_start(void) {
-  /* Reset the bus state if an acknowledgment is pending. */
+  /* Reset the bus state if an acknowledgement is pending. */
 
   if (i2c_state.acknowledgment_pending) {
     MSG_NACK;
@@ -590,8 +588,11 @@ bool hardware_i2c_get_ack(void) {
   }
 #endif /* BUSPIRATEV4 */
 
-  /* Return the acknowledge status bit for the EEPROM v4 I2C bus or for the external v3 I2C bus. */
-  
+/*
+ * Return the acknowledge status bit for the EEPROM v4 I2C bus or for the
+ * external v3 I2C bus.
+ */
+
 #if defined(BUSPIRATEV3) && !defined(BPV3_IS_REV_B4_OR_LATER)
 
   /*
@@ -1187,7 +1188,7 @@ bool i2c_write_then_read(void) {
   REPORT_IO_SUCCESS();
 
   /* And send the I2C data over to the UART. */
-  
+
   bp_write_buffer(&bus_pirate_configuration.terminal_input[0], bytes_to_read);
 
   return true;
