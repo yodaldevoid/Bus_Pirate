@@ -151,20 +151,20 @@ void binOpenOCD(void) {
     case CMD_READ_ADCS:
       buf[0] = CMD_READ_ADCS;
       buf[1] = 8;
-      AD1CON1bits.ADON = 1; // turn ADC ON
-      i = bp_read_adc(12);  // ADC pin
+      AD1CON1bits.ADON = ON;
+      i = bp_read_adc(BP_ADC_PROBE);
       buf[2] = (unsigned char)(i >> 8);
       buf[3] = (unsigned char)(i);
-      i = bp_read_adc(11); // VEXT pin
+      i = bp_read_adc(BP_ADC_VPU);
       buf[4] = (unsigned char)(i >> 8);
       buf[5] = (unsigned char)(i);
-      i = bp_read_adc(10); // V33 pin
+      i = bp_read_adc(BP_ADC_3V3);
       buf[6] = (unsigned char)(i >> 8);
       buf[7] = (unsigned char)(i);
-      i = bp_read_adc(9); // V50 pin
+      i = bp_read_adc(BP_ADC_5V0);
       buf[8] = (unsigned char)(i >> 8);
       buf[9] = (unsigned char)(i);
-      AD1CON1bits.ADON = 0; // turn ADC OFF
+      AD1CON1bits.ADON = OFF;
       binOpenOCDAnswer(buf, 10);
       break;
     case CMD_PORT_MODE:
