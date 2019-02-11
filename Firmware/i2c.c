@@ -1187,11 +1187,8 @@ bool i2c_write_then_read(void) {
   REPORT_IO_SUCCESS();
 
   /* And send the I2C data over to the UART. */
-
-  for (index = 0; index < bytes_to_read; index++) {
-    user_serial_transmit_character(
-        bus_pirate_configuration.terminal_input[index]);
-  }
+  
+  bp_write_buffer(&bus_pirate_configuration.terminal_input[0], bytes_to_read);
 
   return true;
 }
