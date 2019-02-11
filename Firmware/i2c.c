@@ -495,20 +495,25 @@ void i2c_macro(unsigned int c) {
 
     i2c_state.to_eeprom = true;
 
-    /* 7-bits slave address. */
-    I2C1CONbits.A10M = OFF;
-
-    /* Enable clock stretching. */
-    I2C1CONbits.SCLREL = OFF;
+    /*
+     * I2C1CON: I2C1 CONTROL REGISTER
+     *
+     * MSB
+     * x-x0x0x0xxxxxxxx
+     *    | | |
+     *    | | +------------ SMEN:  Disable SMBus support.
+     *    | +-------------- A10M:  Use 7-bit slave addresses.
+     *    +---------------- SCREL: Enable clock stretching.
+     *
+     */
+    I2C1CON &=
+        ~(_I2C1CON_A10M_MASK | _I2C1CON_SCLREL_MASK | _I2C1CON_SMEN_MASK);
 
     /* General call address. */
     I2C1ADD = 0;
 
     /* Do not mask address bits. */
     I2C1MSK = 0;
-
-    /* Disable SMBus. */
-    I2C1CONbits.SMEN = OFF;
 
     /* Set the I2C baud rate generator speed. */
     I2C1BRG = HARDWARE_I2C_BRG_SPEEDS[mode_configuration.speed];
@@ -712,20 +717,24 @@ uint8_t hardware_i2c_read(void) {
 void hardware_i2c_setup(void) {
 #if defined(BUSPIRATEV4)
 
-  /* 7-bits slave address. */
-  I2C3CONbits.A10M = OFF;
-
-  /* Enable clock stretching. */
-  I2C3CONbits.SCLREL = OFF;
+  /*
+   * I2C3CON: I2C3 CONTROL REGISTER
+   *
+   * MSB
+   * x-x0x0x0xxxxxxxx
+   *    | | |
+   *    | | +------------ SMEN:  Disable SMBus support.
+   *    | +-------------- A10M:  Use 7-bit slave addresses.
+   *    +---------------- SCREL: Enable clock stretching.
+   *
+   */
+  I2C3CON &= ~(_I2C3CON_A10M_MASK | _I2C3CON_SCLREL_MASK | _I2C3CON_SMEN_MASK);
 
   /* General call address. */
   I2C3ADD = 0;
 
   /* Do not mask address bits. */
   I2C3MSK = 0;
-
-  /* Disable SMBus. */
-  I2C3CONbits.SMEN = OFF;
 
   /* Set the I2C baud rate generator speed. */
   I2C3BRG = HARDWARE_I2C_BRG_SPEEDS[mode_configuration.speed];
@@ -744,14 +753,18 @@ void hardware_i2c_setup(void) {
   /* Set the I2C baud rate generator speed. */
   I2C1BRG = HARDWARE_I2C_BRG_SPEEDS[mode_configuration.speed];
 
-  /* 7-bits slave address. */
-  I2C1CONbits.A10M = OFF;
-
-  /* Enable clock stretching. */
-  I2C1CONbits.SCLREL = OFF;
-
-  /* Disable SMBus. */
-  I2C1CONbits.SMEN = OFF;
+  /*
+   * I2C1CON: I2C1 CONTROL REGISTER
+   *
+   * MSB
+   * x-x0x0x0xxxxxxxx
+   *    | | |
+   *    | | +------------ SMEN:  Disable SMBus support.
+   *    | +-------------- A10M:  Use 7-bit slave addresses.
+   *    +---------------- SCREL: Enable clock stretching.
+   *
+   */
+  I2C1CON &= ~(_I2C1CON_A10M_MASK | _I2C1CON_SCLREL_MASK | _I2C1CON_SMEN_MASK);
 
 #if !defined(BPV3_IS_REV_B4_OR_LATER)
 
@@ -798,19 +811,6 @@ void hardware_i2c_setup(void) {
 #endif /* BP_I2C_USE_HW_BUS */
 
 void i2c_sniffer(bool interactive_mode) {
-  bool new_sda;
-  bool old_sda;
-  bool new_scl;
-  bool old_scl;
-
-  bool collect_data;
-  uint8_t data_bits;
-  uint8_t data_value;
-
-  collect_data = false;
-  data_bits = 0;
-  data_value = 0;
-
   /* Setup UART ringbuffer. */
   user_serial_ringbuffer_setup();
 
@@ -826,11 +826,15 @@ void i2c_sniffer(bool interactive_mode) {
   /* Clear the change interrupt flag. */
   IFS1bits.CNIF = OFF;
 
-  old_sda = SDA;
-  old_scl = SCL;
-  new_sda = old_sda;
-  new_scl = old_scl;
+  bool old_sda = SDA;
+  bool old_scl = SCL;
+  bool new_sda = old_sda;
+  bool new_scl = old_scl;
 
+  bool collect_data = false;
+  uint8_t data_bits = 0;
+  uint8_t data_value = 0;
+  
   for (;;) {
     if (!IFS1bits.CNIF) {
       /* Change notice interrupt triggered. */
