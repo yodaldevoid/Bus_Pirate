@@ -29,6 +29,21 @@
 #include "selftest.h"
 #include "sump.h"
 
+/**
+ * ASCII scancode for the DEL character.
+ */
+#define ASCII_DEL 0x04
+
+/**
+ * ASCII scancode for the BACKSPACE key.
+ */
+#define ASCII_BACKSPACE 0x08
+
+/**
+ * ASCII scancode for the DELETE key.
+ */
+#define ASCII_DELETE 0x7F
+
 extern bus_pirate_configuration_t bus_pirate_configuration;
 extern mode_configuration_t mode_configuration;
 extern command_t last_command;
@@ -89,6 +104,34 @@ static void print_pin_direction(const uint16_t pin);
 static void print_pin_state(const uint16_t pin);
 
 static void convert_value(const bool reversed);
+
+/**
+ * Handles the backspace key being sent to the user menu.
+ *
+ * @param[in] temporary_command_end a pointer to the variable containing the
+ * position of the cursor
+ * inside the current command line being edited.
+ */
+static void handle_backspace(uint16_t *temporary_command_end);
+
+/**
+ * Handles the delete key being sent to the user menu.
+ *
+ * @param[in] temporary_command_end a pointer to the variable containing the
+ * position of the cursor
+ * inside the current command line being edited.
+ */
+static void handle_delete(uint16_t *temporary_command_end);
+
+/**
+ * Removes the currently pointed character in the command line buffer.
+ *
+ * @param[in] temporary_command_end a pointer to the variable containing the
+ * position of the cursor
+ * inside the current command line being edited.
+ */
+static void
+remove_current_character_from_command_line(uint16_t *temporary_command_end);
 
 #ifdef BUSPIRATEV4
 void set_pullup_voltage(void);
@@ -192,60 +235,16 @@ void serviceuser(void) {
       }
 
       switch (c) {
-      case 0x08:                   // backspace(^H)
-        if (tmpcmdend != cmdstart) // not at begining?
-        {
-          if (tmpcmdend == cmdend) // at the end?
-          {
-            cmdend = (cmdend - 1) & CMDLENMSK;
-            cmdbuf[cmdend] = 0x00;        // add end marker
-            tmpcmdend = cmdend;           // update temp
-            bp_write_string("\x08 \x08"); // destructive backspace ian !! :P
-          } else                          // not at end, left arrow used
-          {
-            repeat = 0; // use as temp, not valid here anyway
-            tmpcmdend = (tmpcmdend - 1) & CMDLENMSK;
-            bp_write_string("\x1B[D"); // move left
-            for (temp = tmpcmdend; temp != cmdend;
-                 temp = (temp + 1) & CMDLENMSK) {
-              cmdbuf[temp] = cmdbuf[temp + 1];
-              if (cmdbuf[temp]) // not NULL
-                user_serial_transmit_character(cmdbuf[temp]);
-              else
-                user_serial_transmit_character(0x20);
-              repeat++;
-            }
-            cmdend = (cmdend - 1) & CMDLENMSK; // end pointer moves left one
-            bp_write_string("\x1B[");          // move left
-            bp_write_dec_byte(repeat);         // to original
-            bp_write_string("D");              // cursor position
-          }
-        } else {
-          user_serial_transmit_character(BELL); // beep, at begining
-        }
+
+      case ASCII_BACKSPACE:
+        handle_backspace(&tmpcmdend);
         break;
-      case 0x04:                 // delete (^D)
-      case 0x7F:                 // delete key
-        if (tmpcmdend != cmdend) // not at the end
-        {
-          repeat = 0; // use as temp, not valid here anyway
-          for (temp = tmpcmdend; temp != cmdend;
-               temp = (temp + 1) & CMDLENMSK) {
-            cmdbuf[temp] = cmdbuf[temp + 1];
-            if (cmdbuf[temp]) // not NULL
-              user_serial_transmit_character(cmdbuf[temp]);
-            else
-              user_serial_transmit_character(0x20);
-            repeat++;
-          }
-          cmdend = (cmdend - 1) & CMDLENMSK; // end pointer moves left one
-          bp_write_string("\x1B[");          // move left
-          bp_write_dec_byte(repeat);         // to original
-          bp_write_string("D");              // cursor position
-        } else {
-          user_serial_transmit_character(BELL); // beep, at end
-        }
+
+      case ASCII_DEL:
+      case ASCII_DELETE:
+        handle_delete(&tmpcmdend);
         break;
+
       case 0x1B:                     // escape
         c = user_serial_read_byte(); // get next char
         if (c == '[')                // got CSI
@@ -1966,4 +1965,81 @@ void convert_value(const bool reversed) {
   MSG_BASE_CONVERTER_EQUAL_SIGN;
   bp_write_bin_byte(reversed);
   bpBR;
+}
+
+void remove_current_character_from_command_line(
+    uint16_t *temporary_command_end) {
+  uint16_t characters_to_move = 0;
+
+  /* @todo: use memmove here and send the whole buffer afterwards? */
+
+  for (size_t index = *temporary_command_end; index != cmdend;
+       index = (index + 1) & CMDLENMSK) {
+    /* Move right-hand character over their left-hand counterpart. */
+    cmdbuf[index] = cmdbuf[index + 1];
+
+    /* Write the moved character. */
+    user_serial_transmit_character(cmdbuf[index] != NULL ? cmdbuf[index] : ' ');
+
+    /* Update pointer. */
+    characters_to_move++;
+  }
+
+  /* Move the buffer end to its new position. */
+  cmdend = (cmdend - 1) & CMDLENMSK;
+
+  /* Move remote cursor. */
+  bp_write_string("\x1B[");
+  bp_write_dec_word(characters_to_move);
+  bp_write_string("D");
+}
+
+void handle_delete(uint16_t *temporary_command_end) {
+  if (*temporary_command_end == cmdstart) {
+    /* Cursor at the beginning of the line - nothing to handle. */
+    user_serial_transmit_character(BELL);
+    return;
+  }
+
+  /* Cursor in the middle of the line. */
+
+  /* Remove characters. */
+  remove_current_character_from_command_line(temporary_command_end);
+}
+
+void handle_backspace(uint16_t *temporary_command_end) {
+  if (*temporary_command_end == cmdstart) {
+    /* Cursor at the beginning of the line - nothing to handle. */
+    user_serial_transmit_character(BELL);
+    return;
+  }
+
+  if (*temporary_command_end == cmdend) {
+    /* Cursor at the end of the line - remove item. */
+
+    /* Update pointer. */
+    cmdend = (cmdend - 1) & CMDLENMSK;
+
+    /* Clear buffer segment. */
+    cmdbuf[cmdend] = 0x00;
+
+    /* Update cursor position. */
+    *temporary_command_end = cmdend;
+
+    /* Move remote cursor. */
+    bp_write_string("\x08 \x08");
+
+    return;
+  }
+
+  /* Cursor in the middle of the line. */
+
+  /* Move remote cursor. */
+  bp_write_string("\x1B[D");
+
+  /* Update current pointer. */
+  *temporary_command_end = (*temporary_command_end - 1) & CMDLENMSK;
+
+  /* Remove characters. */
+  remove_current_character_from_command_line(temporary_command_end);
 }
