@@ -30,14 +30,49 @@
 #include "sump.h"
 
 /**
- * ASCII scancode for the DEL character.
+ * ASCII scancode for the SOH character.
  */
-#define ASCII_DEL 0x04
+#define ASCII_SOH 0x01
+
+/**
+ * ASCII scancode for the STX character.
+ */
+#define ASCII_STX 0x02
+
+/**
+ * ASCII scancode for the EOT character.
+ */
+#define ASCII_EOT 0x04
+
+/**
+ * ASCII scancode for the ENQ character.
+ */
+#define ASCII_ENQ 0x05
+
+/**
+ * ASCII scancode for the ACK character.
+ */
+#define ASCII_ACK 0x06
 
 /**
  * ASCII scancode for the BACKSPACE key.
  */
 #define ASCII_BACKSPACE 0x08
+
+/**
+ * ASCII scancode for the SO character.
+ */
+#define ASCII_SO 0x0E
+
+/**
+ * ASCII scancode for the DLE character.
+ */
+#define ASCII_DLE 0x10
+
+/**
+ * ASCII scancode for the ESCAPE key.
+ */
+#define ASCII_ESCAPE 0x1B
 
 /**
  * ASCII scancode for the DELETE key.
@@ -107,31 +142,66 @@ static void convert_value(const bool reversed);
 
 /**
  * Handles the backspace key being sent to the user menu.
- *
- * @param[in] temporary_command_end a pointer to the variable containing the
- * position of the cursor
- * inside the current command line being edited.
  */
-static void handle_backspace(uint16_t *temporary_command_end);
+static void handle_backspace(void);
 
 /**
  * Handles the delete key being sent to the user menu.
- *
- * @param[in] temporary_command_end a pointer to the variable containing the
- * position of the cursor
- * inside the current command line being edited.
  */
-static void handle_delete(uint16_t *temporary_command_end);
+static void handle_delete(void);
 
 /**
  * Removes the currently pointed character in the command line buffer.
- *
- * @param[in] temporary_command_end a pointer to the variable containing the
- * position of the cursor
- * inside the current command line being edited.
  */
-static void
-remove_current_character_from_command_line(uint16_t *temporary_command_end);
+static void remove_current_character_from_command_line(void);
+
+/**
+ * Handles the left arrow key being sent to the user menu.
+ */
+static void handle_left_arrow(void);
+
+/**
+ * Handles the right arrow key being sent to the user menu.
+ */
+static void handle_right_arrow(void);
+
+/**
+ * Handles the up arrow key being sent to the user menu.
+ */
+static void handle_up_arrow(void);
+
+/**
+ * Handles the down arrow key being sent to the user menu.
+ */
+static void handle_down_arrow(void);
+
+/**
+ * Handles the home key being sent to the user menu.
+ */
+static void handle_home_key(void);
+
+/**
+ * Handles the end key being sent to the user menu.
+ */
+static void handle_end_key(void);
+
+/**
+ * Handles the escape key being sent to the user menu.
+ */
+static void handle_escape_key(void);
+
+/**
+ * Refreshes the current mode prompt.
+ */
+static void refresh_mode_prompt(void);
+
+/**
+ * Refreshes the command line with the data starting at the given offset.
+ *
+ * @param[in] start the offset in the command buffer where the new command line
+ * starts.
+ */
+static void refresh_command_line(const uint16_t start);
 
 #ifdef BUSPIRATEV4
 void set_pullup_voltage(void);
@@ -144,6 +214,25 @@ unsigned int cmdstart;
 static char user_macros[BP_USER_MACROS_COUNT][BP_USER_MACRO_MAX_LENGTH];
 static int user_macro;
 
+/**
+ * The user menu global state container structure.
+ */
+typedef struct {
+  /** Cursor position inside the command line buffer. */
+  uint16_t cursor_position;
+
+  /** History entry index in the command line buffer. */
+  uint16_t history_entry_counter;
+
+  /** Binary mode entering sequence counter. */
+  uint8_t binary_mode_counter;
+} menu_state_t;
+
+/**
+ * The user menu state.
+ */
+static menu_state_t menu_state = {0};
+
 void serviceuser(void) {
   int cmd, stop;
   int newstart;
@@ -153,9 +242,7 @@ void serviceuser(void) {
   unsigned char c;
   int temp;
   int temp2;
-  int binmodecnt;
   int numbits;
-  unsigned int tmpcmdend, histcnt, tmphistcnt;
   unsigned char oldDmode; // temporarily holds the default display mode, while a
                           // different display read is performed
   unsigned char newDmode;
@@ -164,13 +251,10 @@ void serviceuser(void) {
   cmd = 0;
   cmdstart = 0;
   cmdend = 0;
-  tmpcmdend = cmdend;
-  histcnt = 0;
-  tmphistcnt = 0;
+  menu_state.cursor_position = cmdend;
   bus_pirate_configuration.bus_mode = BP_HIZ;
   temp2 = 0;
   mode_configuration.command_error = NO;
-  binmodecnt = 0;
 
   stop = 0;
   newstart = 0;
@@ -237,233 +321,57 @@ void serviceuser(void) {
       switch (c) {
 
       case ASCII_BACKSPACE:
-        handle_backspace(&tmpcmdend);
+        handle_backspace();
         break;
 
-      case ASCII_DEL:
+      case ASCII_EOT:
       case ASCII_DELETE:
-        handle_delete(&tmpcmdend);
+        handle_delete();
         break;
 
-      case 0x1B:                     // escape
-        c = user_serial_read_byte(); // get next char
-        if (c == '[')                // got CSI
-        {
-          c = user_serial_read_byte(); // get next char
-          switch (c) {
-          case 'D': // left arrow
-            goto left;
-            break;
-          case 'C': // right arrow
-            goto right;
-            break;
-          case 'A': // up arrow
-            goto up;
-            break;
-          case 'B': // down arrow
-            goto down;
-            break;
-          case '1': // VT100+ home key (example use in PuTTY)
-            c = user_serial_read_byte();
-            if (c == '~')
-              goto home;
-            break;
-          case '4': // VT100+ end key (example use in PuTTY)
-            c = user_serial_read_byte();
-            if (c == '~')
-              goto end;
-            break;
-          }
-        }
+      case ASCII_ESCAPE:
+        handle_escape_key();
         break;
-      left:
-      case 0x02: // ^B (left arrow) or SUMP
-#ifdef BP_ENABLE_SUMP_SUPPORT
-        if (binmodecnt >= 5) {
-          enter_sump_mode();
-          binmodecnt = 0; // do we get here or not?
-        } else            // ^B (left arrow)
-#endif                    /* BP_ENABLE_SUMP_SUPPORT */
-        {
-          if (tmpcmdend != cmdstart) // at the begining?
-          {
-            tmpcmdend = (tmpcmdend - 1) & CMDLENMSK;
-            bp_write_string("\x1B[D"); // move left
-          } else {
-            user_serial_transmit_character(BELL); // beep, at begining
-          }
-        }
+
+      case ASCII_STX:
+        handle_left_arrow();
         break;
-      right:
-      case 0x06:                 // ^F (right arrow)
-        if (tmpcmdend != cmdend) // ^F (right arrow)
-        {                        // ensure not at end
-          tmpcmdend = (tmpcmdend + 1) & CMDLENMSK;
-          bp_write_string("\x1B[C"); // move right
-        } else {
-          user_serial_transmit_character(BELL); // beep, at end
-        }
+
+      case ASCII_ACK:
+        handle_right_arrow();
         break;
-      up:
-      case 0x10:        // ^P (up arrow)
-        tmphistcnt = 0; // reset counter
-        for (temp = (cmdstart - 1) & CMDLENMSK; temp != cmdend;
-             temp = (temp - 1) & CMDLENMSK) {
-          if (!cmdbuf[temp] &&
-              cmdbuf[(temp - 1) &
-                     CMDLENMSK]) { // found previous entry, temp is old cmdend
-            tmphistcnt++;
-            if (tmphistcnt > histcnt) {
-              histcnt++;
-              if (cmdstart != cmdend) { // clear partially entered cmd line
-                while (cmdend != cmdstart) {
-                  cmdbuf[cmdend] = 0x00;
-                  cmdend = (cmdend - 1) & CMDLENMSK;
-                }
-                cmdbuf[cmdend] = 0x00;
-              }
-              repeat = (temp - 1) & CMDLENMSK;
-              while (repeat != cmdend) {
-                if (!cmdbuf[repeat]) {
-                  temp2 = (repeat + 1) & CMDLENMSK;
-                  /* start of old cmd */
-                  break;
-                }
-                repeat = (repeat - 1) & CMDLENMSK;
-              }
-              bp_write_string("\x1B[2K\x0D"); // clear line, CR
-              bp_write_string(
-                  enabled_protocols[bus_pirate_configuration.bus_mode].name);
-#ifdef BP_ENABLE_BASIC_SUPPORT
-              if (bus_pirate_configuration.basic) {
-                BPMSG1084;
-              }
-#endif /* BP_ENABLE_BASIC_SUPPORT */
-              bp_write_string(">");
-              for (repeat = temp2; repeat != temp;
-                   repeat = (repeat + 1) & CMDLENMSK) {
-                user_serial_transmit_character(cmdbuf[repeat]);
-                cmdbuf[cmdend] = cmdbuf[repeat];
-                cmdend = (cmdend + 1) & CMDLENMSK;
-              }
-              cmdbuf[cmdend] = 0x00;
-              tmpcmdend = cmdend; // resync
-              break;
-            }
-          }
-        }
-        if (temp == cmdend)
-          user_serial_transmit_character(BELL); // beep, top
+
+      case ASCII_DLE:
+        handle_up_arrow();
         break;
-      down:
-      case 0x0E:        // ^N (down arrow)
-        tmphistcnt = 0; // reset counter
-        for (temp = (cmdstart - 1) & CMDLENMSK; temp != cmdend;
-             temp = (temp - 1) & CMDLENMSK) {
-          if (!cmdbuf[temp] &&
-              cmdbuf[(temp - 1) &
-                     CMDLENMSK]) { // found previous entry, temp is old cmdend
-            tmphistcnt++;
-            if (tmphistcnt == (histcnt - 1)) {
-              histcnt--;
-              if (cmdstart != cmdend) { // clear partially entered cmd line
-                while (cmdend != cmdstart) {
-                  cmdbuf[cmdend] = 0x00;
-                  cmdend = (cmdend - 1) & CMDLENMSK;
-                }
-                cmdbuf[cmdend] = 0x00;
-              }
-              repeat = (temp - 1) & CMDLENMSK;
-              while (repeat != cmdend) {
-                if (!cmdbuf[repeat]) {
-                  temp2 = (repeat + 1) & CMDLENMSK;
-                  /* start of old cmd */
-                  break;
-                }
-                repeat = (repeat - 1) & CMDLENMSK;
-              }
-              bp_write_string("\x1B[2K\x0D"); // clear line, CR
-              bp_write_string(
-                  enabled_protocols[bus_pirate_configuration.bus_mode].name);
-#ifdef BP_ENABLE_BASIC_SUPPORT
-              if (bus_pirate_configuration.basic) {
-                BPMSG1084;
-              }
-#endif /* BP_ENABLE_BASIC_SUPPORT */
-              bp_write_string(">");
-              for (repeat = temp2; repeat != temp;
-                   repeat = (repeat + 1) & CMDLENMSK) {
-                user_serial_transmit_character(cmdbuf[repeat]);
-                cmdbuf[cmdend] = cmdbuf[repeat];
-                cmdend = (cmdend + 1) & CMDLENMSK;
-              }
-              cmdbuf[cmdend] = 0x00;
-              tmpcmdend = cmdend; // resync
-              break;
-            }
-          }
-        }
-        if (temp == cmdend) {
-          if (histcnt == 1) {
-            bp_write_string("\x1B[2K\x0D"); // clear line, CR
-            bp_write_string(
-                enabled_protocols[bus_pirate_configuration.bus_mode].name);
-#ifdef BP_ENABLE_BASIC_SUPPORT
-            if (bus_pirate_configuration.basic) {
-              BPMSG1084;
-            }
-#endif /* BP_ENABLE_BASIC_SUPPORT */
-            bp_write_string(">");
-            while (cmdend != cmdstart) {
-              cmdbuf[cmdend] = 0x00;
-              cmdend = (cmdend - 1) & CMDLENMSK;
-            }
-            cmdbuf[cmdend] = 0x00;
-            tmpcmdend = cmdend; // resync
-            histcnt = 0;
-          } else
-            user_serial_transmit_character(BELL); // beep, top
-        }
+
+      case ASCII_SO:
+        handle_down_arrow();
         break;
-      home:
-      case 0x01: // ^A (goto begining of line)
-        if (tmpcmdend != cmdstart) {
-          repeat = (tmpcmdend - cmdstart) & CMDLENMSK;
-          bp_write_string("\x1B[");  // move left
-          bp_write_dec_byte(repeat); // to start
-          bp_write_string("D");      // of command line
-          tmpcmdend = cmdstart;
-        } else {
-          user_serial_transmit_character(BELL); // beep, at start
-        }
+
+      case ASCII_SOH:
+        handle_home_key();
         break;
-      end:
-      case 0x05: // ^E (goto end of line)
-        if (tmpcmdend != cmdend) {
-          repeat = (cmdend - tmpcmdend) & CMDLENMSK;
-          bp_write_string("\x1B[");  // move right
-          bp_write_dec_byte(repeat); // to end
-          bp_write_string("C");      // of command line
-          tmpcmdend = cmdend;
-        } else {
-          user_serial_transmit_character(BELL); // beep, at end
-        }
+
+      case ASCII_ENQ:
+        handle_end_key();
         break;
-      case 0x0A:               // Does any terminal only send a CR?
-      case 0x0D:               // Enter pressed (LF)
-        cmd = 1;               // command received
-        histcnt = 0;           // reset counter
-        cmdbuf[cmdend] = 0x00; // use to find history
+
+      case 0x0A: // Does any terminal only send a CR?
+      case 0x0D: // Enter pressed (LF)
+        cmd = 1; // command received
+        menu_state.history_entry_counter = 0; // reset counter
+        cmdbuf[cmdend] = 0x00;                // use to find history
         cmdend = (cmdend + 1) & CMDLENMSK;
-        tmpcmdend = cmdend; // resync
+        menu_state.cursor_position = cmdend; // resync
         bpBR;
         break;
       case 0x00:
-        binmodecnt++;
-        if (binmodecnt == 20) {
+        menu_state.binary_mode_counter++;
+        if (menu_state.binary_mode_counter == 20) {
           enter_binary_bitbang_mode();
 #ifdef BUSPIRATEV4
-          binmodecnt = 0; // no reset, cleanup manually
+          menu_state.binary_mode_counter = 0; // no reset, cleanup manually
           goto bpv4reset; // versionInfo(); //and simulate reset for dependent
                           // apps (looking at you AVR dude!)
 #endif                    /* BUSPIRATEV4 */
@@ -472,22 +380,22 @@ void serviceuser(void) {
 
       default:
         if ((((cmdend + 1) & CMDLENMSK) != cmdstart) && (c >= 0x20) &&
-            (c < 0x7F)) {          // no overflow and printable
-          if (cmdend == tmpcmdend) // adding to the end
+            (c < 0x7F)) {                           // no overflow and printable
+          if (cmdend == menu_state.cursor_position) // adding to the end
           {
             user_serial_transmit_character(c); // echo back
             cmdbuf[cmdend] = c;                // store char
             cmdend = (cmdend + 1) & CMDLENMSK;
-            cmdbuf[cmdend] = 0x00; // add end marker
-            tmpcmdend = cmdend;    // update temp
-          } else                   // not at end, left arrow used
+            cmdbuf[cmdend] = 0x00;               // add end marker
+            menu_state.cursor_position = cmdend; // update temp
+          } else                                 // not at end, left arrow used
           {
-            repeat = (cmdend - tmpcmdend) & CMDLENMSK;
+            repeat = (cmdend - menu_state.cursor_position) & CMDLENMSK;
             bp_write_string("\x1B[");  // move right
             bp_write_dec_byte(repeat); // to end
             bp_write_string("C");      // of line
             temp = cmdend;
-            while (temp != ((tmpcmdend - 1) & CMDLENMSK)) {
+            while (temp != ((menu_state.cursor_position - 1) & CMDLENMSK)) {
               cmdbuf[temp + 1] = cmdbuf[temp];
               if (cmdbuf[temp]) // not NULL
               {
@@ -496,9 +404,10 @@ void serviceuser(void) {
               }
               temp = (temp - 1) & CMDLENMSK;
             }
-            user_serial_transmit_character(c); // echo back
-            cmdbuf[tmpcmdend] = c;             // store char
-            tmpcmdend = (tmpcmdend + 1) & CMDLENMSK;
+            user_serial_transmit_character(c);      // echo back
+            cmdbuf[menu_state.cursor_position] = c; // store char
+            menu_state.cursor_position =
+                (menu_state.cursor_position + 1) & CMDLENMSK;
             cmdend = (cmdend + 1) & CMDLENMSK;
           }
         } else {
@@ -797,7 +706,8 @@ void serviceuser(void) {
 
         while (cmdbuf[((cmdstart + temp) & CMDLENMSK)] != 0x00) {
           if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == '>')
-            mode_configuration.command_error = NO; // clear error if we found a > before the command ends
+            mode_configuration.command_error =
+                NO; // clear error if we found a > before the command ends
           temp++;
         }
         if (temp >= (BP_USER_MACRO_MAX_LENGTH + 3)) {
@@ -844,7 +754,7 @@ void serviceuser(void) {
           }
         }
         break;
-        // command for subsys (i2c, UART, etc)
+      // command for subsys (i2c, UART, etc)
       case '(': // bpWline("-macro");
         cmdstart = (cmdstart + 1) & CMDLENMSK;
         sendw = getint();
@@ -1049,7 +959,7 @@ void serviceuser(void) {
         // bpWmessage(MSG_BIT_NOWINPUT);
         BPMSG1107;
         break;
-        // white char/delimeters
+      // white char/delimeters
       case 0x00:
       case 0x0D: // not necessary but got random error msg at end, just to be
                  // sure
@@ -1062,7 +972,8 @@ void serviceuser(void) {
       } // switch(c)
       cmdstart = (cmdstart + 1) & CMDLENMSK;
 
-      if (mode_configuration.command_error == YES) { // bpWstring("Syntax error at char ");
+      if (mode_configuration.command_error ==
+          YES) { // bpWstring("Syntax error at char ");
         BPMSG1110;
         if (cmdstart > oldstart) // find error position :S
         {
@@ -1223,8 +1134,9 @@ void changemode(void) {
     }
     // bpWline("x. exit(without change)");
     BPMSG1111;
-    mode_configuration.command_error = NO; // error is set because no number found, but it is no
-                           // error here:S eeeh confusing right?
+    mode_configuration.command_error =
+        NO; // error is set because no number found, but it is no
+            // error here:S eeeh confusing right?
     busmode = getnumber(1, 1, ENABLED_PROTOCOLS_COUNT, 1) - 1;
     if ((busmode == -2) || (busmode == -1)) {
       // bpWline("no mode change");
@@ -1696,7 +1608,7 @@ void print_status_info(void) {
   bp_write_dec_byte(mode_configuration.numbits);
   bpBR;
 
-  // AUX pin setting
+// AUX pin setting
 #ifdef BUSPIRATEV3
   if (mode_configuration.alternate_aux == 1)
     BPMSG1087;
@@ -1967,13 +1879,12 @@ void convert_value(const bool reversed) {
   bpBR;
 }
 
-void remove_current_character_from_command_line(
-    uint16_t *temporary_command_end) {
+void remove_current_character_from_command_line(void) {
   uint16_t characters_to_move = 0;
 
   /* @todo: use memmove here and send the whole buffer afterwards? */
 
-  for (size_t index = *temporary_command_end; index != cmdend;
+  for (size_t index = menu_state.cursor_position; index != cmdend;
        index = (index + 1) & CMDLENMSK) {
     /* Move right-hand character over their left-hand counterpart. */
     cmdbuf[index] = cmdbuf[index + 1];
@@ -1994,8 +1905,8 @@ void remove_current_character_from_command_line(
   bp_write_string("D");
 }
 
-void handle_delete(uint16_t *temporary_command_end) {
-  if (*temporary_command_end == cmdstart) {
+void handle_delete(void) {
+  if (menu_state.cursor_position == cmdstart) {
     /* Cursor at the beginning of the line - nothing to handle. */
     user_serial_transmit_character(BELL);
     return;
@@ -2004,17 +1915,17 @@ void handle_delete(uint16_t *temporary_command_end) {
   /* Cursor in the middle of the line. */
 
   /* Remove characters. */
-  remove_current_character_from_command_line(temporary_command_end);
+  remove_current_character_from_command_line();
 }
 
-void handle_backspace(uint16_t *temporary_command_end) {
-  if (*temporary_command_end == cmdstart) {
+void handle_backspace(void) {
+  if (menu_state.cursor_position == cmdstart) {
     /* Cursor at the beginning of the line - nothing to handle. */
     user_serial_transmit_character(BELL);
     return;
   }
 
-  if (*temporary_command_end == cmdend) {
+  if (menu_state.cursor_position == cmdend) {
     /* Cursor at the end of the line - remove item. */
 
     /* Update pointer. */
@@ -2024,7 +1935,7 @@ void handle_backspace(uint16_t *temporary_command_end) {
     cmdbuf[cmdend] = 0x00;
 
     /* Update cursor position. */
-    *temporary_command_end = cmdend;
+    menu_state.cursor_position = cmdend;
 
     /* Move remote cursor. */
     bp_write_string("\x08 \x08");
@@ -2038,8 +1949,217 @@ void handle_backspace(uint16_t *temporary_command_end) {
   bp_write_string("\x1B[D");
 
   /* Update current pointer. */
-  *temporary_command_end = (*temporary_command_end - 1) & CMDLENMSK;
+  menu_state.cursor_position = (menu_state.cursor_position - 1) & CMDLENMSK;
 
   /* Remove characters. */
-  remove_current_character_from_command_line(temporary_command_end);
+  remove_current_character_from_command_line();
+}
+
+void handle_left_arrow(void) {
+#ifdef BP_ENABLE_SUMP_SUPPORT
+  if (menu_state.binary_mode_counter >= 5) {
+    enter_sump_mode();
+    menu_state.binary_mode_counter = 0;
+    return;
+  }
+#endif /* BP_ENABLE_SUMP_SUPPORT */
+
+  if (menu_state.cursor_position != cmdstart) {
+    menu_state.cursor_position = (menu_state.cursor_position - 1) & CMDLENMSK;
+    bp_write_string("\x1B[D");
+  } else {
+    user_serial_transmit_character(BELL);
+  }
+}
+
+void handle_right_arrow(void) {
+  if (menu_state.cursor_position == cmdend) {
+    user_serial_transmit_character(BELL);
+    return;
+  }
+  menu_state.cursor_position = (menu_state.cursor_position + 1) & CMDLENMSK;
+  bp_write_string("\x1B[C");
+}
+
+void refresh_mode_prompt(void) {
+  /* Clear line and carriage return. */
+  bp_write_string("\x1B[2K\x0D");
+
+  /* Write mode header. */
+  bp_write_string(enabled_protocols[bus_pirate_configuration.bus_mode].name);
+#ifdef BP_ENABLE_BASIC_SUPPORT
+  if (bus_pirate_configuration.basic) {
+    BPMSG1084;
+  }
+#endif /* BP_ENABLE_BASIC_SUPPORT */
+  bp_write_string(">");
+}
+
+void refresh_command_line(const uint16_t start) {
+  /* Clear current command line. */
+  if (cmdstart != cmdend) {
+    while (cmdend != cmdstart) {
+      cmdbuf[cmdend] = 0x00;
+      cmdend = (cmdend - 1) & CMDLENMSK;
+    }
+
+    cmdbuf[cmdend] = 0x00;
+  }
+
+  uint16_t repeat = (start - 1) & CMDLENMSK;
+  uint16_t old_command_start = 0;
+  while (repeat != cmdend) {
+    if (!cmdbuf[repeat]) {
+      old_command_start = (repeat + 1) & CMDLENMSK;
+      break;
+    }
+    repeat = (repeat - 1) & CMDLENMSK;
+  }
+
+  refresh_mode_prompt();
+
+  /* Write old command line. */
+  for (repeat = old_command_start; repeat != start;
+       repeat = (repeat + 1) & CMDLENMSK) {
+    user_serial_transmit_character(cmdbuf[repeat]);
+    cmdbuf[cmdend] = cmdbuf[repeat];
+    cmdend = (cmdend + 1) & CMDLENMSK;
+  }
+  cmdbuf[cmdend] = 0x00;
+
+  menu_state.cursor_position = cmdend;
+}
+
+void handle_up_arrow(void) {
+  uint16_t history_entry_index = 0;
+  uint16_t character_offset;
+
+  for (character_offset = (cmdstart - 1) & CMDLENMSK;
+       character_offset != cmdend;
+       character_offset = (character_offset - 1) & CMDLENMSK) {
+
+    if (!cmdbuf[character_offset] &&
+        cmdbuf[(character_offset - 1) & CMDLENMSK]) {
+
+      /* Found an earlier history entry in the buffer. */
+
+      history_entry_index++;
+      if (history_entry_index > menu_state.history_entry_counter) {
+        menu_state.history_entry_counter++;
+
+        refresh_command_line(character_offset);
+      }
+    }
+  }
+
+  /* First entry in the history list? */
+  if (character_offset == cmdend) {
+    user_serial_transmit_character(BELL);
+  }
+}
+
+void handle_down_arrow(void) {
+  uint16_t history_entry_index = 0;
+  uint16_t character_offset;
+
+  for (character_offset = (cmdstart - 1) & CMDLENMSK;
+       character_offset != cmdend;
+       character_offset = (character_offset - 1) & CMDLENMSK) {
+    if (!cmdbuf[character_offset] &&
+        cmdbuf[(character_offset - 1) & CMDLENMSK]) {
+
+      /* Found an earlier history entry in the buffer. */
+
+      history_entry_index++;
+      if (history_entry_index == (menu_state.history_entry_counter - 1)) {
+        menu_state.history_entry_counter--;
+        refresh_command_line(character_offset);
+      }
+    }
+  }
+
+  if (character_offset != cmdend) {
+    return;
+  }
+
+  if (menu_state.history_entry_counter != 1) {
+    /* Top entry, send a beep. */
+    user_serial_transmit_character(BELL);
+    return;
+  }
+
+  refresh_mode_prompt();
+
+  /* Clear rest of buffer. */
+
+  while (cmdend != cmdstart) {
+    cmdbuf[cmdend] = 0x00;
+    cmdend = (cmdend - 1) & CMDLENMSK;
+  }
+  cmdbuf[cmdend] = 0x00;
+  menu_state.cursor_position = cmdend;
+  menu_state.history_entry_counter = 0;
+}
+
+void handle_home_key(void) {
+  if (menu_state.cursor_position == cmdstart) {
+    user_serial_transmit_character(BELL);
+  }
+
+  size_t repeat = (menu_state.cursor_position - cmdstart) & CMDLENMSK;
+  bp_write_string("\x1B[");
+  bp_write_dec_word(repeat);
+  bp_write_string("D");
+  menu_state.cursor_position = cmdstart;
+}
+
+void handle_end_key(void) {
+  if (menu_state.cursor_position == cmdend) {
+    user_serial_transmit_character(BELL);
+  }
+
+  size_t repeat = (cmdend - menu_state.cursor_position) & CMDLENMSK;
+  bp_write_string("\x1B[");
+  bp_write_dec_word(repeat);
+  bp_write_string("C");
+  menu_state.cursor_position = cmdend;
+}
+
+void handle_escape_key(void) {
+  if (user_serial_read_byte() != '[') {
+    return;
+  }
+
+  switch (user_serial_read_byte()) {
+  case 'D':
+    handle_left_arrow();
+    break;
+
+  case 'C':
+    handle_right_arrow();
+    break;
+
+  case 'A':
+    handle_up_arrow();
+    break;
+
+  case 'B':
+    handle_down_arrow();
+    break;
+
+  case '1':
+    if (user_serial_read_byte() == '~') {
+      handle_home_key();
+    }
+    break;
+
+  case '4':
+    if (user_serial_read_byte() == '~') {
+      handle_end_key();
+    }
+    break;
+
+  default:
+    break;
+  }
 }
