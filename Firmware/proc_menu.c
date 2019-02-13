@@ -62,7 +62,7 @@
 /**
  * ASCII scancode for the BACKSPACE key.
  */
-#define ASCII_BACKSPACE 0x08
+#define ASCII_BS 0x08
 
 /**
  * ASCII scancode for the LF character.
@@ -272,7 +272,6 @@ typedef struct {
 static menu_state_t menu_state = {0};
 
 void serviceuser(void) {
-  int stop;
   int newstart;
   int oldstart;
   unsigned int sendw, received;
@@ -290,7 +289,6 @@ void serviceuser(void) {
   bus_pirate_configuration.bus_mode = BP_HIZ;
   mode_configuration.command_error = NO;
 
-  stop = 0;
   newstart = 0;
   oldstart = 0;
 
@@ -357,7 +355,7 @@ void serviceuser(void) {
 
       switch (user_byte) {
 
-      case ASCII_BACKSPACE:
+      case ASCII_BS:
         handle_backspace();
         break;
 
@@ -423,26 +421,27 @@ void serviceuser(void) {
     oldstart = cmdstart;
     menu_state.command_present = NO;
 
-    stop = 0;
     mode_configuration.command_error = NO;
+
+    bool stop = NO;
 
 #ifdef BP_ENABLE_BASIC_SUPPORT
     if (bus_pirate_configuration.basic) {
       bp_basic_enter_interactive_interpreter();
-      // bpWline("Ready.");
       BPMSG1085;
-      stop = 1;
+      stop = YES;
     }
 #endif /* BP_ENABLE_BASIC_SUPPORT */
 
     oldDmode = 0; // temporarily holds the default display mode, while a
                   // different display read is performed
     newDmode = 0;
+
     while (!stop) {
       uint8_t c = cmdbuf[cmdstart];
 
-      switch (c) { // generic commands (not bus specific)
-      case 'h':    // bpWline("-command history");
+      switch (c) {
+      case 'h':
 #ifdef BP_ENABLE_COMMAND_HISTORY
         if (!cmdhistory()) {
           oldstart = cmdstart;
@@ -535,6 +534,7 @@ void serviceuser(void) {
           bpBR;
         }
         break;
+
       case 'P':
         // don't allow pullups on some modules. also: V0a limitation of 2
         // resistors
@@ -603,17 +603,11 @@ void serviceuser(void) {
         break;
 
       case 'a':
-        repeat = getrepeat() + 1;
-        while (--repeat) {
-          bp_aux_pin_set_low();
-        }
+        bp_aux_pin_set_low();
         break;
 
       case 'A':
-        repeat = getrepeat() + 1;
-        while (--repeat) {
-          bp_aux_pin_set_high();
-        }
+        bp_aux_pin_set_high();
         break;
 
       case '@':
@@ -639,18 +633,19 @@ void serviceuser(void) {
         MSG_VOLTAGE_UNIT;
         bpBR;
         break;
-      case 'D': // bpWline("-DVM mode");	//dumb voltmeter mode
+
+      case 'D':
         bp_adc_continuous_probe();
         break;
-      case '&': // bpWline("-delay 1ms");
+
+      case '&':
         repeat = getrepeat();
-        // bpWstring(OUMSG_PS_DELAY);
         BPMSG1099;
         bp_write_dec_word(repeat);
-        // bpWline(OUMSG_PS_DELAY_US);
         BPMSG1100;
         bp_delay_us(repeat);
         break;
+
       case '%':
         repeat = getrepeat();
         BPMSG1099;
@@ -658,19 +653,21 @@ void serviceuser(void) {
         BPMSG1212;
         bp_delay_ms(repeat);
         break;
+
 #ifdef BP_ENABLE_BASIC_SUPPORT
-      case 's': // bpWline("Listing:");
-        bus_pirate_configuration.basic = 1;
+      case 's':
+        bus_pirate_configuration.basic = ON;
         break;
-#endif          /* BP_ENABLE_BASIC_SUPPORT */
-      case 'S': // servo control
-        if (bus_pirate_configuration.bus_mode ==
-            BP_HIZ) { // bpWmessage(MSG_ERROR_MODE);
+#endif /* BP_ENABLE_BASIC_SUPPORT */
+
+      case 'S':
+        if (bus_pirate_configuration.bus_mode == BP_HIZ) {
           BPMSG1088;
         } else {
           bp_servo_setup();
         }
         break;
+
       case '<':
         mode_configuration.command_error = YES;
         temp = 1;
@@ -712,11 +709,7 @@ void serviceuser(void) {
                 bp_write_string(user_macros[repeat]);
                 bp_write_line(">");
               }
-            } else if ((temp > 0) &&
-                       (temp <=
-                        BP_USER_MACROS_COUNT)) { // bpWstring("execute : ");
-              // BPMSG1236;
-              // bpWdec(temp-1);
+            } else if ((temp > 0) && (temp <= BP_USER_MACROS_COUNT)) {
               bpBR;
               user_macro = temp;
             } else {
@@ -725,27 +718,26 @@ void serviceuser(void) {
           }
         }
         break;
+
       // command for subsys (i2c, UART, etc)
-      case '(': // bpWline("-macro");
+      case '(':
         cmdstart = (cmdstart + 1) & CMDLENMSK;
         sendw = getint();
         consumewhitechars();
-        if (cmdbuf[((cmdstart)&CMDLENMSK)] ==
-            ')') { // cmdstart++;				// skip )
-          // cmdstart&=CMDLENMSK;
-          // bpWdec(sendw);
+        if (cmdbuf[((cmdstart)&CMDLENMSK)] == ')') {
           enabled_protocols[bus_pirate_configuration.bus_mode].run_macro(sendw);
           bpBR;
         } else {
           mode_configuration.command_error = YES;
         }
         break;
-      case 0x22: // bpWline("-send string");
+
+      case '"':
         mode_configuration.command_error = YES;
         temp = 1;
 
         while (cmdbuf[((cmdstart + temp) & CMDLENMSK)] != 0x00) {
-          if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == 0x22)
+          if (cmdbuf[((cmdstart + temp) & CMDLENMSK)] == '"')
             mode_configuration.command_error =
                 NO; // clear error if we found a " before the command ends
           temp++;
@@ -753,8 +745,8 @@ void serviceuser(void) {
 
         if (mode_configuration.command_error == NO) {
           BPMSG1101;
-          user_serial_transmit_character(0x22);
-          while (cmdbuf[((++cmdstart) & CMDLENMSK)] != 0x22) {
+          user_serial_transmit_character('"');
+          while (cmdbuf[((++cmdstart) & CMDLENMSK)] != '"') {
             cmdstart &= CMDLENMSK;
             user_serial_transmit_character(cmdbuf[cmdstart]);
             sendw = cmdbuf[cmdstart];
@@ -764,22 +756,27 @@ void serviceuser(void) {
             enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
           }
           cmdstart &= CMDLENMSK;
-          user_serial_transmit_character(0x22);
+          user_serial_transmit_character('"');
           bpBR;
         }
         break;
-      case '[': // bpWline("-Start");
+
+      case '[':
         enabled_protocols[bus_pirate_configuration.bus_mode].start();
         break;
-      case '{': // bpWline("-StartR");
+
+      case '{':
         enabled_protocols[bus_pirate_configuration.bus_mode].start_with_read();
         break;
-      case ']': // bpWline("-Stop");
+
+      case ']':
         enabled_protocols[bus_pirate_configuration.bus_mode].stop();
         break;
-      case '}': // bpWline("-StopR");
+
+      case '}':
         enabled_protocols[bus_pirate_configuration.bus_mode].stop_from_read();
         break;
+
       case '0':
       case '1':
       case '2':
@@ -789,8 +786,7 @@ void serviceuser(void) {
       case '6':
       case '7':
       case '8':
-      case '9': // bpWline("-Send");
-        // bpWmessage(MSG_WRITE);
+      case '9':
         BPMSG1101;
         sendw = getint();
         cmdstart--;
@@ -799,16 +795,13 @@ void serviceuser(void) {
         numbits = getnumbits();
         if (numbits) {
           mode_configuration.numbits = numbits;
-          if (numbits > 8)
-            mode_configuration.int16 = 1;
-          else
-            mode_configuration.int16 = 0;
+          mode_configuration.int16 = numbits > 8 ? YES : NO;
         }
         while (--repeat) {
           bp_write_formatted_integer(sendw);
-          if (((mode_configuration.int16 == 0) &&
+          if (((mode_configuration.int16 == NO) &&
                (mode_configuration.numbits != 8)) ||
-              ((mode_configuration.int16 == 1) &&
+              ((mode_configuration.int16 == YES) &&
                (mode_configuration.numbits != 16))) {
             user_serial_transmit_character(';');
             bp_write_dec_byte(mode_configuration.numbits);
@@ -819,7 +812,7 @@ void serviceuser(void) {
           received =
               enabled_protocols[bus_pirate_configuration.bus_mode].send(sendw);
           bpSP;
-          if (mode_configuration.write_with_read) { // bpWmessage(MSG_READ);
+          if (mode_configuration.write_with_read) {
             MSG_READ_HEADER;
             if (mode_configuration.little_endian == YES) {
               received =
@@ -831,19 +824,15 @@ void serviceuser(void) {
         }
         bpBR;
         break;
-      case 'r': // bpWline("-Read");
-        // bpWmessage(MSG_READ);
+
+      case 'r':
         MSG_READ_HEADER;
-        // newDmode = 0;
         newDmode = change_read_display();
         repeat = getrepeat() + 1;
         numbits = getnumbits();
         if (numbits) {
           mode_configuration.numbits = numbits;
-          if (numbits > 8)
-            mode_configuration.int16 = 1;
-          else
-            mode_configuration.int16 = 0;
+          mode_configuration.int16 = (numbits > 8) ? YES : NO;
         }
         if (newDmode) {
           oldDmode = bus_pirate_configuration.display_mode;
@@ -856,9 +845,9 @@ void serviceuser(void) {
             received = bp_reverse_integer(received, mode_configuration.numbits);
           }
           bp_write_formatted_integer(received);
-          if (((mode_configuration.int16 == 0) &&
+          if (((mode_configuration.int16 == NO) &&
                (mode_configuration.numbits != 8)) ||
-              ((mode_configuration.int16 == 1) &&
+              ((mode_configuration.int16 == YES) &&
                (mode_configuration.numbits != 16))) {
             user_serial_transmit_character(';');
             bp_write_dec_byte(mode_configuration.numbits);
@@ -871,55 +860,45 @@ void serviceuser(void) {
         }
         bpBR;
         break;
-      case '/': // bpWline("-CLK hi");
-        // repeat=getrepeat()+1;
-        // while(--repeat)
-        //{	//bpWmessage(MSG_BIT_CLKH);
+
+      case '/':
         BPMSG1103;
         enabled_protocols[bus_pirate_configuration.bus_mode].clock_high();
-        //}
         break;
-      case '\\': // bpWline("-CLK lo");
-        // repeat=getrepeat()+1;
-        // while(--repeat)
-        //{	//bpWmessage(MSG_BIT_CLKL);
+
+      case '\\':
         BPMSG1104;
         enabled_protocols[bus_pirate_configuration.bus_mode].clock_low();
-        //}
         break;
-      case '-': // bpWline("-DAT hi");
-        // repeat=getrepeat()+1;
-        // while(--repeat)
-        //{	//bpWmessage(MSG_BIT_DATH);
+
+      case '-':
         BPMSG1105;
         enabled_protocols[bus_pirate_configuration.bus_mode].data_high();
-        //}
         break;
-      case '_': // bpWline("-DAT lo");
-        // repeat=getrepeat()+1;
-        // while(--repeat)
-        //{	//bpWmessage(MSG_BIT_DATL);
+
+      case '_':
         BPMSG1106;
         enabled_protocols[bus_pirate_configuration.bus_mode].data_low();
-        //}
         break;
-      case '.': // bpWline("-DAT state read");
-        // repeat=getrepeat()+1;
+
+      case '.':
         BPMSG1098;
         echo_state(
             enabled_protocols[bus_pirate_configuration.bus_mode].data_state());
         break;
-      case '^': // bpWline("-CLK pulse");
+
+      case '^':
         repeat = getrepeat();
         BPMSG1108;
         bp_write_formatted_integer(repeat);
         repeat++;
-        while (--repeat) { // bpWmessage(MSG_BIT_CLK);
+        while (--repeat) {
           enabled_protocols[bus_pirate_configuration.bus_mode].clock_pulse();
         }
         bpBR;
         break;
-      case '!': // bpWline("-bit read");
+
+      case '!':
         repeat = getrepeat() + 1;
         BPMSG1109;
         while (--repeat) {
@@ -927,45 +906,45 @@ void serviceuser(void) {
               enabled_protocols[bus_pirate_configuration.bus_mode].read_bit());
           bpSP;
         }
-        // bpWmessage(MSG_BIT_NOWINPUT);
         BPMSG1107;
         break;
-      // white char/delimeters
-      case 0x00:
-      case 0x0D: // not necessary but got random error msg at end, just to be
-                 // sure
-      case 0x0A: // same here
+
+      case ASCII_NUL:
+      case ASCII_CR:
+      case ASCII_LF:
       case ' ':
       case ',':
-        break; // no match so it is an error
+        break;
+
       default:
         mode_configuration.command_error = YES;
-      } // switch(c)
+        break;
+      }
+
       cmdstart = (cmdstart + 1) & CMDLENMSK;
 
-      if (mode_configuration.command_error ==
-          YES) { // bpWstring("Syntax error at char ");
+      if (mode_configuration.command_error == YES) {
         BPMSG1110;
-        if (cmdstart > oldstart) // find error position :S
-        {
+        if (cmdstart > oldstart) {
           bp_write_dec_byte(cmdstart - oldstart);
         } else {
           bp_write_dec_byte((BP_COMMAND_BUFFER_SIZE + cmdstart) - oldstart);
         }
         mode_configuration.command_error = NO;
-        stop = 1;
+        stop = YES;
         bpBR;
       }
 
-      if (cmdstart == cmdend)
-        stop = 1; // reached end of user input??
-    }             // while(!stop)
+      if (cmdstart == cmdend) {
+        stop = YES;
+      }
+    }
 
     cmdstart = newstart;
-    cmdend = newstart; // 'empty' cmdbuffer
+    cmdend = newstart;
     menu_state.command_present = NO;
-  } // while(1)
-} // serviceuser(void)
+  }
+}
 
 int getint(void) // get int from user (accept decimal, hex (0x) or binairy (0b)
 {
@@ -1084,7 +1063,7 @@ uint8_t change_read_display(void) {
 
 void consumewhitechars(void) {
   while (cmdbuf[cmdstart] == 0x20) {
-    cmdstart = (cmdstart + 1) & CMDLENMSK; // remove spaces
+    cmdstart = (cmdstart + 1) & CMDLENMSK;
   }
 }
 
@@ -1427,8 +1406,8 @@ void print_version_info(void) {
   bp_write_string(BP_VERSION_STRING);
   user_serial_transmit_character('.');
   user_serial_transmit_character(bus_pirate_configuration.hardware_version);
-  if (bus_pirate_configuration.device_type == 0x44F) {
-    // sandbox electronics clone with 44pin PIC24FJ64GA004
+  if (bus_pirate_configuration.device_type == 0x044F) {
+    /* Sandbox Electronics clone with 44pin PIC24FJ64GA004. */
     MSG_CHIP_IDENTIFIER_CLONE;
   }
   bpBR;
@@ -1479,8 +1458,8 @@ void print_version_info(void) {
   }
 #else
   MSG_CHIP_REVISION_ID_BEGIN;
-  if (bus_pirate_configuration.device_type == 0x44F) {
-    // sandbox electronics clone with 44pin PIC24FJ64GA004
+  if (bus_pirate_configuration.device_type == 0x044F) {
+    /* Sandbox Electronics clone with 44pin PIC24FJ64GA004. */
     MSG_CHIP_REVISION_ID_END_4;
   } else {
     MSG_CHIP_REVISION_ID_END_2;
@@ -1550,27 +1529,29 @@ void print_status_info(void) {
   bpSP;
 
 #ifdef BUSPIRATEV4
-  if (BP_PUVSEL50_DIR == 0) {
+  if (BP_PUVSEL50_DIR == OUTPUT) {
     MSG_VPU_5V_MARKER;
   }
-  if (BP_PUVSEL33_DIR == 0) {
+
+  if (BP_PUVSEL33_DIR == OUTPUT) {
     MSG_VPU_3V3_MARKER;
   }
 #endif /* BUSPIRATEV4 */
 
   // open collector outputs?
-  if (mode_configuration.high_impedance == YES)
+  if (mode_configuration.high_impedance == YES) {
     BPMSG1120;
-  else
-    BPMSG1121; // bpWmessage(MSG_STATUS_OUTPUT_HIZ); else
-               // bpWmessage(MSG_STATUS_OUTPUT_NORMAL);
+  } else {
+    BPMSG1121;
+  }
 
   // bitorder toggle available, enabled
-  if (mode_configuration.little_endian == NO)
+  if (mode_configuration.little_endian == NO) {
     BPMSG1123;
-  else
-    BPMSG1124; // bpWmessage(MSG_OPT_BITORDER_LSB); else
-               // bpWmessage(MSG_OPT_BITORDER_MSB);
+  } else {
+    BPMSG1124;
+  }
+
   user_serial_transmit_character(',');
   bpSP;
 
@@ -1582,10 +1563,11 @@ void print_status_info(void) {
 
 // AUX pin setting
 #ifdef BUSPIRATEV3
-  if (mode_configuration.alternate_aux == 1)
+  if (mode_configuration.alternate_aux == 1) {
     BPMSG1087;
-  else
+  } else {
     BPMSG1086;
+  }
 #endif /* BUSPIRATEV3 */
 
 #ifdef BUSPIRATEV4
@@ -1620,7 +1602,7 @@ void print_pins_information(void) {
 #endif /* BUSPIRATEV4 */
 
   enabled_protocols[bus_pirate_configuration.bus_mode].print_pins_state();
-  BPMSG1228; // bpWstring("P\tP\tP\tI\tI\t");
+  BPMSG1228;
 #ifdef BUSPIRATEV4
   print_pin_direction(AUX2);
   print_pin_direction(AUX1);
@@ -1637,7 +1619,7 @@ void print_pins_information(void) {
   print_pin_direction(MISO);
 #endif /* BUSPIRATEV4 */
   bpBR;
-  BPMSG1234; // bpWstring("GND\t");
+  BPMSG1234;
   bp_enable_adc();
 
 #ifdef BUSPIRATEV4
