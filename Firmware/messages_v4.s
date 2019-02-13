@@ -1120,6 +1120,12 @@ _MSG_CHIP_REVISION_ID_BEGIN_str:
 _MSG_CHIP_REVISION_UNKNOWN_str:
 	.pasciz "UNK"
 
+	; MSG_CLEAR_LINE_WITH_CR
+	.section .text.MSG_CLEAR_LINE_WITH_CR, code
+	.global _MSG_CLEAR_LINE_WITH_CR_str
+_MSG_CLEAR_LINE_WITH_CR_str:
+	.pasciz <27>, "[2K\r"
+
 	; MSG_CLUTCH_DISENGAGED
 	.section .text.MSG_CLUTCH_DISENGAGED, code
 	.global _MSG_CLUTCH_DISENGAGED_str
@@ -1137,6 +1143,24 @@ _MSG_CLUTCH_ENGAGED_str:
 	.global _MSG_COMMAND_HAS_NO_EFFECT_str
 _MSG_COMMAND_HAS_NO_EFFECT_str:
 	.pasciz "ERROR: command has no effect here"
+
+	; MSG_CURSOR_LEFT
+	.section .text.MSG_CURSOR_LEFT, code
+	.global _MSG_CURSOR_LEFT_str
+_MSG_CURSOR_LEFT_str:
+	.pasciz <27>, "[D"
+
+	; MSG_CURSOR_RIGHT
+	.section .text.MSG_CURSOR_RIGHT, code
+	.global _MSG_CURSOR_RIGHT_str
+_MSG_CURSOR_RIGHT_str:
+	.pasciz <27>, "[C"
+
+	; MSG_DESTRUCTIVE_BACKSPACE
+	.section .text.MSG_DESTRUCTIVE_BACKSPACE, code
+	.global _MSG_DESTRUCTIVE_BACKSPACE_str
+_MSG_DESTRUCTIVE_BACKSPACE_str:
+	.pasciz <8>, " ", <8>
 
 	; MSG_FINISH_SETUP_PROMPT
 	.section .text.MSG_FINISH_SETUP_PROMPT, code

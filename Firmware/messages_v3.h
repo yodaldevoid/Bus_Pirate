@@ -349,12 +349,20 @@ void MSG_CHIP_REVISION_ID_END_4_str(void);
 #define MSG_CHIP_REVISION_ID_END_4 bp_message_write_buffer(__builtin_tbladdress(MSG_CHIP_REVISION_ID_END_4_str))
 void MSG_CHIP_REVISION_UNKNOWN_str(void);
 #define MSG_CHIP_REVISION_UNKNOWN bp_message_write_buffer(__builtin_tbladdress(MSG_CHIP_REVISION_UNKNOWN_str))
+void MSG_CLEAR_LINE_WITH_CR_str(void);
+#define MSG_CLEAR_LINE_WITH_CR bp_message_write_buffer(__builtin_tbladdress(MSG_CLEAR_LINE_WITH_CR_str))
 void MSG_CLUTCH_DISENGAGED_str(void);
 #define MSG_CLUTCH_DISENGAGED bp_message_write_line(__builtin_tbladdress(MSG_CLUTCH_DISENGAGED_str))
 void MSG_CLUTCH_ENGAGED_str(void);
 #define MSG_CLUTCH_ENGAGED bp_message_write_line(__builtin_tbladdress(MSG_CLUTCH_ENGAGED_str))
 void MSG_COMMAND_HAS_NO_EFFECT_str(void);
 #define MSG_COMMAND_HAS_NO_EFFECT bp_message_write_line(__builtin_tbladdress(MSG_COMMAND_HAS_NO_EFFECT_str))
+void MSG_CURSOR_LEFT_str(void);
+#define MSG_CURSOR_LEFT bp_message_write_buffer(__builtin_tbladdress(MSG_CURSOR_LEFT_str))
+void MSG_CURSOR_RIGHT_str(void);
+#define MSG_CURSOR_RIGHT bp_message_write_buffer(__builtin_tbladdress(MSG_CURSOR_RIGHT_str))
+void MSG_DESTRUCTIVE_BACKSPACE_str(void);
+#define MSG_DESTRUCTIVE_BACKSPACE bp_message_write_buffer(__builtin_tbladdress(MSG_DESTRUCTIVE_BACKSPACE_str))
 void MSG_FINISH_SETUP_PROMPT_str(void);
 #define MSG_FINISH_SETUP_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_FINISH_SETUP_PROMPT_str))
 void MSG_HEXADECIMAL_NUMBER_PREFIX_str(void);

@@ -1,6 +1,6 @@
 /*
  * This file is part of the Bus Pirate project
- * (http://code.google.com/p/the-bus-pirate/).
+ * (https://github.com/BusPirate/Bus_Pirate/).
  *
  * Written and maintained by the Bus Pirate project.
  *
@@ -241,7 +241,6 @@ void serviceuser(void) {
   int repeat;
   unsigned char c;
   int temp;
-  int temp2;
   int numbits;
   unsigned char oldDmode; // temporarily holds the default display mode, while a
                           // different display read is performed
@@ -253,7 +252,6 @@ void serviceuser(void) {
   cmdend = 0;
   menu_state.cursor_position = cmdend;
   bus_pirate_configuration.bus_mode = BP_HIZ;
-  temp2 = 0;
   mode_configuration.command_error = NO;
 
   stop = 0;
@@ -1267,11 +1265,11 @@ again: // need to do it proper with whiles and ifs..
     case 0x08:
       if (i) {
         i--;
-        bp_write_string("\x08 \x08");
+        MSG_DESTRUCTIVE_BACKSPACE;
       } else {
         if (neg) {
           neg = 0;
-          bp_write_string("\x08 \x08");
+          MSG_DESTRUCTIVE_BACKSPACE;
         } else {
           user_serial_transmit_character(BELL);
         }
@@ -1375,11 +1373,11 @@ again: // need to do it proper with whiles and ifs..
     case 0x08:
       if (i) {
         i--;
-        bp_write_string("\x08 \x08");
+        MSG_DESTRUCTIVE_BACKSPACE;
       } else {
         if (neg) {
           neg = 0;
-          bp_write_string("\x08 \x08");
+          MSG_DESTRUCTIVE_BACKSPACE;
         } else {
           user_serial_transmit_character(BELL);
         }
@@ -1938,7 +1936,7 @@ void handle_backspace(void) {
     menu_state.cursor_position = cmdend;
 
     /* Move remote cursor. */
-    bp_write_string("\x08 \x08");
+    MSG_DESTRUCTIVE_BACKSPACE;
 
     return;
   }
@@ -1946,7 +1944,7 @@ void handle_backspace(void) {
   /* Cursor in the middle of the line. */
 
   /* Move remote cursor. */
-  bp_write_string("\x1B[D");
+  MSG_CURSOR_LEFT;
 
   /* Update current pointer. */
   menu_state.cursor_position = (menu_state.cursor_position - 1) & CMDLENMSK;
@@ -1966,7 +1964,7 @@ void handle_left_arrow(void) {
 
   if (menu_state.cursor_position != cmdstart) {
     menu_state.cursor_position = (menu_state.cursor_position - 1) & CMDLENMSK;
-    bp_write_string("\x1B[D");
+    MSG_CURSOR_LEFT;
   } else {
     user_serial_transmit_character(BELL);
   }
@@ -1978,12 +1976,12 @@ void handle_right_arrow(void) {
     return;
   }
   menu_state.cursor_position = (menu_state.cursor_position + 1) & CMDLENMSK;
-  bp_write_string("\x1B[C");
+  MSG_CURSOR_RIGHT;
 }
 
 void refresh_mode_prompt(void) {
   /* Clear line and carriage return. */
-  bp_write_string("\x1B[2K\x0D");
+  MSG_CLEAR_LINE_WITH_CR;
 
   /* Write mode header. */
   bp_write_string(enabled_protocols[bus_pirate_configuration.bus_mode].name);
