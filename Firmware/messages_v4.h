@@ -89,10 +89,6 @@ void BPMSG1094_str(void);
 #define BPMSG1094 bp_message_write_line(__builtin_tbladdress(BPMSG1094_str))
 void BPMSG1095_str(void);
 #define BPMSG1095 bp_message_write_buffer(__builtin_tbladdress(BPMSG1095_str))
-void BPMSG1096_str(void);
-#define BPMSG1096 bp_message_write_buffer(__builtin_tbladdress(BPMSG1096_str))
-void BPMSG1097_str(void);
-#define BPMSG1097 bp_message_write_buffer(__builtin_tbladdress(BPMSG1097_str))
 void BPMSG1098_str(void);
 #define BPMSG1098 bp_message_write_buffer(__builtin_tbladdress(BPMSG1098_str))
 void BPMSG1099_str(void);
@@ -385,6 +381,8 @@ void MSG_COMMAND_HAS_NO_EFFECT_str(void);
 #define MSG_COMMAND_HAS_NO_EFFECT bp_message_write_line(__builtin_tbladdress(MSG_COMMAND_HAS_NO_EFFECT_str))
 void MSG_CURSOR_LEFT_str(void);
 #define MSG_CURSOR_LEFT bp_message_write_buffer(__builtin_tbladdress(MSG_CURSOR_LEFT_str))
+void MSG_CURSOR_LEFT_TWO_str(void);
+#define MSG_CURSOR_LEFT_TWO bp_message_write_buffer(__builtin_tbladdress(MSG_CURSOR_LEFT_TWO_str))
 void MSG_CURSOR_RIGHT_str(void);
 #define MSG_CURSOR_RIGHT bp_message_write_buffer(__builtin_tbladdress(MSG_CURSOR_RIGHT_str))
 void MSG_DESTRUCTIVE_BACKSPACE_str(void);
@@ -461,6 +459,10 @@ void MSG_PIC_UNKNOWN_MODE_str(void);
 #define MSG_PIC_UNKNOWN_MODE bp_message_write_line(__builtin_tbladdress(MSG_PIC_UNKNOWN_MODE_str))
 void MSG_PIN_OUTPUT_TYPE_PROMPT_str(void);
 #define MSG_PIN_OUTPUT_TYPE_PROMPT bp_message_write_line(__builtin_tbladdress(MSG_PIN_OUTPUT_TYPE_PROMPT_str))
+void MSG_POWER_SUPPLIES_OFF_str(void);
+#define MSG_POWER_SUPPLIES_OFF bp_message_write_buffer(__builtin_tbladdress(MSG_POWER_SUPPLIES_OFF_str))
+void MSG_POWER_SUPPLIES_ON_str(void);
+#define MSG_POWER_SUPPLIES_ON bp_message_write_buffer(__builtin_tbladdress(MSG_POWER_SUPPLIES_ON_str))
 void MSG_PWM_FREQUENCY_TOO_LOW_str(void);
 #define MSG_PWM_FREQUENCY_TOO_LOW bp_message_write_line(__builtin_tbladdress(MSG_PWM_FREQUENCY_TOO_LOW_str))
 void MSG_PWM_HZ_MARKER_str(void);

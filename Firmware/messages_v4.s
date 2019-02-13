@@ -262,18 +262,6 @@ _BPMSG1094_str:
 _BPMSG1095_str:
 	.pasciz "AUX INPUT/HI-Z, READ: "
 
-	; BPMSG1096
-	.section .text.BPMSG1096, code
-	.global _BPMSG1096_str
-_BPMSG1096_str:
-	.pasciz "POWER SUPPLIES ON"
-
-	; BPMSG1097
-	.section .text.BPMSG1097, code
-	.global _BPMSG1097_str
-_BPMSG1097_str:
-	.pasciz "POWER SUPPLIES OFF"
-
 	; BPMSG1098
 	.section .text.BPMSG1098, code
 	.global _BPMSG1098_str
@@ -1150,6 +1138,12 @@ _MSG_COMMAND_HAS_NO_EFFECT_str:
 _MSG_CURSOR_LEFT_str:
 	.pasciz <27>, "[D"
 
+	; MSG_CURSOR_LEFT_TWO
+	.section .text.MSG_CURSOR_LEFT_TWO, code
+	.global _MSG_CURSOR_LEFT_TWO_str
+_MSG_CURSOR_LEFT_TWO_str:
+	.pasciz <27>, "[2D"
+
 	; MSG_CURSOR_RIGHT
 	.section .text.MSG_CURSOR_RIGHT, code
 	.global _MSG_CURSOR_RIGHT_str
@@ -1377,6 +1371,18 @@ _MSG_PIC_UNKNOWN_MODE_str:
 	.global _MSG_PIN_OUTPUT_TYPE_PROMPT_str
 _MSG_PIN_OUTPUT_TYPE_PROMPT_str:
 	.pasciz "Select output type:\r\n 1. Open drain (H=Hi-Z, L=GND)\r\n 2. Normal (H=3.3V, L=GND)"
+
+	; MSG_POWER_SUPPLIES_OFF
+	.section .text.MSG_POWER_SUPPLIES_OFF, code
+	.global _MSG_POWER_SUPPLIES_OFF_str
+_MSG_POWER_SUPPLIES_OFF_str:
+	.pasciz "POWER SUPPLIES OFF"
+
+	; MSG_POWER_SUPPLIES_ON
+	.section .text.MSG_POWER_SUPPLIES_ON, code
+	.global _MSG_POWER_SUPPLIES_ON_str
+_MSG_POWER_SUPPLIES_ON_str:
+	.pasciz "POWER SUPPLIES ON"
 
 	; MSG_PWM_FREQUENCY_TOO_LOW
 	.section .text.MSG_PWM_FREQUENCY_TOO_LOW, code
