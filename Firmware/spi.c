@@ -928,8 +928,8 @@ void spi_enter_binary_io(void) {
       spi_state.clock_polarity =
           (input_byte & 0b0100) ? SPI_CLOCK_IDLE_HIGH : SPI_CLOCK_IDLE_LOW;
       spi_state.clock_edge = (input_byte & 0b0010)
-                                 ? SPI_TRANSITION_FROM_IDLE_TO_ACTIVE
-                                 : SPI_TRANSITION_FROM_ACTIVE_TO_IDLE;
+                                 ? SPI_TRANSITION_FROM_ACTIVE_TO_IDLE
+                                 : SPI_TRANSITION_FROM_IDLE_TO_ACTIVE;
       spi_state.data_sample_timing = (input_byte & 0b0001)
                                          ? SPI_SAMPLING_ON_DATA_OUTPUT_END
                                          : SPI_SAMPLING_ON_DATA_OUTPUT_MIDDLE;
